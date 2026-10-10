@@ -84,6 +84,16 @@ Hold comments and internal notes are part of the record. Before acting, list wha
 - Several issues in one thread: one job each, with its own severity.
 - Earlier mistakes in the record (a job closed without evidence, a request never logged, a wrong update sent): fix them yourself. Log the job, correct the record with `add_note`, and tell the affected party plainly.
 
+**Carry the implication through.** Each fact you act on usually implies a next step; take it in the same run:
+- A recurring task gets a recurring schedule (every date, or the rule for future dates), not one reminder for the next date.
+- A fault that could exist elsewhere in the property (the same window, door or lock in another room): ask whether to include it. A security fault (a door, lock or window that will not secure): ask whether the property is secure now.
+- A lock nobody else holds a key to is an access and safety matter: ask for a key to the agency with a short deadline.
+- An essential appliance out of use with a distant visit date: ask the tenant whether that wait is acceptable and offer to chase a sooner slot.
+- A note about conflicting records lists every date with its source, tentative ones included.
+- Failed or disputed work: hold its invoice until it is resolved, and ask the provider to report what they find on the return visit.
+- An empty property (after check-out): arrange access with the agency's keys, not through the former tenant.
+- "See attached": check the attachment is the document described; if not, say so and ask for or resend the right one.
+
 When you do escalate, the packet says which routine steps you took first. Over-escalation wastes a human's time.
 
 ## 5. Reading an inbound message

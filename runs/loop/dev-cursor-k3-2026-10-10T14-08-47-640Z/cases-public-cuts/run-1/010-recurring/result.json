@@ -1,0 +1,304 @@
+{
+  "id": "010-recurring",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "cutoff": 15,
+  "totalEvents": 15,
+  "inputs": [
+    {
+      "name": "history.md",
+      "method": "derived",
+      "bytes": 2843,
+      "chars": 2813,
+      "note": "events 1–15 of 15 from history.md"
+    },
+    {
+      "name": "attachments/attachment-01-photograph-of-a-solar-photovoltaic-generation-me.pdf",
+      "method": "pdftotext",
+      "bytes": 73851,
+      "chars": 987
+    }
+  ],
+  "withheld": [
+    {
+      "name": "index.md",
+      "reason": "sections that reveal the ending: Overview, Outcome, Next action at escalation, History, Attachments"
+    },
+    {
+      "name": "rubric.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    }
+  ],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Current reading photo sent to landlord, who replied with next date 15 Sept. Recurring request continues; follow-ups scheduled; cadence confirmation awaited from landlord.",
+    "next_actions": [
+      {
+        "type": "REQUEST_INFORMATION",
+        "action": "Ask landlord to confirm whether the June reading is still wanted alongside 15 September",
+        "recipient": "Ava, landlord",
+        "channel": "email",
+        "ledger_id": "A3"
+      },
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Thank tenant, say nothing more needed now, next requests mid June and ~15 Sept",
+        "recipient": "Miles Fletcher, tenant",
+        "channel": "email",
+        "ledger_id": "A4"
+      },
+      {
+        "type": "WAIT",
+        "action": "Recurring follow-up every 3 months from 15 June 2025 (plus 15 Sept) to request next photo",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A1"
+      }
+    ],
+    "boundaries": [
+      "Does not confirm the reading value independently; the figure comes from the attached report only",
+      "Does not settle whether June is still required",
+      "Scheduling does not mean the tenant has agreed to future requests"
+    ],
+    "remaining_work": [
+      "Landlord to confirm cadence (June vs 15 Sept)",
+      "Request photo from tenant on each due date (follow-ups FUP-101, FUP-102)"
+    ],
+    "missing_info": [
+      "Landlord confirmation of reading cadence",
+      "Clarity on who supplied the photo (tenant email event 012 showed no attachment)"
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "The tenant's photo of the solar meter went to the landlord, who replied that she next needs it on 15 September. I replied to both parties, scheduled a recurring 3-monthly follow-up from mid June plus 15 Sept, and asked the landlord to confirm the cadence. No human decision needed.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "This cycle's reading is delivered to the landlord. Outstanding: the landlord's confirmation of whether the mid-June reading is still wanted, and the next reading requests."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Email to the landlord (Ava) to confirm cadence, email to the tenant (Miles) with thanks and the next timing, and a recurring follow-up for mid June / 15 Sept."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "No. It is routine and the open point is a single question to the landlord."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Recurring 3-monthly follow-up from 15 June 2025"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Follow-up for 15 Sept 2025"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Email to landlord confirming date and asking about June"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Email to tenant thanking and setting expectations"
+      },
+      {
+        "ledger_id": "A5",
+        "description": "Internal note on conflicts"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Original instruction: next due mid June; landlord now says 15 September. Treated landlord's latest statement as current for 15 Sept but kept June pending confirmation.",
+      "Event 008 call names a caller from Oakfield Compliance rather than the tenant; treated as the tenant.",
+      "Tenant email event 012 contained only a signature, yet a photo was sent to the landlord."
+    ],
+    "assumptions": [
+      "The attached PDF is the photo record for this property and today's reading."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "schedule_follow_up",
+      "args": {
+        "due_on": "2025-06-15",
+        "purpose": "Request solar panel meter reading photo from tenant for landlord (original standing instruction: every 3 months, next mid June). Then repeat every 3 months; landlord Ava also said she next needs it 15 September, so confirm cadence.",
+        "party": "Tenant (Miles Fletcher)",
+        "recurring": "every 3 months"
+      },
+      "key": "schedule_follow_up:{due_on:\"2025-06-15\",party:\"Tenant (Miles Fletcher)\",purpose:\"Request solar panel meter reading photo from tenant for landlord (original standing instruction: every 3 months, next mid June). Then repeat every 3 months; landlord Ava also said she next needs it 15 September, so confirm cadence.\",recurring:\"every 3 months\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "FUP-101",
+      "evidence": [
+        "FUP-101 found in the schedule_follow_up log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "schedule_follow_up",
+      "args": {
+        "due_on": "2025-09-15",
+        "purpose": "Landlord's stated next date for solar reading (email 17 Jan 2025): ask tenant for photo and send to landlord.",
+        "party": "Tenant (Miles Fletcher)"
+      },
+      "key": "schedule_follow_up:{due_on:\"2025-09-15\",party:\"Tenant (Miles Fletcher)\",purpose:\"Landlord's stated next date for solar reading (email 17 Jan 2025): ask tenant for photo and send to landlord.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "FUP-102",
+      "evidence": [
+        "FUP-102 found in the schedule_follow_up log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Ava",
+        "recipient_role": "landlord",
+        "channel": "email",
+        "contact": "existing thread (event 015 email)",
+        "body": "Hello Ava, thank you, noted that you next need the reading on 15 September. We had on file that readings are every 3 months, with the next due mid June. Do you want the June reading as well, or only 15 September? Unless you tell us otherwise we will ask the tenant for a photo in mid June and again on 15 September. Kind regards, Northbridge Lettings"
+      },
+      "key": "send_message:{body:\"Hello Ava, thank you, noted that you next need the reading on 15 September. We had on file that readings are every 3 months, with the next due mid June. Do you want the June reading as well, or only 15 September? Unless you tell us otherwise we will ask the tenant for a photo in mid June and again on 15 September. Kind regards, Northbridge Lettings\",channel:\"email\",contact:\"existing thread (event 015 email)\",recipient_name:\"Ava\",recipient_role:\"landlord\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-103",
+      "evidence": [
+        "MSG-103 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Miles Fletcher",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 012 email)",
+        "body": "Hello Miles, thank you for your help with the solar panel reading. The landlord has it and nothing more is needed now. We will email you again in mid June, and around 15 September, to ask for a new photo of the meter display. Kind regards, Northbridge Lettings"
+      },
+      "key": "send_message:{body:\"Hello Miles, thank you for your help with the solar panel reading. The landlord has it and nothing more is needed now. We will email you again in mid June, and around 15 September, to ask for a new photo of the meter display. Kind regards, Northbridge Lettings\",channel:\"email\",contact:\"existing thread (event 012 email)\",recipient_name:\"Miles Fletcher\",recipient_role:\"tenant\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-104",
+      "evidence": [
+        "MSG-104 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A5",
+      "tool": "add_note",
+      "args": {
+        "entity": "ticket Case 010 Flat 10, 180 Alder Lane",
+        "note": "Reading photo (meter display appears 16845, per attachment) sent to landlord 17 Jan 2025. Conflicts: tenant email event 012 had no visible photo attached, source of photo unclear; event 008 call names 'Oakfield Compliance' not tenant; landlord says next 15 Sept vs original mid June. Recurring 3-monthly follow-up set from 15 Jun; 15 Sept also scheduled; asked landlord to confirm."
+      },
+      "key": "add_note:{entity:\"ticket Case 010 Flat 10, 180 Alder Lane\",note:\"Reading photo (meter display appears 16845, per attachment) sent to landlord 17 Jan 2025. Conflicts: tenant email event 012 had no visible photo attached, source of photo unclear; event 008 call names 'Oakfield Compliance' not tenant; landlord says next 15 Sept vs original mid June. Recurring 3-monthly follow-up set from 15 Jun; 15 Sept also scheduled; asked landlord to confirm.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NOTE-105",
+      "evidence": [
+        "NOTE-105 found in the add_note log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-010-recurring",
+        "stage": "init",
+        "property": "Flat 10, 180 Alder Lane, Cedarford, ZZ3 4ZZ",
+        "description": "Solar panel readings every 3 months w photo needed from Ts for LL. Next due Mid June."
+      }
+    ],
+    "records": [
+      {
+        "id": "FUP-101",
+        "tool": "schedule_follow_up",
+        "args": {
+          "due_on": "2025-06-15",
+          "party": "Tenant (Miles Fletcher)",
+          "purpose": "Request solar panel meter reading photo from tenant for landlord (original standing instruction: every 3 months, next mid June). Then repeat every 3 months; landlord Ava also said she next needs it 15 September, so confirm cadence.",
+          "recurring": "every 3 months"
+        },
+        "at": 1791641341034
+      },
+      {
+        "id": "FUP-102",
+        "tool": "schedule_follow_up",
+        "args": {
+          "due_on": "2025-09-15",
+          "party": "Tenant (Miles Fletcher)",
+          "purpose": "Landlord's stated next date for solar reading (email 17 Jan 2025): ask tenant for photo and send to landlord."
+        },
+        "at": 1791641341035
+      },
+      {
+        "id": "MSG-103",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Ava",
+          "recipient_role": "landlord",
+          "channel": "email",
+          "contact": "existing thread (event 015 email)",
+          "body": "Hello Ava, thank you, noted that you next need the reading on 15 September. We had on file that readings are every 3 months, with the next due mid June. Do you want the June reading as well, or only 15 September? Unless you tell us otherwise we will ask the tenant for a photo in mid June and again on 15 September. Kind regards, Northbridge Lettings"
+        },
+        "at": 1791641341035
+      },
+      {
+        "id": "MSG-104",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Miles Fletcher",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 012 email)",
+          "body": "Hello Miles, thank you for your help with the solar panel reading. The landlord has it and nothing more is needed now. We will email you again in mid June, and around 15 September, to ask for a new photo of the meter display. Kind regards, Northbridge Lettings"
+        },
+        "at": 1791641341035
+      },
+      {
+        "id": "NOTE-105",
+        "tool": "add_note",
+        "args": {
+          "entity": "ticket Case 010 Flat 10, 180 Alder Lane",
+          "note": "Reading photo (meter display appears 16845, per attachment) sent to landlord 17 Jan 2025. Conflicts: tenant email event 012 had no visible photo attached, source of photo unclear; event 008 call names 'Oakfield Compliance' not tenant; landlord says next 15 Sept vs original mid June. Recurring 3-monthly follow-up set from 15 Jun; 15 Sept also scheduled; asked landlord to confirm."
+        },
+        "at": 1791641341036
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 10, 180 Alder Lane, Cedarford, ZZ3 4ZZ",
+        "landlord": {
+          "contact": "agency landlord record",
+          "notes": [
+            "Contact details are held in the agency system and not shown in this case file; messages to the landlord go through it. Use contact \"agency landlord record\".",
+            "Landlord messages visible in this case: event 013 (email, to landlord); event 015 (email, from landlord)."
+          ]
+        }
+      }
+    ]
+  },
+  "usage": {
+    "input": 6,
+    "output": 3159,
+    "cost": 0.08115030000000001,
+    "turns": 2,
+    "durationMs": 22143,
+    "retries": 0,
+    "thinkingTokens": 615
+  }
+}

@@ -1,0 +1,420 @@
+{
+  "id": "13",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "inputs": [
+    {
+      "name": "inputs/compliance.json",
+      "method": "text",
+      "bytes": 457,
+      "chars": 457
+    },
+    {
+      "name": "inputs/crm.json",
+      "method": "text",
+      "bytes": 845,
+      "chars": 845
+    },
+    {
+      "name": "inputs/emails_access.txt",
+      "method": "text",
+      "bytes": 403,
+      "chars": 403
+    },
+    {
+      "name": "inputs/legacy_notes.csv",
+      "method": "text",
+      "bytes": 180,
+      "chars": 180
+    }
+  ],
+  "withheld": [
+    {
+      "name": "checks.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    },
+    {
+      "name": "rubric.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    },
+    {
+      "name": "tool_failures.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    }
+  ],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "JOB-101 at visit stage; HeatRight booked Tue 13 Oct 9-12, tenant notified on all channels, awaiting tenant response; follow-up 12 Oct.",
+    "next_actions": [
+      {
+        "type": "BOOK_OR_CONFIRM_APPOINTMENT",
+        "action": "Booked HeatRight Ltd gas check 13 Oct 9-12",
+        "recipient": "HeatRight Ltd, contractor",
+        "channel": "portal",
+        "ledger_id": "A3"
+      },
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Written notice by email",
+        "recipient": "Luca Bianchi, tenant",
+        "channel": "email",
+        "ledger_id": "A4"
+      },
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "SMS notice",
+        "recipient": "Luca Bianchi, tenant",
+        "channel": "sms",
+        "ledger_id": "A5"
+      },
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Letter notice",
+        "recipient": "Luca Bianchi, tenant",
+        "channel": "letter",
+        "ledger_id": "A6"
+      },
+      {
+        "type": "OTHER",
+        "action": "Told landlord of deadline, booking and steps",
+        "recipient": "Ben Hartley, landlord",
+        "channel": "email",
+        "ledger_id": "A7"
+      },
+      {
+        "type": "WAIT",
+        "action": "Review tenant response on 12 Oct",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A8"
+      }
+    ],
+    "boundaries": [
+      "Booking does not mean tenant agreed; no entry without agreement.",
+      "Does not renew the certificate until the check is done and a new record issued.",
+      "Cost not confirmed; HeatRight quote/invoice must stay within £300 limit or go to Ben."
+    ],
+    "remaining_work": [
+      "Follow-up 12 Oct: confirm tenant access; try phone call/rebook before 16 Oct; escalate to compliance if no access.",
+      "After visit: record result, file CP12, send tenant copy within 28 days, tell landlord."
+    ],
+    "missing_info": [
+      "Tenant has not responded to any contact",
+      "HeatRight not yet confirmed the window in the record; no cost known",
+      "No property record in system (get_property not found)"
+    ],
+    "outcome": "action_taken",
+    "severity": "urgent",
+    "summary": "The gas safety record is valid until 16 Oct 2026, so the property is compliant today but expires in 6 days. Tenant has not replied to earlier contact. I opened JOB-101, assigned HeatRight (the gas contractor on file) for 13 Oct 9-12, sent written notice by email, SMS and letter, informed the landlord and scheduled a follow-up for 12 Oct.",
+    "answers": [
+      {
+        "question": "Is the property currently compliant? Which record do you trust?",
+        "answer": "Yes, until 16 Oct 2026. I trust compliance.json (CP12 issued 2025-10-17, expires 2026-10-16, Gas Safe 550123, which matches HeatRight) over the legacy note 'gas cert renewed 2025, all good', which is an old-agency hearsay note with no dates. Compliance lapses after 16 Oct if no new check is done."
+      },
+      {
+        "question": "What steps do you take to get access lawfully?",
+        "answer": "Gave written notice (email, SMS, letter) of a booked slot over 24h away on 13 Oct with an easy way to rearrange; no entry without tenant agreement; follow-up 12 Oct to phone/rebook; escalate to compliance if access is still not secured."
+      },
+      {
+        "question": "What do you tell the landlord?",
+        "answer": "Told Ben the expiry date, that Luca has not replied, the booking, the notice steps, that we won't enter without consent, and that the deadline doesn't move; he will get an update after the visit."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Created JOB-101"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Assigned HeatRight"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Set visit 13 Oct"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Email to tenant"
+      },
+      {
+        "ledger_id": "A5",
+        "description": "SMS to tenant"
+      },
+      {
+        "ledger_id": "A6",
+        "description": "Letter to tenant"
+      },
+      {
+        "ledger_id": "A7",
+        "description": "Email to landlord"
+      },
+      {
+        "ledger_id": "A8",
+        "description": "Follow-up 12 Oct"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Legacy note says cert renewed 2025 'all good' vs compliance record with exact dates; trusted compliance record.",
+      "get_property found no record for P-230; relied on case inputs."
+    ],
+    "assumptions": [
+      "HeatRight can attend the 13 Oct window (set as assigned this run); cost within £300 limit.",
+      "Letter address is the property address."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "create_ticket",
+      "args": {
+        "property": "P-230",
+        "category": "gas",
+        "severity": "urgent",
+        "description": "Annual gas safety check (CP12 expires 2026-10-16). Tenant Luca Bianchi not responded to email 25 Sep, email+SMS 2 Oct. Book HeatRight Ltd before expiry; no entry without tenant agreement.",
+        "tenant": "T-1030"
+      },
+      "key": "create_ticket:{category:\"gas\",description:\"Annual gas safety check (CP12 expires 2026-10-16). Tenant Luca Bianchi not responded to email 25 Sep, email+SMS 2 Oct. Book HeatRight Ltd before expiry; no entry without tenant agreement.\",property:\"P-230\",severity:\"urgent\",tenant:\"T-1030\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "JOB-101",
+      "evidence": [
+        "Ticket JOB-101 read back at stage init"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "assign_contractor",
+      "args": {
+        "ticket_ref": "JOB-101",
+        "contractor": "HeatRight Ltd",
+        "visit_window": "2026-10-13 09:00-12:00"
+      },
+      "key": "assign_contractor:{contractor:\"HeatRight Ltd\",ticket_ref:\"JOB-101\",visit_window:\"2026-10-13 09:00-12:00\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "JOB-101",
+      "evidence": [
+        "Ticket JOB-101 read back at stage visit"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "set_visit",
+      "args": {
+        "ticket_ref": "JOB-101",
+        "datetime": "2026-10-13 09:00",
+        "slot_text": "Tuesday 13 Oct, 9am-12pm",
+        "access": "tenant_home",
+        "confirmed_by": "assigned_this_run"
+      },
+      "key": "set_visit:{access:\"tenant_home\",confirmed_by:\"assigned_this_run\",datetime:\"2026-10-13 09:00\",slot_text:\"Tuesday 13 Oct, 9am-12pm\",ticket_ref:\"JOB-101\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "JOB-101",
+      "evidence": [
+        "Ticket JOB-101 read back after set_visit"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Luca Bianchi",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "luca.bianchi@mailbox.example",
+        "ticket_ref": "JOB-101",
+        "body": "Hi Luca, your annual gas safety check is due by 16 October. We've booked HeatRight Ltd (Gas Safe registered) to visit on Tuesday 13 October, 9am-12pm. Please be home to let the engineer in. The check usually takes under an hour. If that time doesn't suit, just reply or call us with another time before 16 October and we'll rearrange. You'll get a copy of the gas safety record within 28 days of the check. We'll be in touch again before the visit."
+      },
+      "key": "send_message:{body:\"Hi Luca, your annual gas safety check is due by 16 October. We've booked HeatRight Ltd (Gas Safe registered) to visit on Tuesday 13 October, 9am-12pm. Please be home to let the engineer in. The check usually takes under an hour. If that time doesn't suit, just reply or call us with another time before 16 October and we'll rearrange. You'll get a copy of the gas safety record within 28 days of the check. We'll be in touch again before the visit.\",channel:\"email\",contact:\"luca.bianchi@mailbox.example\",recipient_name:\"Luca Bianchi\",recipient_role:\"tenant\",ticket_ref:\"JOB-101\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-102",
+      "evidence": [
+        "MSG-102 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A5",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Luca Bianchi",
+        "recipient_role": "tenant",
+        "channel": "sms",
+        "contact": "+447700900130",
+        "ticket_ref": "JOB-101",
+        "body": "Hi Luca, gas safety check booked: Tue 13 Oct, 9am-12pm, HeatRight Ltd. Please be home. Can't make it? Reply with another time before 16 Oct and we'll rearrange. Details sent by email."
+      },
+      "key": "send_message:{body:\"Hi Luca, gas safety check booked: Tue 13 Oct, 9am-12pm, HeatRight Ltd. Please be home. Can't make it? Reply with another time before 16 Oct and we'll rearrange. Details sent by email.\",channel:\"sms\",contact:\"+447700900130\",recipient_name:\"Luca Bianchi\",recipient_role:\"tenant\",ticket_ref:\"JOB-101\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-103",
+      "evidence": [
+        "MSG-103 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A6",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Luca Bianchi",
+        "recipient_role": "tenant",
+        "channel": "letter",
+        "contact": "19 Victoria Park Road, London E9 7HD",
+        "ticket_ref": "JOB-101",
+        "body": "Dear Luca, written notice: a Gas Safe registered engineer from HeatRight Ltd will visit 19 Victoria Park Road on Tuesday 13 October 2026, 9am-12pm, for your annual gas safety check, which is legally due by 16 October. Please be home to give access. If the time doesn't suit, contact us with another time before 16 October. We will not enter without your agreement. You'll receive a copy of the record within 28 days."
+      },
+      "key": "send_message:{body:\"Dear Luca, written notice: a Gas Safe registered engineer from HeatRight Ltd will visit 19 Victoria Park Road on Tuesday 13 October 2026, 9am-12pm, for your annual gas safety check, which is legally due by 16 October. Please be home to give access. If the time doesn't suit, contact us with another time before 16 October. We will not enter without your agreement. You'll receive a copy of the record within 28 days.\",channel:\"letter\",contact:\"19 Victoria Park Road, London E9 7HD\",recipient_name:\"Luca Bianchi\",recipient_role:\"tenant\",ticket_ref:\"JOB-101\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-104",
+      "evidence": [
+        "MSG-104 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A7",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Ben Hartley",
+        "recipient_role": "landlord",
+        "channel": "email",
+        "contact": "ben.hartley@hartleyhomes.co.uk",
+        "ticket_ref": "JOB-101",
+        "body": "Hi Ben, the gas safety record for 19 Victoria Park Road expires on 16 October 2026 (it is currently valid until then). Luca hasn't replied to our email of 25 Sep or our email and SMS of 2 Oct. We've booked HeatRight Ltd for Tuesday 13 October, 9-12, and given Luca written notice by email, SMS and letter, with a way to rearrange. We won't enter without his agreement. If he doesn't respond or access fails, we'll try again before 16 Oct and update you. The deadline doesn't move. We'll update you after the visit."
+      },
+      "key": "send_message:{body:\"Hi Ben, the gas safety record for 19 Victoria Park Road expires on 16 October 2026 (it is currently valid until then). Luca hasn't replied to our email of 25 Sep or our email and SMS of 2 Oct. We've booked HeatRight Ltd for Tuesday 13 October, 9-12, and given Luca written notice by email, SMS and letter, with a way to rearrange. We won't enter without his agreement. If he doesn't respond or access fails, we'll try again before 16 Oct and update you. The deadline doesn't move. We'll update you after the visit.\",channel:\"email\",contact:\"ben.hartley@hartleyhomes.co.uk\",recipient_name:\"Ben Hartley\",recipient_role:\"landlord\",ticket_ref:\"JOB-101\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-105",
+      "evidence": [
+        "MSG-105 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A8",
+      "tool": "schedule_follow_up",
+      "args": {
+        "ticket_ref": "JOB-101",
+        "due_on": "2026-10-12",
+        "purpose": "Check whether tenant replied/confirmed 13 Oct gas check; if not, try phone/alternative contact and prepare rebook before 16 Oct; escalate to compliance if access not secured.",
+        "party": "Luca Bianchi"
+      },
+      "key": "schedule_follow_up:{due_on:\"2026-10-12\",party:\"Luca Bianchi\",purpose:\"Check whether tenant replied/confirmed 13 Oct gas check; if not, try phone/alternative contact and prepare rebook before 16 Oct; escalate to compliance if access not secured.\",ticket_ref:\"JOB-101\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "FUP-106",
+      "evidence": [
+        "FUP-106 found in the schedule_follow_up log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "JOB-101",
+        "stage": "visit",
+        "property": "P-230",
+        "tenant": "T-1030",
+        "category": "gas",
+        "severity": "urgent",
+        "description": "Annual gas safety check (CP12 expires 2026-10-16). Tenant Luca Bianchi not responded to email 25 Sep, email+SMS 2 Oct. Book HeatRight Ltd before expiry; no entry without tenant agreement.",
+        "contractor": "HeatRight Ltd",
+        "visit_window": "2026-10-13 09:00",
+        "visit": {
+          "datetime": "2026-10-13 09:00",
+          "slot_text": "Tuesday 13 Oct, 9am-12pm",
+          "access": "tenant_home"
+        }
+      }
+    ],
+    "records": [
+      {
+        "id": "MSG-102",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Luca Bianchi",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "luca.bianchi@mailbox.example",
+          "body": "Hi Luca, your annual gas safety check is due by 16 October. We've booked HeatRight Ltd (Gas Safe registered) to visit on Tuesday 13 October, 9am-12pm. Please be home to let the engineer in. The check usually takes under an hour. If that time doesn't suit, just reply or call us with another time before 16 October and we'll rearrange. You'll get a copy of the gas safety record within 28 days of the check. We'll be in touch again before the visit.",
+          "ticket_ref": "JOB-101"
+        },
+        "at": 1791641432699
+      },
+      {
+        "id": "MSG-103",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Luca Bianchi",
+          "recipient_role": "tenant",
+          "channel": "sms",
+          "contact": "+447700900130",
+          "body": "Hi Luca, gas safety check booked: Tue 13 Oct, 9am-12pm, HeatRight Ltd. Please be home. Can't make it? Reply with another time before 16 Oct and we'll rearrange. Details sent by email.",
+          "ticket_ref": "JOB-101"
+        },
+        "at": 1791641432699
+      },
+      {
+        "id": "MSG-104",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Luca Bianchi",
+          "recipient_role": "tenant",
+          "channel": "letter",
+          "contact": "19 Victoria Park Road, London E9 7HD",
+          "body": "Dear Luca, written notice: a Gas Safe registered engineer from HeatRight Ltd will visit 19 Victoria Park Road on Tuesday 13 October 2026, 9am-12pm, for your annual gas safety check, which is legally due by 16 October. Please be home to give access. If the time doesn't suit, contact us with another time before 16 October. We will not enter without your agreement. You'll receive a copy of the record within 28 days.",
+          "ticket_ref": "JOB-101"
+        },
+        "at": 1791641432700
+      },
+      {
+        "id": "MSG-105",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Ben Hartley",
+          "recipient_role": "landlord",
+          "channel": "email",
+          "contact": "ben.hartley@hartleyhomes.co.uk",
+          "body": "Hi Ben, the gas safety record for 19 Victoria Park Road expires on 16 October 2026 (it is currently valid until then). Luca hasn't replied to our email of 25 Sep or our email and SMS of 2 Oct. We've booked HeatRight Ltd for Tuesday 13 October, 9-12, and given Luca written notice by email, SMS and letter, with a way to rearrange. We won't enter without his agreement. If he doesn't respond or access fails, we'll try again before 16 Oct and update you. The deadline doesn't move. We'll update you after the visit.",
+          "ticket_ref": "JOB-101"
+        },
+        "at": 1791641432700
+      },
+      {
+        "id": "FUP-106",
+        "tool": "schedule_follow_up",
+        "args": {
+          "ticket_ref": "JOB-101",
+          "due_on": "2026-10-12",
+          "party": "Luca Bianchi",
+          "purpose": "Check whether tenant replied/confirmed 13 Oct gas check; if not, try phone/alternative contact and prepare rebook before 16 Oct; escalate to compliance if access not secured."
+        },
+        "at": 1791641432701
+      }
+    ],
+    "properties": []
+  },
+  "usage": {
+    "input": 14,
+    "output": 4080,
+    "cost": 0.0759114,
+    "turns": 6,
+    "durationMs": 30578,
+    "retries": 0,
+    "thinkingTokens": 110
+  }
+}

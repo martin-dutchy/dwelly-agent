@@ -1,0 +1,301 @@
+{
+  "id": "020-inspection-findings",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "cutoff": 20,
+  "totalEvents": 20,
+  "inputs": [
+    {
+      "name": "history.md",
+      "method": "derived",
+      "bytes": 4846,
+      "chars": 4806,
+      "note": "events 1–20 of 20 from history.md"
+    },
+    {
+      "name": "attachments/attachment-01-property-inspection-report.pdf",
+      "method": "pdftotext",
+      "bytes": 98171,
+      "chars": 12249
+    }
+  ],
+  "withheld": [
+    {
+      "name": "index.md",
+      "reason": "sections that reveal the ending: Overview, Outcome, Next action at escalation, History, Attachments"
+    },
+    {
+      "name": "rubric.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    }
+  ],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Inspection done, report uploaded and sent to landlord. Landlord has raised an unapproved dog flap and a spare key after a lock change. Agency is waiting on the tenant, with a review on 23 Feb.",
+    "next_actions": [
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Ask the tenant about dog flap consent, who changed the lock and when, and for a spare key by 23 Feb. Also ask them to make good the Bedroom 1 marks.",
+        "recipient": "Tenant",
+        "channel": "email",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "OTHER",
+        "action": "Reply to the landlord with what the record shows and apologise for the 'no issues' summary.",
+        "recipient": "Landlord",
+        "channel": "email",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "WAIT",
+        "action": "Follow up on 23 Feb for the tenant's reply and a landlord update.",
+        "recipient": "Tenant and landlord",
+        "channel": "internal",
+        "ledger_id": "A4"
+      }
+    ],
+    "boundaries": [
+      "Nothing here decides whether the dog flap is consented to, removed or charged for.",
+      "Nothing here establishes who changed the lock.",
+      "Asking for a key does not give the agency a right of entry."
+    ],
+    "remaining_work": [
+      "Tenant reply on consent, lock change and key (agency, by 23 Feb).",
+      "Landlord decision on the dog flap once the facts are known.",
+      "Check that the Bedroom 1 marks are made good.",
+      "Close the ticket after the follow-up."
+    ],
+    "missing_info": [
+      "Whether the landlord consented to the dog flap.",
+      "Who changed the lock, and when.",
+      "Who holds spare keys."
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "Inspection is complete. The report records a dog flap and Bedroom 1 sticker marks, so the earlier 'no issues' email to the landlord was wrong. I corrected that with the landlord, asked the tenant about consent, the lock change and a spare key, set a follow-up for 23 Feb and returned the ticket to auto mode.",
+    "answers": [
+      {
+        "question": "Where does this case stand, and what is outstanding?",
+        "answer": "The inspection is done and the report has been sent to the landlord. Outstanding: dog flap consent, the lock change and spare key, and the Bedroom 1 marks."
+      },
+      {
+        "question": "What is the next action, for whom, and through which channel?",
+        "answer": "Emails are already sent to the tenant (A2) and to the landlord (A1). The next step is the follow-up on 23 Feb (A4)."
+      },
+      {
+        "question": "Does anything need a human decision?",
+        "answer": "Not yet. If the tenant has no consent and the landlord wants the flap removed or charged for, that decision would need a human. Nothing needs one now."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Replied to the landlord with the report findings and the apology"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Asked the tenant about the dog flap, the lock change and a spare key"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Added a note on the conflicts and the route"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Scheduled the follow-up for 23 Feb"
+      },
+      {
+        "ledger_id": "A5",
+        "description": "Returned the ticket to auto mode"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Landlord named Oliver Bennett (event 017) vs Felix Clarke (event 020); treated as the landlord by the thread.",
+      "Visit dates 13/02 vs 15/02, and the report date 16/02. 'Friday 15th' was actually a Thursday.",
+      "Event 017 said no issues, but the report records a dog flap and Bedroom 1 marks. I trusted the report."
+    ],
+    "assumptions": [
+      "The sender of event 020 is the property's landlord.",
+      "The tenant's email on the event 014 thread is the right route."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Landlord",
+        "recipient_role": "landlord",
+        "channel": "email",
+        "contact": "agency landlord record",
+        "ticket_ref": "NBL-020-inspection-findings",
+        "body": "Thank you for your email. Please accept our apology: our summary of 17 Feb said no issues were found, but the attached report does record that the tenants have fitted a dog flap in the back door (utility room), and sticker-type marks on the Bedroom 1 wall that the tenant is to remove and make good. Our records do not show any consent for the dog flap, so we are asking the tenant whether permission was given and will come back to you. The report does not mention a lock change and nothing on our file shows one, so we are asking the tenant who changed the lock and when, and asking for a spare front door key to be sent to us by 23 Feb. Please tell us if you did arrange the lock change or hold a key yourself. We will update you by 23 Feb. Nothing is decided yet on the dog flap (consent, reinstatement or cost)."
+      },
+      "key": "send_message:{body:\"Thank you for your email. Please accept our apology: our summary of 17 Feb said no issues were found, but the attached report does record that the tenants have fitted a dog flap in the back door (utility room), and sticker-type marks on the Bedroom 1 wall that the tenant is to remove and make good. Our records do not show any consent for the dog flap, so we are asking the tenant whether permission was given and will come back to you. The report does not mention a lock change and nothing on our file shows one, so we are asking the tenant who changed the lock and when, and asking for a spare front door key to be sent to us by 23 Feb. Please tell us if you did arrange the lock change or hold a key yourself. We will update you by 23 Feb. Nothing is decided yet on the dog flap (consent, reinstatement or cost).\",channel:\"email\",contact:\"agency landlord record\",recipient_name:\"Landlord\",recipient_role:\"landlord\",ticket_ref:\"NBL-020-inspection-findings\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-101",
+      "evidence": [
+        "MSG-101 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Tenant",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 014 email)",
+        "ticket_ref": "NBL-020-inspection-findings",
+        "body": "Hi, thanks for having us in for the inspection. Two things please. 1) The report notes a dog flap in the back door. Changes like this need the landlord's written consent under the tenancy's alterations (and pets) clauses. Did you have their permission? If so, please send us a copy. 2) Our records don't show a lock change on the front door. Has the lock been changed, and if so who did it and when? If so, please get a spare front door key to us by 23 February so the agency and landlord hold one. Also, the report noted marks on the Bedroom 1 wall by the window that look like sticker residue from adhesive strips; please remove these and make good. We'll be in touch again by 23 February."
+      },
+      "key": "send_message:{body:\"Hi, thanks for having us in for the inspection. Two things please. 1) The report notes a dog flap in the back door. Changes like this need the landlord's written consent under the tenancy's alterations (and pets) clauses. Did you have their permission? If so, please send us a copy. 2) Our records don't show a lock change on the front door. Has the lock been changed, and if so who did it and when? If so, please get a spare front door key to us by 23 February so the agency and landlord hold one. Also, the report noted marks on the Bedroom 1 wall by the window that look like sticker residue from adhesive strips; please remove these and make good. We'll be in touch again by 23 February.\",channel:\"email\",contact:\"existing thread (event 014 email)\",recipient_name:\"Tenant\",recipient_role:\"tenant\",ticket_ref:\"NBL-020-inspection-findings\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-102",
+      "evidence": [
+        "MSG-102 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "add_note",
+      "args": {
+        "entity": "NBL-020-inspection-findings",
+        "note": "Landlord email event 020 (named Felix Clarke; event 017 addressed Oliver Bennett: name mismatch, treated as the property's landlord by thread). Raises unapproved dog flap and spare key after lock change. Report confirms dog flap (utility/back door) and Bedroom 1 sticker marks; no lock change on record. Event 017 wrongly said 'no issues' - corrected to landlord. Date conflicts: visit 13/02 (ev 002-004), 15/02 (ev 009-014), report appointment date 16/02; 'Friday 15th' was a Thursday. Asked tenant re consent/lock/key by 23 Feb."
+      },
+      "key": "add_note:{entity:\"NBL-020-inspection-findings\",note:\"Landlord email event 020 (named Felix Clarke; event 017 addressed Oliver Bennett: name mismatch, treated as the property's landlord by thread). Raises unapproved dog flap and spare key after lock change. Report confirms dog flap (utility/back door) and Bedroom 1 sticker marks; no lock change on record. Event 017 wrongly said 'no issues' - corrected to landlord. Date conflicts: visit 13/02 (ev 002-004), 15/02 (ev 009-014), report appointment date 16/02; 'Friday 15th' was a Thursday. Asked tenant re consent/lock/key by 23 Feb.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NOTE-103",
+      "evidence": [
+        "NOTE-103 found in the add_note log"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "schedule_follow_up",
+      "args": {
+        "ticket_ref": "NBL-020-inspection-findings",
+        "due_on": "2024-02-23",
+        "purpose": "Check tenant reply on dog flap consent, lock change and spare key; update landlord",
+        "party": "Tenant and landlord"
+      },
+      "key": "schedule_follow_up:{due_on:\"2024-02-23\",party:\"Tenant and landlord\",purpose:\"Check tenant reply on dog flap consent, lock change and spare key; update landlord\",ticket_ref:\"NBL-020-inspection-findings\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "FUP-104",
+      "evidence": [
+        "FUP-104 found in the schedule_follow_up log"
+      ]
+    },
+    {
+      "id": "A5",
+      "tool": "resume_auto",
+      "args": {
+        "ticket_ref": "NBL-020-inspection-findings"
+      },
+      "key": "resume_auto:{ticket_ref:\"NBL-020-inspection-findings\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-020-inspection-findings",
+      "evidence": [
+        "Ticket NBL-020-inspection-findings read back after resume_auto"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-020-inspection-findings",
+        "stage": "init",
+        "property": "Flat 12, 162 Beacon Close, Cedarford, ZZ9 5ZZ",
+        "description": "Inspection",
+        "mode": "auto"
+      }
+    ],
+    "records": [
+      {
+        "id": "MSG-101",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Landlord",
+          "recipient_role": "landlord",
+          "channel": "email",
+          "contact": "agency landlord record",
+          "body": "Thank you for your email. Please accept our apology: our summary of 17 Feb said no issues were found, but the attached report does record that the tenants have fitted a dog flap in the back door (utility room), and sticker-type marks on the Bedroom 1 wall that the tenant is to remove and make good. Our records do not show any consent for the dog flap, so we are asking the tenant whether permission was given and will come back to you. The report does not mention a lock change and nothing on our file shows one, so we are asking the tenant who changed the lock and when, and asking for a spare front door key to be sent to us by 23 Feb. Please tell us if you did arrange the lock change or hold a key yourself. We will update you by 23 Feb. Nothing is decided yet on the dog flap (consent, reinstatement or cost).",
+          "ticket_ref": "NBL-020-inspection-findings"
+        },
+        "at": 1791641475865
+      },
+      {
+        "id": "MSG-102",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Tenant",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 014 email)",
+          "body": "Hi, thanks for having us in for the inspection. Two things please. 1) The report notes a dog flap in the back door. Changes like this need the landlord's written consent under the tenancy's alterations (and pets) clauses. Did you have their permission? If so, please send us a copy. 2) Our records don't show a lock change on the front door. Has the lock been changed, and if so who did it and when? If so, please get a spare front door key to us by 23 February so the agency and landlord hold one. Also, the report noted marks on the Bedroom 1 wall by the window that look like sticker residue from adhesive strips; please remove these and make good. We'll be in touch again by 23 February.",
+          "ticket_ref": "NBL-020-inspection-findings"
+        },
+        "at": 1791641475866
+      },
+      {
+        "id": "NOTE-103",
+        "tool": "add_note",
+        "args": {
+          "entity": "NBL-020-inspection-findings",
+          "note": "Landlord email event 020 (named Felix Clarke; event 017 addressed Oliver Bennett: name mismatch, treated as the property's landlord by thread). Raises unapproved dog flap and spare key after lock change. Report confirms dog flap (utility/back door) and Bedroom 1 sticker marks; no lock change on record. Event 017 wrongly said 'no issues' - corrected to landlord. Date conflicts: visit 13/02 (ev 002-004), 15/02 (ev 009-014), report appointment date 16/02; 'Friday 15th' was a Thursday. Asked tenant re consent/lock/key by 23 Feb."
+        },
+        "at": 1791641475866
+      },
+      {
+        "id": "FUP-104",
+        "tool": "schedule_follow_up",
+        "args": {
+          "ticket_ref": "NBL-020-inspection-findings",
+          "due_on": "2024-02-23",
+          "party": "Tenant and landlord",
+          "purpose": "Check tenant reply on dog flap consent, lock change and spare key; update landlord"
+        },
+        "at": 1791641475866
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 12, 162 Beacon Close, Cedarford, ZZ9 5ZZ",
+        "landlord": {
+          "contact": "agency landlord record",
+          "notes": [
+            "Contact details are held in the agency system and not shown in this case file; messages to the landlord go through it. Use contact \"agency landlord record\".",
+            "Landlord messages visible in this case: event 017 (email, to landlord); event 020 (email, from landlord)."
+          ]
+        }
+      }
+    ]
+  },
+  "usage": {
+    "input": 8,
+    "output": 3270,
+    "cost": 0.05576790000000001,
+    "turns": 3,
+    "durationMs": 23261,
+    "retries": 0,
+    "thinkingTokens": 271
+  }
+}
