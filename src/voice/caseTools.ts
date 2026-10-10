@@ -10,7 +10,8 @@ import type { Verification } from '../agent/verify.js';
  */
 
 export type CaseRecord = { id: string; tool: string; args: Record<string, unknown>; at: string };
-export type VoiceWorld = Data & { case_log: CaseRecord[] };
+/** pre_verified: a tenant we rang on the number we hold counts as identified for the call. */
+export type VoiceWorld = Data & { case_log: CaseRecord[]; pre_verified?: string };
 
 const log = (ctx: ToolContext) => {
   const w = worldOf(ctx) as VoiceWorld;

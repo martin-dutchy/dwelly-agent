@@ -445,3 +445,13 @@ describe('production incidents (10 Oct)', () => {
     expect(await t('record_appointment', { date: '2024-06-06', time_window: '10:00', confirmed_by: 'contractor' })).toMatchObject({ ok: false, error: 'needs_landlord_approval' });
   });
 });
+
+describe('outbound tenant calls', () => {
+  it('can log a repair for a tenant we rang, without a date-of-birth check', async () => {
+    const { setWorldSeeder } = await import('./toolCall.js');
+    const { worldFor } = await import('./scenarios.js');
+    setWorldSeeder(worldFor);
+    const r = await handleVoiceToolCall('create_repair_ticket', { conversation_id: conv('outbound-tenant'), scenario_id: 'tenant-door-already-fixed', tenant_id: 'T-014', category: 'security', urgency: 'urgent', description: 'Back door sticks and needs a firm push to close', [READBACK_FIELD]: true });
+    expect(r).toMatchObject({ ok: true, verified: true });
+  });
+});
