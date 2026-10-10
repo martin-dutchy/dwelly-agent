@@ -2,7 +2,7 @@
 
 Status: Phase A and Phase B implemented on `marc/m4-harness` (A8 baselines left to the orchestrator) · Shape: default plan · Owner: Marc · Written 2026-10-10 12:05 BST by Claude for Marc · Window: 13:00 to 14:30 BST.
 
-Parent: [docs/plans/dwelly-case-worker-master-plan.md](../../../docs/plans/dwelly-case-worker-master-plan.md) (M4 row, AC4 to AC10, section 6 scope ladder, section 9 index). Metric definitions: [research/evaluation.md](../../../research/evaluation.md) sections 3 and 5. Conventions: `AGENTS.md`, `docs/plans/README.md`.
+Parent: [docs/plans/dwelly-case-worker-master-plan.md](dwelly-case-worker-master-plan.md) (M4 row, AC4 to AC10, section 6 scope ladder, section 9 index). Metric definitions: [research/evaluation.md](../../research/evaluation.md) sections 3 and 5. Conventions: `AGENTS.md`, `docs/plans/README.md`.
 
 This plan has two phases and says so in every section:
 
@@ -89,7 +89,7 @@ src/eval/
     cases/gamma/{case.md}                                 # no checks.json: global checks only
     cases/broken/{case.md,checks.json}                    # malformed: unknown kind -> exit 1
     loop-run/{summary stub}/cases-run-1..3/<id>/{result.json,ANSWER.md,REASONING.md,trace.jsonl,grades.json}
-  plans/harness-hardening-implementation-plan.md         # this plan
+  (plan moved to docs/plans/M4-harness-hardening-implementation-plan.md)
 cases/public-cuts/<id>/checks.json                       # first batch, step A6
 evals/baseline.json                                      # step A8, needs a key
 ```
@@ -326,7 +326,7 @@ Assumptions taken because the user could not be interviewed (hackathon exception
 - Decision: `pass` per run = judged, no critical, `required === 1`; `grades.json` gains `required`.
   Rationale: evaluation.md 3.6; prohibited actions already sit in `critical`. Date/Author: 2026-10-10 12:05, Claude for Marc.
 - Decision (Phase B field assumptions, from the M1 sub-plan step 7 and step 5): `decision.next_actions?: { type: <one of the 14 master-plan types or NO_ACTION>, ledger_id?: string, detail: string }[]`; `decision.case_state?: { stage: string, waiting_on?: string, open_approvals?: string[] }`; `update_ticket` args gain `payment?: 'with_payment' | 'without_payment'`, `resolution?`, `landlord_informed?`, `tenant_informed?` where each `*_informed` is a ledger id, `history: <quote>` or `not_applicable: <reason>`; `send_message` / `request_information` keep `recipient_role`. If any name differs when M1 merges, Phase B adapts to the merged names and this entry is amended.
-  Rationale: these are the names in `src/agent/maintenance/plans/maintenance-policy-and-state-implementation-plan.md`, the only written contract before the freeze. Date/Author: 2026-10-10 12:05, Claude for Marc.
+  Rationale: these are the names in `docs/plans/M1-maintenance-policy-and-state-implementation-plan.md`, the only written contract before the freeze. Date/Author: 2026-10-10 12:05, Claude for Marc.
 - Decision: if M1 lands without `next_actions`, Phase B ships degraded (`decision_points_answered` over `answers[]` only; `party_informed` without `when`; stability without next actions) and the summary notes `nextActions: false`.
   Rationale: AC6 and AC4 are then unprovable by code, but the rest of M4 keeps its value. Date/Author: 2026-10-10 12:05, Claude for Marc.
 - Decision: a `checks-result.json` is written next to `grades.json`, never inside the case folder, and `pnpm checks` never writes anything else under the answers dir.

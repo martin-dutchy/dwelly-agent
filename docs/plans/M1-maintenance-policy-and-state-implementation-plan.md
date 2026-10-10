@@ -2,7 +2,7 @@
 
 Status: implemented on marc/m1-gates, PR open (delta plan) · Shape: default plan · Owner: Marc · Written 2026-10-10 11:35 BST, rewritten 12:05 BST as a delta after Martin's commits `6f12bd6`, `5776204`, `d158159` landed most of the original scope on main · Branch for the remaining gaps: `marc/m1-gates`.
 
-Parent: [docs/plans/dwelly-case-worker-master-plan.md](../../../../docs/plans/dwelly-case-worker-master-plan.md) (M1, AC3, AC4, AC18–AC20). Spec for the rules: [docs/plans/master-plan-review-2026-10-10.md](../../../../docs/plans/master-plan-review-2026-10-10.md) §2 (invariants I1, I4, I6, I9, I14) and §3 (tiers T0–T3). Conventions: `AGENTS.md`, `docs/plans/README.md`.
+Parent: [docs/plans/dwelly-case-worker-master-plan.md](dwelly-case-worker-master-plan.md) (M1, AC3, AC4, AC18–AC20). Spec for the rules: [docs/plans/master-plan-review-2026-10-10.md](master-plan-review-2026-10-10.md) §2 (invariants I1, I4, I6, I9, I14) and §3 (tiers T0–T3). Conventions: `AGENTS.md`, `docs/plans/README.md`.
 
 ---
 

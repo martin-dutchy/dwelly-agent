@@ -1,5 +1,5 @@
 // Pure aggregation for the loop: one RunRow per case run -> folded per-case rows + the summary metrics.
-// Definitions: research/evaluation.md sections 3.6 and 5, src/eval/plans/harness-hardening-implementation-plan.md.
+// Definitions: research/evaluation.md sections 3.6 and 5, docs/plans/M4-harness-hardening-implementation-plan.md.
 import { type CheckResult, type ResultJson, criticalFailures } from './checks.js';
 
 export type EscalateLabel = 'yes' | 'no' | 'either';

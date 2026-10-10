@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Builds runs/rehearsal-cases/: absolute symlinks to the 25 cases of the 15:15 rehearsal
-# (the frozen holdout split plus 14 public cases never used for tuning; see src/plans/reality-runner-implementation-plan.md).
+# (the frozen holdout split plus 14 public cases never used for tuning; see docs/plans/M5-reality-runner-implementation-plan.md).
 # Prints counts only, never case content.
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
