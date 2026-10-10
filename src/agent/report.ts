@@ -73,7 +73,7 @@ export function renderReasoning(
   messages: any[],
   usage: Usage,
   error?: string,
-  checks?: { screen?: Screen; gateLog?: (GateResult & { tool: string; attempt: number })[] },
+  checks?: { screen?: Screen; gateLog?: (GateResult & { tool: string; attempt: number })[]; policyLog?: { tool: string; reason: string }[]; chaos?: Record<string, unknown> },
 ) {
   const steps: string[] = [];
   let n = 0;
@@ -91,7 +91,7 @@ export function renderReasoning(
   return `# Case ${c.id}: REASONING
 
 ## What the system received
-${c.inputs.map((i) => `- \`${i.name}\` (${i.content.length} chars)`).join('\n')}
+${c.inputs.map((i) => `- \`${i.name}\` (${c.media?.some((m) => m.name === i.name) ? 'sent to the model natively' : `${i.content.length} chars`})`).join('\n')}
 
 ${
   checks?.screen
@@ -101,6 +101,10 @@ ${
   checks?.gateLog?.length
     ? `## Pre-send message checks (Jev classifier)\n${checks.gateLog.map((g) => `- ${g.tool} attempt ${g.attempt}: ${g.error ? `unavailable (${g.error})` : g.block ? `held: ${g.reasons.join('; ')}` : 'passed'}`).join('\n')}\n\n`
     : ''
+}${
+  checks?.policyLog?.length ? `## Actions blocked by hard policy rules\n${checks.policyLog.map((p) => `- \`${p.tool}\`: ${p.reason}`).join('\n')}\n\n` : ''
+}${
+  checks?.chaos && Object.keys(checks.chaos).length ? `## Injected tool failures (robustness test, --chaos)\n\`\`\`json\n${JSON.stringify(checks.chaos)}\n\`\`\`\n\n` : ''
 }## Conflicts between sources
 ${d?.conflicts.map((x) => `- ${x}`).join('\n') || '_None identified._'}
 

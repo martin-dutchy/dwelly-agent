@@ -1,7 +1,7 @@
-import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { basename, extname, join } from 'node:path';
-import type { CaseInput } from './cases.js';
+import { basename, join } from 'node:path';
+import { readAttachment } from './attachments.js';
+import type { CaseInput, CaseMedia } from './cases.js';
 
 /**
  * Loader for the organisers' case format (HackatonPublicCases/<Track>/<n>/):
@@ -48,19 +48,6 @@ function resolveCutoff(index: string, total: number, at?: string): number {
   return Math.max(1, Math.floor(total / 2));
 }
 
-function readAttachment(path: string): string {
-  const ext = extname(path).toLowerCase();
-  if (ext === '.pdf') {
-    try {
-      return execFileSync('pdftotext', ['-layout', path, '-'], { encoding: 'utf8', maxBuffer: 10_000_000 });
-    } catch {
-      return '[PDF: text extraction failed (is poppler installed?)]';
-    }
-  }
-  if (['.png', '.jpg', '.jpeg', '.gif', '.webp'].includes(ext)) return '[Image attachment: not available as text]';
-  return readFileSync(path, 'utf8');
-}
-
 const clip = (s: string) => (s.length > MAX_FILE_CHARS ? `${s.slice(0, MAX_FILE_CHARS)}\n…[truncated ${s.length - MAX_FILE_CHARS} chars]` : s);
 
 export function loadPublicCase(dir: string, at?: string) {
@@ -81,9 +68,14 @@ export function loadPublicCase(dir: string, at?: string) {
   const attDir = join(dir, 'attachments');
   const allAtt = existsSync(attDir) ? readdirSync(attDir).sort() : [];
   const linkedLater = new Set(allAtt.filter((f) => hidden.some((e) => e.body.includes(f)) && !visible.some((e) => e.body.includes(f))));
-  const attachments: CaseInput[] = allAtt
-    .filter((f) => !linkedLater.has(f))
-    .map((f) => ({ name: `attachments/${f}`, content: clip(readAttachment(join(attDir, f))) }));
+  const attachments: CaseInput[] = [];
+  const media: CaseMedia[] = [];
+  for (const f of allAtt.filter((f) => !linkedLater.has(f))) {
+    const name = `attachments/${f}`;
+    const a = readAttachment(join(attDir, f), name);
+    attachments.push({ name, content: clip(a.content) });
+    if (a.media) media.push({ name, media: a.media });
+  }
 
   const brief = `${title}
 
@@ -112,6 +104,7 @@ ${parts.filter((p) => ['Overview', 'Next action at escalation', 'Outcome', 'Boun
     id: basename(dir),
     brief,
     inputs: [{ name: 'history.md', content: clip(`${preamble.replace(/Total events: \d+\.?/, `Events shown: ${cutoff}.`)}\n\n${visible.map(render).join('\n\n')}`) }, ...attachments],
+    media,
     reference,
     cutoff,
     totalEvents: events.length,

@@ -1,6 +1,7 @@
 import type { StreamFn } from '@earendil-works/pi-agent-core';
 import { type Api, type Model, createModels } from '@earendil-works/pi-ai';
 import { anthropicProvider } from '@earendil-works/pi-ai/providers/anthropic';
+import { pdfBlocksToDocuments } from './attachments.js';
 
 const models = createModels();
 models.setProvider(anthropicProvider());
@@ -35,7 +36,8 @@ export const streamFn: StreamFn = async (model, context, options) => {
   const headers = workspace ? { ...options?.headers, 'anthropic-workspace-id': workspace } : options?.headers;
   await acquire(model.id);
   try {
-    const stream = models.streamSimple(model, context, { ...options, headers });
+    const onPayload = async (payload: unknown, m: Model<Api>) => pdfBlocksToDocuments((await options?.onPayload?.(payload, m)) ?? payload);
+    const stream = models.streamSimple(model, context, { ...options, headers, onPayload });
     void stream.result().finally(() => release(model.id));
     return stream;
   } catch (e) {

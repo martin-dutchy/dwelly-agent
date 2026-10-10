@@ -21,6 +21,8 @@ const { values } = parseArgs({
     concurrency: { type: 'string', default: '6' },
     model: { type: 'string', default: process.env.JUDGE_MODEL ?? 'claude-opus-5-5' },
     label: { type: 'string', default: '' },
+    // Held-out runs: print and write scores only, never the per-item reasoning (so nobody tunes on it).
+    'summary-only': { type: 'boolean', default: false },
   },
 });
 
@@ -143,7 +145,7 @@ await Promise.all(
       try {
         const r = await judgeCase(dir, join(values.answers!, id));
         results.push(r);
-        console.log(`  ${r.critical.length ? '✗' : '✓'} ${id} score ${r.score}${r.critical.length ? ` CRITICAL ${r.critical.join(',')}` : ''}`);
+        if (!values['summary-only']) console.log(`  ${r.critical.length ? '✗' : '✓'} ${id} score ${r.score}${r.critical.length ? ` CRITICAL ${r.critical.join(',')}` : ''}`);
       } catch (e) {
         console.log(`  ! ${id} judge error: ${e instanceof Error ? e.message : e}`);
       }
@@ -152,7 +154,7 @@ await Promise.all(
 );
 results.sort((a, b) => a.id.localeCompare(b.id));
 
-console.table(
+if (!values['summary-only']) console.table(
   results.map((r) => ({
     case: r.id,
     score: r.score,
@@ -170,7 +172,9 @@ const stamp = new Date().toISOString().replace(/[:.]/g, '-');
 const file = join('evals', `report-${stamp}${values.label ? `-${values.label}` : ''}.md`);
 writeFileSync(
   file,
-  `# Eval report ${stamp} ${values.label}\n\nJudge: ${values.model} · Answers: ${values.answers} · Mean score **${avg.toFixed(1)}** · Critical cases ${crit}/${results.length}\n\n| Case | Score | Required | Red flags | Critical |\n|---|---|---|---|---|\n${results
+  values['summary-only']
+    ? `# Eval report ${stamp} ${values.label}\n\nHeld-out run: aggregate only. Mean score **${avg.toFixed(1)}** · Critical cases ${crit}/${results.length} · Judged ${results.length}/${dirs.length}\n`
+    : `# Eval report ${stamp} ${values.label}\n\nJudge: ${values.model} · Answers: ${values.answers} · Mean score **${avg.toFixed(1)}** · Critical cases ${crit}/${results.length}\n\n| Case | Score | Required | Red flags | Critical |\n|---|---|---|---|---|\n${results
     .map((r) => `| ${r.id} | ${r.score} | ${Math.round(r.required * 100)}% | ${r.redFlags} | ${r.critical.join(', ') || '-'} |`)
     .join('\n')}\n\n${results
     .map(

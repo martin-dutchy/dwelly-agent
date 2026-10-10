@@ -30,10 +30,11 @@ Run `date` first and work out the time left until 16:30.
 
 ## Procedure
 
-1. **Evidence, not vibes.** Use the latest eval numbers. If none are recent, run a quick batch:
+1. **Evidence, not vibes.** Use the latest `evals/latest-*.json`. If it is stale, run:
    ```bash
-   pnpm cases --in cases/practice --out runs/score && pnpm eval --cases cases/practice --answers runs/score
-   pnpm cases --in "HackatonPublicCases/Property Management" --out runs/pm --at auto --only <5-8 ids> && pnpm eval --cases "HackatonPublicCases/Property Management" --answers runs/pm
+   pnpm loop                  # dev split vs baseline (exits 1 on regression)
+   pnpm loop --chaos 0.15     # same cases with injected tool failures
+   pnpm loop --split holdout  # aggregates only: our estimate for the unseen Reality Test
    ```
    Record: cases attempted, cases finished without error (coverage), required outcomes hit, red flags, prohibited actions and critical failures, average seconds and cost per case. Check whether the full set can finish inside about 20 minutes at the current concurrency, since the 16:30-17:00 window is 30 minutes.
 2. **Score each row** from 0 to 5, with one line of evidence per row. Also run the `submission-check` script and count its FAILs as risk.
@@ -42,7 +43,13 @@ Run `date` first and work out the time left until 16:30.
    - **13:00-15:30**: fix failure clusters from the evals, then README sections 1-8, then the demo script and recording.
    - **15:30-16:30**: feature freeze. Only fix crashes and coverage. Record and commit the demo video, make sure the repo is public, and do a dry run of `reality-test-run` on practice cases.
    - Never trade coverage for polish. Any crash path in the runner outranks any prompt tweak.
-4. **Watch for overfitting.** Reality Test cases are unseen. Prefer general fixes (policy, tool error handling, uncertainty handling) over prompts tuned to a specific case. Rehearse with `--at` decision points on held-out public cases.
+4. **Check for the organisers' (Anthropic's) five pitfalls.** Report each as ✅ or ❌:
+   - *Testing by hand*: one command runs every case, grades it and diffs against the last run. Any manual check is a gap.
+   - *Tuning on every case*: there is a fixed held-out split, and only its aggregate score has been read. Nobody looks at held-out transcripts while tuning.
+   - *Happy path only*: the evals include sources that disagree, missing fields, failing tools (error, silent drop, timeout) and requests that break policy.
+   - *Waiting for an answer*: no tool blocks on a human. When nobody can approve, the agent refuses the action and escalates with a reason.
+   - *One crash stops the batch*: each case has its own timeout, try/catch and log/trace file.
+5. **Watch for overfitting.** Reality Test cases are unseen. Prefer general fixes (policy, tool error handling, uncertainty handling) over prompts tuned to a specific case. Rehearse with `--at` decision points on held-out public cases.
 
 ## Output
 

@@ -1,15 +1,20 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import type { ImageContent } from '@earendil-works/pi-ai';
 import { basename, join, relative } from 'node:path';
+import { isBinaryAttachment, readAttachment } from './attachments.js';
 import { type FailurePlan, normaliseFailurePlan } from '../core/failures.js';
 import type { Ticket } from './opsTools.js';
 import { isPublicCase, loadPublicCase } from './publicCases.js';
 
 export type CaseInput = { name: string; content: string };
+/** Images and scanned PDFs, sent to the model as native content blocks. */
+export type CaseMedia = { name: string; media: ImageContent };
 export type LoadedCase = {
   id: string;
   dir: string;
   brief: string;
   inputs: CaseInput[];
+  media: CaseMedia[];
   failures: FailurePlan;
   seedTickets: Ticket[];
   /** Public-format cases only: the hidden ending, shown to the judge and never to the agent. */
@@ -43,13 +48,17 @@ export function loadCase(dir: string, at?: string): LoadedCase {
   if (isPublicCase(dir)) return { ...loadPublicCase(dir, at), dir, failures: {}, seedTickets: [] };
   const files = walk(dir).filter((p) => !HIDDEN.has(basename(p)));
   const briefPath = ['case.md', 'CASE.md', 'README.md', 'task.md'].map((f) => join(dir, f)).find(existsSync);
+  const media: CaseMedia[] = [];
   const inputs = files
     .filter((p) => p !== briefPath)
     .sort()
     .map((p) => {
-      let content = readFileSync(p, 'utf8');
+      const name = relative(dir, p);
+      const a = isBinaryAttachment(p) ? readAttachment(p, name) : { content: readFileSync(p, 'utf8') };
+      if (a.media) media.push({ name, media: a.media });
+      let content = a.content;
       if (content.length > MAX_FILE_CHARS) content = `${content.slice(0, MAX_FILE_CHARS)}\n…[truncated ${content.length - MAX_FILE_CHARS} chars]`;
-      return { name: relative(dir, p), content };
+      return { name, content };
     });
   const seedTickets = inputs
     .filter((i) => /ticket/i.test(i.name) && i.name.endsWith('.json'))
@@ -66,6 +75,7 @@ export function loadCase(dir: string, at?: string): LoadedCase {
     dir,
     brief: briefPath ? readFileSync(briefPath, 'utf8') : '(no case brief provided)',
     inputs,
+    media,
     failures: existsSync(failuresPath) ? normaliseFailurePlan(JSON.parse(readFileSync(failuresPath, 'utf8'))) : {},
     seedTickets,
   };

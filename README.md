@@ -38,6 +38,12 @@ cp .env.example .env   # fill in keys
 
 ### Run
 ```bash
+# The test loop: run a frozen split (cases/splits.json), grade it, and diff against the saved baseline.
+# Exits 1 on a regression. Add --chaos 0.15 to inject random tool failures (error, silent drop, timeout).
+pnpm loop                        # dev split, per-case table
+pnpm loop --save-baseline        # accept the current scores as the new baseline
+pnpm loop --split holdout        # held-out split: aggregate scores only, never tuned on
+
 # Process a folder of cases and write ANSWERS/<n>/ANSWER.md + REASONING.md
 pnpm cases --in cases/practice --out ANSWERS
 
@@ -47,6 +53,8 @@ pnpm cases --in "HackatonPublicCases/Property Management" --out runs/pm --only 0
 # Grade a run: practice cases use their rubric.json, public cases are graded against the recorded ending
 pnpm eval --cases "HackatonPublicCases/Property Management" --answers runs/pm
 ```
+
+Images and scanned PDFs (no text layer) are sent to Claude natively. PDFs with a text layer go through `pdftotext`.
 
 `--at auto` uses the case's recorded escalation point when it has one; otherwise it cuts halfway through the history (Property Management cases have no marker).
 

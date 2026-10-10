@@ -87,10 +87,11 @@ describe('verified actions with pi hooks', () => {
       fauxAssistantMessage([verifyCall]),
       fauxAssistantMessage([fauxToolCall('create_repair_ticket', ticketArgs)]), // hard 500
       fauxAssistantMessage([fauxToolCall('submit_decision', decision({ outcome: 'resolved' }))]), // hides the failure
+      fauxAssistantMessage([fauxToolCall('escalate_to_human', { tenant_id: 'T-1003', priority: 'P3', reason: 'Repair system down', handover_summary: 'Oven hinge; ticket failed' })]),
       fauxAssistantMessage([
         fauxToolCall(
           'submit_decision',
-          decision({ outcome: 'escalated', failed_actions: [{ ledger_id: 'A1', handling: 'Repair system down; escalated to human' }] }),
+          decision({ outcome: 'escalated', failed_actions: [{ ledger_id: 'A1', handling: 'Repair system down; escalated to human as A2' }] }),
         ),
       ]),
     ]);

@@ -1,8 +1,10 @@
 // Batch runner: process every case folder autonomously and write ANSWERS/<id>/.
 // Usage: pnpm cases --in cases/practice --out ANSWERS [--only 01,06] [--concurrency 6] [--model claude-sonnet-5-5]
+// Robustness: add --chaos 0.15 [--seed x] to inject random tool failures into every case.
 // Public-format cases: pnpm cases --in "HackatonPublicCases/Property Management" --out runs/pm [--at auto|12|50%]
 import 'dotenv/config';
 import { mkdirSync, writeFileSync } from 'node:fs';
+import { chaosPlan } from './core/failures.js';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { runCase } from './agent/caseAgent.js';
@@ -23,6 +25,8 @@ const { values } = parseArgs({
     thinking: { type: 'string', default: 'medium' },
     timeout: { type: 'string', default: '300' },
     at: { type: 'string', default: 'auto' },
+    chaos: { type: 'string', default: '0' },
+    seed: { type: 'string', default: '1' },
   },
 });
 
@@ -41,14 +45,19 @@ async function processCase(dir: string): Promise<Row> {
     c = loadCase(dir, values.at);
     const prompt = casePrompt(c);
     const screen = await prescreen(prompt);
+    const toolset = createOpsToolset(c.seedTickets);
+    const writeTools = toolset.tools.filter((t) => t.kind === 'write').map((t) => t.name);
+    const failures = chaosPlan(writeTools, Number(values.chaos), `${values.seed}:${c.id}`, c.failures);
+    const chaos = Object.fromEntries(Object.entries(failures).filter(([k]) => !(k in c!.failures)));
     const run = await runCase({
       caseId: c.id,
       prompt: prompt + screenNote(screen),
       systemPrompt: CASE_SYSTEM_PROMPT,
       model,
       streamFn,
-      failures: c.failures,
-      toolset: createOpsToolset(c.seedTickets),
+      failures,
+      media: c.media,
+      toolset,
       thinkingLevel: values.thinking as 'off' | 'low' | 'medium' | 'high',
       timeoutMs: Number(values.timeout) * 1000,
     });
@@ -61,11 +70,11 @@ async function processCase(dir: string): Promise<Row> {
       durationMs: Date.now() - started,
     };
     writeFileSync(join(outDir, 'ANSWER.md'), renderAnswer(c, run.decision, run.ledger, run.error));
-    writeFileSync(join(outDir, 'REASONING.md'), renderReasoning(c, run.decision, run.ledger, run.messages, usage, run.error, { screen, gateLog: run.gateLog }));
+    writeFileSync(join(outDir, 'REASONING.md'), renderReasoning(c, run.decision, run.ledger, run.messages, usage, run.error, { screen, gateLog: run.gateLog, policyLog: run.policyLog, chaos }));
     writeFileSync(join(outDir, 'trace.jsonl'), run.trace.map((e) => JSON.stringify(e)).join('\n') + '\n');
     writeFileSync(
       join(outDir, 'result.json'),
-      JSON.stringify({ id: c.id, model: values.model, cutoff: c.cutoff, screen, gateLog: run.gateLog, decision: run.decision, ledger: run.ledger, state: run.state, usage, error: run.error }, null, 2),
+      JSON.stringify({ id: c.id, model: values.model, cutoff: c.cutoff, chaos, screen, gateLog: run.gateLog, policyLog: run.policyLog, decision: run.decision, ledger: run.ledger, state: run.state, usage, error: run.error }, null, 2),
     );
     return {
       id: c.id,
@@ -101,7 +110,7 @@ async function pool<T, R>(items: T[], n: number, fn: (t: T) => Promise<R>) {
   return results;
 }
 
-console.log(`Running ${dirs.length} cases with ${values.model} (concurrency ${values.concurrency}, Jev ${jevEnabled() ? 'on' : 'off'})…`);
+console.log(`Running ${dirs.length} cases with ${values.model} (concurrency ${values.concurrency}, Jev ${jevEnabled() ? 'on' : 'off'}${Number(values.chaos) > 0 ? `, chaos ${values.chaos} seed ${values.seed}` : ''})…`);
 const t0 = Date.now();
 const rows = await pool(dirs, Number(values.concurrency), processCase);
 console.table(rows.map((r) => ({ ...r, cost: `$${r.cost.toFixed(3)}`, secs: Math.round(r.secs) })));
