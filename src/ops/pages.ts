@@ -188,10 +188,11 @@ button.secondary { font:inherit; min-height:32px; padding:6px var(--s3); border-
 }
 `;
 
-export function layout(title: string, body: string, o: { openTasks?: number; refresh?: boolean; current?: 'decisions' | 'evals'; wide?: boolean; css?: string } = {}) {
+export function layout(title: string, body: string, o: { openTasks?: number; refresh?: boolean; current?: 'decisions' | 'evals' | 'live'; wide?: boolean; css?: string } = {}) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>${o.refresh ? '<meta http-equiv="refresh" content="8">' : ''}${FONTS}<style>${BASE_CSS}${o.css ?? ''}</style></head>
 <body><nav class="top" aria-label="Main"><a class="brand" href="/ops">Dwelly operations</a>
+<a class="nav" href="/ops/live"${o.current === 'live' ? ' aria-current="page"' : ''}>Live</a>
 <a class="nav" href="/ops"${o.current === 'decisions' ? ' aria-current="page"' : ''}>Decisions${o.openTasks ? `<span class="count">${o.openTasks}</span>` : ''}</a>
 <a class="nav" href="/ops/show">Demo</a><a class="nav" href="/ops/evals"${o.current === 'evals' ? ' aria-current="page"' : ''}>Eval runs</a><a class="nav" href="/admin">Voice calls</a></nav>
 <main${o.wide ? ' class="wide"' : ''}>${body}</main></body></html>`;

@@ -58,7 +58,7 @@ const CALLS: Record<string, { name: string; context: string; result: string; ask
 // States only what is known: the parking question goes to block management, and the tenant hears back.
 const DRAFT = 'Hi, thanks for your message. Garage parking isn’t covered in the records we hold for Flat 10, so I’ve asked the block management team whether you need to register and which spaces are available. I’ll update you as soon as I hear back.';
 
-const STEP: Record<string, string> = {
+export const STEP: Record<string, string> = {
   REQUEST_LANDLORD_APPROVAL: 'asked the landlord to approve',
   ASSIGN_PROVIDER: 'contractor assigned',
   BOOK_OR_CONFIRM_APPOINTMENT: 'visit booked',
@@ -72,12 +72,12 @@ const STEP: Record<string, string> = {
   CLOSE_WITH_PAYMENT: 'closed',
   CLOSE_WITHOUT_PAYMENT: 'closed',
 };
-const short = (t: string, n = 70) => (t.length > n ? `${t.slice(0, n - 1).trimEnd()}…` : t);
-const confirmed = (es: OpsEvent[]) =>
+export const short = (t: string, n = 70) => (t.length > n ? `${t.slice(0, n - 1).trimEnd()}…` : t);
+export const confirmed = (es: OpsEvent[]) =>
   es.filter((e) => ['action', 'message', 'follow_up'].includes(e.kind) && e.actor === 'agent' && e.status === 'verified').map((e) => short(e.title.replace(/^Whatsapp/, 'WhatsApp'), 64));
 
 /** The last event before the agent took over: what the case was stuck on, in the workflow's own words. */
-function stuckOn(historyMd: string) {
+export function stuckOn(historyMd: string) {
   const last = parseHistory(historyMd).events.at(-1);
   if (!last) return { when: '', text: '' };
   const line = last.body.split('\n').find((l) => l.trim() && !l.startsWith('- **')) ?? '';

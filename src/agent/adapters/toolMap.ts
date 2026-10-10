@@ -15,6 +15,8 @@ export const DEFAULT_TOOL_MAP: Record<string, string[]> = {
   approve_quote: ['approve_quote'],
   close_ticket: ['close_ticket', 'close_job', 'complete_job'],
   add_note: ['add_note', 'create_note'],
+  verify_identity: ['verify_identity', 'verify_caller'],
+  share_tenant_contact: ['share_tenant_contact', 'share_contact'],
 };
 
 export type Target = { tool: string; method: string; path: string; args: Record<string, string> };

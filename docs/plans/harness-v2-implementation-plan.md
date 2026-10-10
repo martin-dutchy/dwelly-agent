@@ -412,7 +412,7 @@ evidence; contract change requests; discoveries (unexpected behaviour with evide
 
 1. Merge into `h2/base` in this order, running `pnpm verify` after each merge: B, A, C, E, F, R, G, D, T. Swap each stub for the real entry point as it lands.
 2. Apply the contract change requests from the Wave 1 reports. Each is a small commit with its tests.
-3. Add `cases/practice/61..70` to the `expansion` group in `cases/splits.json` (additive only).
+3. Add `cases/practice/91..100` to the `expansion` group in `cases/splits.json` (additive only).
 4. `/code-review` on the combined diff for `caseAgent.ts`, `run.ts` and the schema.
 5. Smoke test with every flag on: `HARNESS=all pnpm cases --in cases/practice --only 05,25,40,61,69 --out runs/h2-smoke --profile quick`. All decide, and `REASONING.md` shows the brief, skills, guard and completion sections.
 
@@ -449,7 +449,7 @@ Each layer in `taxonomy.json` with misses becomes a fix ticket for the workstrea
 - [ ] **H8 Skills.** At least 14 skills pass the lint test. The classifier tests in D2 pass, and the always-on prompt is at most 130 lines.
 - [ ] **H9 Taxonomy.** `pnpm loop` prints a table of misses per layer, and `taxonomy.json` exists for every run.
 - [ ] **H10 Gate.** Each flag whose default is flipped meets every condition in Wave 3 step 5, with numbers recorded in the Decision log. Flags that miss stay off.
-- [ ] **H11 Coverage cases.** Ten new practice cases (61-70) exist with rubric and checks, and sit in the `expansion` group.
+- [ ] **H11 Coverage cases.** Ten new practice cases (91-100) exist with rubric and checks, and sit in the `expansion` group.
 
 ## Verification
 
@@ -485,9 +485,79 @@ Run from the repo root (or from the workstream's worktree in Wave 1). Show the o
   - `pnpm cases --in cases/practice --only 05 --out runs/h2-w0-off`: 1/1 decisions, `result.json` `harness.flags` = "none";
   - `HARNESS=all pnpm cases --in "HackatonPublicCases/Property Management" --only 002 --at auto --out runs/h2-w0-all`: 1/1 decisions, all flags recorded in `run.json`;
   - self-review of the hot-file diff found that `ingestV2` gated nothing. Fixed: with it off, `run.ts` uses `loadCase` directly.
-- [ ] Wave 1: A · B · C · D · E · F · G · R · T
+- [x] (15:33) WS G merged into `h2/base` (`f3816fb`; `pnpm verify` 598 tests green). Brief and skill text no longer count as critic evidence. Red flags become checklist items S1..S12 in the critic's system prompt. With context absent or empty, the critic is byte-identical to before (hash test).
+- [x] (15:34) WS R merged into `h2/base` (`pnpm verify` 607 tests green). New ANSWER.md sections: Escalations joined to the ledger, Follow-ups, Unknowns. Anything without a verified ledger id renders "not done (why)". REASONING.md gets harness sections only when there is data. With no new fields, output is byte-identical to before (snapshots committed first). The integrator now derives the fixed critic ids from `CHECKLIST` instead of a copy.
+- [x] (15:35) WS F merged into `h2/base` (`pnpm vitest` 34 files and 633 tests green). Five completion checks are registered and the cap per check is tested end to end. Replayed over 408 earlier dev and expansion decisions, the over-claim check bounced none and the safety check bounced 2, each fixable with one assumption line. Smoke run with `completionV2`: 3/3 decided on the first submit.
+- [x] (15:38) WS A merged into `h2/base` (36 files and 647 tests green). The per-case work moved to `src/runner/processCase.ts`, with an abort per case, a deterministic crash answer, tolerance for a malformed `tool_failures.json`, and temperature recorded ("provider default" on the Claude 5.5 models). Wave 2 wiring applied early in `processCase.ts`:
+  - the brief and tags are computed whenever `brief`, `guardsV2` or `completionV2` is on, and only the `brief` and `skills` flags change the prompt;
+  - `briefText` reaches the critic only when the brief is on;
+  - `harness` and `brief` are passed to `renderReasoning`;
+  - `brief` is written to `result.json`;
+  - in `caseAgent.ts`, the timeout message now wins over "Request was aborted".
+
+  `pnpm verify` green. The smoke run with every flag on wrote `brief` to `result.json`, but the case got a 400 from the API (see Discoveries, `.env`).
+- [x] (15:50) WS D merged into `h2/base` (`pnpm verify` 38 files and 689 tests green). It adds 18 skills, a deterministic classifier, selection capped at 3, and `CASE_SYSTEM_PROMPT_V2` (127 lines). `CASE_SYSTEM_PROMPT` is byte-identical to before and frozen at `skills/legacy/maintenance-policy-v1.md`. Wave 2 wiring in `processCase.ts`:
+  - `CASE_SYSTEM_PROMPT_V2` is used for both `runCase` and `TRANSCRIPT.md` when `skills` is on;
+  - `renderSkills(skills, tags)` names matching skills that the cap left out;
+  - `result.json` `harness.tags` records the classifier tags whenever they are computed, even with `brief` off.
+
+  Smoke run with every flag on, practice 05 and 23: 2/2 decided, 0 unverified actions, $0.18. Tags and skills recorded (05: landlord-approval and quote-invoice; 23: gas-emergency, vulnerable-occupant and identity-privacy). No guard blocks, completion bounces or `load_skill` calls.
+- [x] (15:41) WS B and WS T merged into `h2/base` (`pnpm verify` 47 files and 1,284 tests green).
+  - B: MIME email decoding, timelines and parties for every format, `now` taken from the case's Today line, unreadable binaries replaced by a placeholder, and folders with no brief handled as generic. The `loadCase` hash snapshot over every non-holdout folder is unchanged.
+  - T: miss taxonomy and the `pnpm loop` changes (taxonomy table, `--harness` passthrough, baseline names keyed by flag set), plus practice cases 91-100.
+
+  Integration after the merge:
+  - the ingest golden test now treats practice 99 (no brief) and 100 (MIME email with a PDF) as named exceptions, each with its own test of the expected difference;
+  - the `loadCase` snapshot gained the 10 new folders, and no existing hash changed;
+  - `result.json` `harness` now records `conflicts` (kind and severity) and `manifest` for the taxonomy;
+  - the taxonomy's fallback skill id is now `compliance-certificates`;
+  - the `ManifestEntry.included` doc says brief files are `false`;
+  - `cases/splits.json` gained an `expansion` group with practice 91-100, an additive edit.
+
+  Smoke run with every flag on, practice 99 and 100: 2/2 decided, 0 unverified actions, $0.12. Case 100 read the £522 total from the PDF inside the email and asked the landlord to approve it because it is over the £300 limit.
+- [x] (15:44) WS C and WS E merged into `h2/base`. Wave 1 is complete: `pnpm verify` 56 files and 1,466 tests green.
+  - C: a typed brief with facts, conflicts, deadlines and money for every format, with sources that always resolve.
+  - E: `verify_identity` and `share_tenant_contact`; a tier for every tool and the tier-3 basis guard; message, prohibited-content and loop guards; typed failure classes.
+
+  Integration after the merge:
+  - public 047's address conflict now cites `ev:10` from ingest instead of `doc:history.md`, and the test expects that;
+  - `identity-privacy.md` now names the two new tools;
+  - failure classes are gated on `guardsV2`: with the flag off, the ledger leaves failures unclassified and `failure_class` and `next_step` are stripped from tool results, so flags-off behaviour is unchanged; with it on, `failureNote` is appended to the not-applied note (new test in `harness.test.ts`);
+  - `contracts.ts` re-exports `FailureClass` from `core/failures.ts`;
+  - the classifier's identity patterns now match "send me the tenant's mobile" and "no consent recorded to share" (practice 96 was untagged).
+
+  Smoke run with every flag on, practice 05, 17, 20, 23, 91 and 96: 6/6 decided, 0 unverified actions, $0.78, no guard blocks, no harness errors.
+  - Practice 17: `conflicts_acknowledged` bounced twice, both uncapped, and the final decision names both block conflicts with the source it trusted.
+  - Practice 20 and 23 used `load_skill`.
+  - Practice 96 declined to share the number without consent and arranged access through the tenant.
+  - Practice 91 still did not escalate, even with `damp-mould-awaab` injected. That is a Wave 4 item.
 - [ ] Wave 2
-- [ ] Wave 3
+- [ ] Wave 3. Started at 15:45 with both arms in parallel: flags off and `HARNESS=all`, `--split dev --profile final --k 3 --chaos 0.15`. The Anthropic credit balance ran out at about 15:53, part-way through runs 2 and 3. 49 off runs and 26 on runs failed with "Your credit balance is too low", so k=3, pass^3 and the flags-off regression exit are invalid. No baseline was saved.
+  - Run 1 completed in both arms. Over the 65 cases graded in both, the run-1 mean is 86.4 flags off and 82.2 with every flag on (−4.2), which fails the gate (at most −2).
+  - Largest drops: practice 102 (−50), public-cut 020 (−47), 021 (−40), 008 (−40), 038 (−40), practice 07 (−27).
+  - Largest gains: practice 112 (+73), 111 (+53), 18 (+37), public-cut 034 (+27), practice 10 (+20).
+  - With k=1, single cases swing by ±40 to 70, so this is only directional: no flag flips, and an ablation is needed once credit is back.
+  - Run folders: `runs/loop/dev-final-k3-2026-10-10T14-45-34-054Z` (off) and `…-h-all-k3-…-055Z` (on).
+- [x] (16:10) Changes after the Wave 3 run-1 read. Over the 65 paired cases, the drop with every flag on is not in guards or completion: cases with a guard block averaged +5.0, cases with a completion bounce −2.4, and cases with neither −4.4. Only 7 of 65 outcomes changed. The new misses are thinner routine work, wrong skills, and one over-cautious privacy refusal (public 021: the agent refused to send the tenant's number to the assigned contractor, which the reference does). Changes:
+  - `identity-privacy.md` and the `message.tenant_contact_to_provider` guard now treat passing the tenant's contact on file to the assigned contractor as normal practice, held back only when the records say not to share (practice 96). The `share_tenant_contact` description says the same.
+  - The `skills` flag no longer swaps in `CASE_SYSTEM_PROMPT_V2`; skills are added on top of the full V1 prompt. The slim prompt stays in the code, unused until it has its own flag and evidence.
+  - The classifier skips inspection, inventory and check-out reports, tenancy agreements and certificates when keyword-tagging, except for `compliance`. It also ignores a hypothetical move-out. Tags changed in 14 of 124 non-holdout folders, all removals of report boilerplate (CO, deposit, out of hours, tenancy lifecycle). Examples: public-cut 008 now gets only `quote_invoice` instead of six tags, and practice 02 (Saturday 09:12) no longer gets `out_of_hours`.
+  - `createOpsToolset(seed, { v2 })` hides `verify_identity`, `share_tenant_contact` and the `update_ticket` `priority` field unless `guardsV2` is on, so a flags-off run sees the toolset it was tuned on.
+
+  `pnpm verify` 56 files and 1,470 tests green.
+- [x] (16:20) Merged `origin/main` (`e3b4d6f`, including M5 and PR #45) into `h2/base`. Conflicts:
+  - `cases/splits.json`: took main's version, which adds an `expansion` group and a wider holdout, and appended practice 91-100 to main's practice `expansion` group. None of them collide with a main case or a holdout id.
+  - The plan: kept the `h2/base` copy, which is authoritative.
+  - `maintenance-policy.md`: kept the slim version, which only `CASE_SYSTEM_PROMPT_V2` reads, and refreshed `skills/legacy/maintenance-policy-v1.md` from main's M5 version. The M5 changes have not been ported into the slim file; port them before giving the slim prompt its own flag.
+
+  Checks:
+  - `CASE_SYSTEM_PROMPT` is byte-identical to main's (42,155 characters, compared against a checkout of `origin/main`), and the hash test is re-pinned to it.
+  - `createOpsToolset(seed, { v2: false })` is identical to main's toolset: 28 tools with the same names, descriptions and JSON schemas.
+  - The cap on the slim prompt now counts only its own lines (at most 90), because the shared `core/policy.md` grows with main.
+  - The `loadCase` snapshot gained main's 199 new folders, and no existing hash changed.
+  - `pnpm verify`: 57 files and 2,558 tests green.
+
+  With flags off, one difference from main remains: the optional `escalations`, `follow_ups` and `unknowns` fields in `submit_decision` and their ANSWER.md sections. They are score-neutral in run 1.
 - [ ] Wave 4
 
 ## Discoveries
@@ -497,8 +567,27 @@ Run from the repo root (or from the workstream's worktree in Wave 1). Show the o
 - Observation: practice cases 25-60 (and the modified `cases/splits.json`) exist only as uncommitted files in the main checkout (`dwelly-agent`, branch `marc/pre-submit-gap-check`). `main` and every `h2/*` worktree have practice 01-24 only. Wave 1 fixtures and tests therefore use committed dev cases, and new cases are numbered 91-100. Evidence: `ls cases/practice` in `dwelly-h2-base` lists 01-24, and the Wave 0 test on practice 40 failed with ENOENT (15:27).
 - Observation: about 37 of the 60 practice cases (including the uncommitted ones) are gas or CO; damp, void properties and keys, legal and unrelated-issue situations have one or two cases each. Evidence: practice theme survey, 15:25.
 
+- Observation (WS G): `run.ts` sets `briefText` to the old hints text even when the `brief` flag is off, so `HARNESS=criticContext` on its own changes the critic's input whenever hints exist. Skill text is stripped from the critic's evidence by matching the `<skill id=…>` format of `renderSkills`. Wave 2 to-dos:
+  - set `briefText` only when `flags.brief` is on;
+  - pass the derived texts to the critic explicitly (`context.derived?: string[]`) instead of relying on that format;
+  - have WS R read `CriticResult.redFlagItems` and the `S*` item verdicts for the REASONING section on critic hits.
+- Observation (WS R): the harness REASONING.md sections need `run.ts` to pass `harness` and `brief` into `renderReasoning`. That is three lines, applied in Wave 2 after WS A merges. More Wave 2 to-dos:
+  - write `brief` (conflicts, tags) into `result.json` for WS T's taxonomy;
+  - make sure WS E names the ledger field `failureClass` (R reads it through a loose type);
+  - optionally change the "Performed" column of the next-actions table to the "not done (why)" wording, which needs R4's byte-identical rule relaxed for that column.
+- Observation (WS F): situation tags only reach guards and completion checks when both `brief` and `skills` are on, so `completionV2` alone makes the safety check fall back to severity. Wave 2 to-do: when any of `brief`, `guardsV2` or `completionV2` is on, `run.ts` always compiles the brief and runs `classify`. Only the `brief` and `skills` flags control what goes into the prompt.
+- Observation (WS F): with today's checks, a verified `escalate_to_human` with an empty `decision.escalations` (case 06 in the smoke run) is never checked for packet completeness. Requiring a packet for each verified escalation is a candidate extra check, to be decided on Wave 3 data. Not added yet.
+- Observation (15:35): the main checkout's `.env` changed twice after the worktrees were created, so worktrees had different, stale copies. WS F got 404 "workspace not found" until it blanked `ANTHROPIC_WORKSPACE_ID`. All worktrees were re-synced from the current `dwelly-agent/.env` at 15:36. Before Wave 3, re-copy it again.
+- Observation (15:39): the `dwelly-agent/.env` saved at 15:30 sets `ANTHROPIC_WORKSPACE_ID` to a 36-character UUID. `src/agent/models.ts` sends it as the `anthropic-workspace-id` header, and the API rejects it ("must be a valid workspace ID"). Every LLM call fails in 1 s, in the main checkout as well as in the worktrees. Evidence: `pnpm cases --in cases/practice --only 01` in `dwelly-agent` returned 400 at 15:39. Raised with Marc. At his choice, `ANTHROPIC_WORKSPACE_ID` was blanked in `dwelly-agent/.env` and all worktrees (backup at `/tmp/dwelly-env-backup-1539`). The re-test of practice 01 in `dwelly-agent` decided (escalated, 6 verified actions, 32 s).
+- Observation (WS E): replaying 2,668 recorded non-holdout agent calls through the guards first gave about 100 false positives; the rules were narrowed until one true positive remained (public 026 repeats "Monday 30/08/2025", which is a Saturday). The executor's `tool_failed` message still says "Escalate to a human", which contradicts the `retry` class; replace it if `guardsV2` becomes the default. The rules for people, amounts and the emergency exemption depend on the brief, so they were mostly inactive until WS C merged.
+- Observation (WS C): candidate contract changes are a citable case-description document, `Deadline.cite`, and `Party.id` or `preferredName`. Practice 17's invoice is also dated before the visit, a second independent reason to hold it. Practice 10's landlord email comes from a look-alike domain. Practice 18's tenant notice is shorter than the two-month minimum.
+- Observation (WS B): the organiser loader reads only `index.md`, `history.md` and `attachments/`, so `expected.json` in public cuts and walks was missing from the manifest without a note. Ingest now lists grading-named files as withheld. Practice 23 has two clocks: transcript offsets don't line up with the action log's times, so ingest keeps both as separate events, which WS C can use. Candidate contract change: `ManifestEntry.role?: 'brief' | 'input' | 'attachment'`. The new parse methods `mime` and `unparsed` render as raw names in `report.ts`.
+- Observation (WS T): practice 91 (recurring mould, toddler with asthma) did not escalate in its smoke run, against `research/uk-lettings-rules.md`. That is a real gap the damp skill should close, and it is to be checked in Wave 3. Once WS E adds its tools, cases 92 and 96 can get stricter checks.
+- Observation (WS D): the out-of-hours rule counts Saturday daytime as staffed. Out of hours means before 08:00, after 18:00 or on Sunday, and it applies only to emergencies and lockouts. Keyword tagging over whole JSON records gave false positives, so the classifier reads only the free-text values (`classify.ts` skips names, trades and ids). Evidence: `src/agent/skills/classify.ts` L6 and L273. Wave 2 to-do: add `verify_identity` and `share_tenant_contact` to `identity-privacy.md` once WS E merges.
+
 ## Decision log
 
+- Decision: Keep every Wave 1 workstream behind its flag, with no default flips. Roll back only the pieces the run-1 data points at: the consent-first contact rule, the slim prompt coupled to `skills`, classifier tags from report boilerplate, and v2 tools visible with flags off. Rationale: flags-off scores match the 11:35 baseline over 47 paired dev cases (91.8 against 91.4), while all flags on is −4.2 at k=1. Date/Author: 2026-10-10, Marc (agreed 16:02).
 - Decision: Target the end state, not a pre-freeze subset. Rationale: Marc's choice at 15:21. Mitigation: everything sits behind flags that default to off, and `main` is protected by the Wave 3 gate. Date/Author: 2026-10-10, Marc.
 - Decision: The critic can send a decision back for one revision and never acts. Rationale: Marc's choice at 15:21; it matches the existing `critic.ts`. Date/Author: 2026-10-10, Marc.
 - Decision: Parallelise through module seams (stub entry points created in Wave 0) rather than letting workstreams edit `caseAgent.ts`. Rationale: `caseAgent.ts` is where every layer meets; one writer per wave avoids merge conflicts and keeps the AGENTS.md review rule cheap. Date/Author: 2026-10-10, Claude for Marc.
