@@ -53,6 +53,11 @@
   .typebox input { flex: 1; min-width: 0; font: inherit; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
   .hint { color: var(--muted); font-size: 12px; }
   .err { color: var(--fail); }
+  .mic { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+  .mic select { font: inherit; font-size: 12px; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); max-width: 260px; }
+  .meter { width: 120px; height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+  .meter > div { height: 100%; width: 0; background: var(--pass); transition: width 80ms linear; }
+  .warn { color: var(--warn); font-weight: 600; }
 </style>
 </head>
 <body>
@@ -82,6 +87,12 @@
         <span class="mode" id="mode"></span>
       </div>
       <label class="hint" style="display:block;margin-top:8px"><input type="checkbox" id="textonly" /> Text only (no mic): tests the agent's decisions without audio</label>
+      <div class="mic">
+        <select id="device" title="Microphone"><option value="">Default microphone</option></select>
+        <button class="small" id="miccheck">Test mic</button>
+        <div class="meter" title="Mic level"><div id="level"></div></div>
+      </div>
+      <p class="hint" id="micwarn"></p>
       <div class="typebox">
         <input id="typed" placeholder="Or type what the caller says (no mic needed)" disabled />
         <button class="small" id="send" disabled>Send</button>
@@ -170,6 +181,47 @@ async function regrade() {
   renderChecks(r);
 }
 
+// A silent mic is the most common "it didn't hear me": the browser connects but sends zeros
+// (macOS privacy setting, or a virtual/disconnected input). Show the level and say so.
+let levelTimer, testStream;
+function stopLevel() { clearInterval(levelTimer); $('level').style.width = '0'; }
+function watchLevel(read) {
+  stopLevel();
+  let silentFor = 0, heard = false;
+  levelTimer = setInterval(() => {
+    const v = Math.min(1, read() * 4);
+    $('level').style.width = `${Math.round(v * 100)}%`;
+    if (v > 0.04) { heard = true; silentFor = 0; $('micwarn').textContent = ''; }
+    else if ((silentFor += 100) >= 5000 && !heard) {
+      $('micwarn').innerHTML = '<span class="warn">No sound from your mic.</span> Pick another input above, or allow the browser in macOS System Settings → Privacy &amp; Security → Microphone, then restart the browser.';
+    }
+  }, 100);
+}
+async function listDevices() {
+  try {
+    const devices = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'audioinput');
+    const keep = $('device').value;
+    $('device').innerHTML = '<option value="">Default microphone</option>' + devices.map((d) => `<option value="${esc(d.deviceId)}">${esc(d.label || 'Microphone')}</option>`).join('');
+    $('device').value = devices.some((d) => d.deviceId === keep) ? keep : '';
+  } catch {}
+}
+async function micCheck() {
+  if (testStream) { testStream.getTracks().forEach((t) => t.stop()); testStream = undefined; stopLevel(); $('miccheck').textContent = 'Test mic'; return; }
+  try {
+    testStream = await navigator.mediaDevices.getUserMedia({ audio: $('device').value ? { deviceId: { exact: $('device').value } } : true });
+    await listDevices();
+    const ctx = new AudioContext();
+    const analyser = ctx.createAnalyser();
+    ctx.createMediaStreamSource(testStream).connect(analyser);
+    const buf = new Float32Array(analyser.fftSize);
+    $('micwarn').textContent = 'Say something: the bar should move.';
+    $('miccheck').textContent = 'Stop test';
+    watchLevel(() => { analyser.getFloatTimeDomainData(buf); return Math.sqrt(buf.reduce((a, x) => a + x * x, 0) / buf.length); });
+  } catch (e) {
+    $('micwarn').innerHTML = `<span class="err">Mic blocked: ${esc(e.message)}</span>`;
+  }
+}
+
 function setCallUi(active) {
   $('start').disabled = active; $('stop').disabled = !active; $('mute').disabled = !active;
   $('typed').disabled = !active; $('send').disabled = !active;
@@ -177,6 +229,7 @@ function setCallUi(active) {
 
 $('start').addEventListener('click', async () => {
   if (!current) return;
+  if (testStream) await micCheck();
   $('feed').innerHTML = ''; renderChecks(null); $('tools').textContent = 'No tool calls yet.';
   $('start').disabled = true; $('callinfo').textContent = 'Connecting…';
   try {
@@ -184,12 +237,12 @@ $('start').addEventListener('click', async () => {
     const textOnly = $('textonly').checked;
     const session = textOnly
       ? { signedUrl: (await api('signed-url')).signed_url, connectionType: 'websocket', textOnly: true }
-      : { conversationToken: (await api('token')).token, connectionType: 'webrtc' };
+      : { conversationToken: (await api('token')).token, connectionType: 'webrtc', ...($('device').value ? { inputDeviceId: $('device').value } : {}) };
     conversation = await Conversation.startSession({
       ...session,
       onConnect: () => { $('callinfo').textContent = $('textonly').checked ? 'Connected (text only). Type or click "type it".' : 'Connected. Start with the first line.'; },
       onDisconnect: () => {
-        setCallUi(false); clearInterval(poll); conversation = undefined;
+        setCallUi(false); clearInterval(poll); stopLevel(); conversation = undefined;
         $('callinfo').textContent = `Call ended (${conversationId}). Grading…`;
         setTimeout(regrade, 800);
       },
@@ -198,6 +251,7 @@ $('start').addEventListener('click', async () => {
       onError: (e) => { $('callinfo').innerHTML = `<span class="err">${esc(e?.message ?? e)}</span>`; },
     });
     conversationId = conversation.getId();
+    if (!$('textonly').checked) watchLevel(() => conversation?.getInputVolume?.() ?? 0);
     $('regrade').disabled = false;
     setCallUi(true);
     poll = setInterval(refresh, 1000);
@@ -212,6 +266,11 @@ const sendTyped = () => { const v = $('typed').value.trim(); if (!v || !conversa
 $('send').addEventListener('click', sendTyped);
 $('typed').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendTyped(); });
 $('regrade').addEventListener('click', regrade);
+$('miccheck').addEventListener('click', micCheck);
+$('device').addEventListener('change', () => { try { localStorage.setItem('voice-mic', $('device').value); } catch {} });
+navigator.mediaDevices?.addEventListener?.('devicechange', listDevices);
+await listDevices();
+try { const m = localStorage.getItem('voice-mic'); if (m && [...$('device').options].some((o) => o.value === m)) $('device').value = m; } catch {}
 $('reset').addEventListener('click', async () => { await api('reset', { method: 'POST' }); $('reset').textContent = 'Reset ✓'; setTimeout(() => ($('reset').textContent = 'Reset demo data'), 1500); });
 
 try { $('textonly').checked = localStorage.getItem('voice-textonly') === '1'; } catch {}
