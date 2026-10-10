@@ -146,7 +146,7 @@ Every `pnpm cases` run (and so every `pnpm loop`) writes the same evidence:
 `--thinking off|minimal|low|medium|high|xhigh|max` sets agent thinking (default `medium`); Claude returns a summary of its thinking, which is what the logs show. `pnpm eval --thinking <level>` does the same for a Claude judge (default `off`).
 
 ### Test data
-- `HackatonPublicCases/`: the organisers' 200 public examples (50 per track).
+- `HackatonPublicCases/`: the organisers' public examples. They are not ours to publish, so they are not in this repository: put the organisers' folder at the repo root under this name. The same goes for everything that copies their text (`cases/public-cuts/*/index.md` and `history.md`, `cases/walks/`, `cases/voice-calls/*` case files, public-case test fixtures and run outputs under `runs/`); our own rubrics and notes for them are included. Without them, the tests and eval commands that read those cases fail.
 - `cases/practice/`: 22 hand-written property-management cases, each with `rubric.json` and scripted `tool_failures.json`.
 
 ### Environment variables
