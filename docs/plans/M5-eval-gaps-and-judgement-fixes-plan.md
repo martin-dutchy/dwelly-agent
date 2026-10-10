@@ -82,10 +82,10 @@ Label rule: `yes` when a required outcome or the checks require handing the case
 
 ## Verification
 
-- [x] `pnpm verify` exits 0 (30 files, 488 tests).
+- [x] `pnpm verify` exits 0 (30 files, 485 tests at 14:25; holdout ids skipped by the practice-checks test).
 - [x] `pnpm checks --cases cases/practice --answers runs/loop/dev-final-2026-10-10T11-44-17-482Z/cases-practice` prints results for every case and no `CHECK SPEC` error.
 - [x] `pnpm loop` summary lines for steps 4, 5 and 7 quoted in Progress.
-- [ ] `bash .claude/skills/submission-check/scripts/check.sh`: no new FAIL.
+- [x] `bash .claude/skills/submission-check/scripts/check.sh`: no new FAIL (14:25: the README TBD and private-repo FAILs predate this plan).
 
 ## Progress
 
