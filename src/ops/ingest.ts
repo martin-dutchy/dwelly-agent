@@ -90,7 +90,8 @@ export async function ingestCall(store: OpsStore, worker: Worker, call: CallRow,
   const tmp = mkdtempSync(join(tmpdir(), 'ops-call-'));
   try {
     const dir = scenario?.source ? exportCall(call, ledger, tmp) : undefined;
-    const id = dir ? dir.split('/').at(-1)! : `CALL-${call.conversation_id.slice(-8)}`;
+    // One case per call: the export folder is numbered per output root (always 101 in a fresh temp dir), so name it by scenario and call.
+    const id = dir ? `V${scenario!.source!.case}-${call.scenario_id}-${call.conversation_id.slice(-6)}` : `CALL-${call.conversation_id.slice(-8)}`;
     const index = dir
       ? readFileSync(join(dir, 'index.md'), 'utf8')
       : `# Case ${id}: ${scenario?.title ?? 'Inbound call'}\n\n## Case details\n\n- **Source role:** ${scenario?.role ?? 'caller'} (phone)\n`;
