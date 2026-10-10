@@ -301,7 +301,7 @@ describe('WhatsApp heads-up', () => {
     expect(m).toContain('https://x.test/t/abc');
     expect(m).toContain(card.beats[0]);
     expect(m).toContain(`YOU'RE PLAYING: ${card.persona.toUpperCase()}`);
-    expect(m).toContain('When the phone rings');
+    expect(m).toContain('When the call starts');
     expect(m).toContain('What to do on the call');
     expect(whatsappLink(m, '+44 7877 094577')).toMatch(/^https:\/\/wa\.me\/447877094577\?text=/);
   });
