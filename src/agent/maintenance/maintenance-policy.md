@@ -97,7 +97,7 @@ A reporter with no email or phone on file still gets their update: send a letter
 - A note about conflicting records lists every date with its source, tentative ones included.
 - Failed or disputed work: hold its invoice until it is resolved, and ask the provider to report what they find on the return visit.
 - An empty property (after check-out): arrange access with the agency's keys, not through the former tenant.
-- "See attached": check the attachment is the document described. If not, tell the recipient and send them the right document now (`send_message` with its file attached, or its key figures when there is no file), or ask the sender for it.
+- "See attached": check the attachment is the document described. If not, tell the recipient and send them the right document now if you have it (`send_message` with its file attached), otherwise ask the sender to send it; never quote figures from a document you have not seen.
 
 When you do escalate, the packet says which routine steps you took first. Over-escalation wastes a human's time.
 
