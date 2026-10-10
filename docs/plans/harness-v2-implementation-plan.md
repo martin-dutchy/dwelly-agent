@@ -488,7 +488,15 @@ Run from the repo root (or from the workstream's worktree in Wave 1). Show the o
 - [x] (15:33) WS G merged into `h2/base` (`f3816fb`; `pnpm verify` 598 tests green). Brief and skill text no longer count as critic evidence. Red flags become checklist items S1..S12 in the critic's system prompt. With context absent or empty, the critic is byte-identical to before (hash test).
 - [x] (15:34) WS R merged into `h2/base` (`pnpm verify` 607 tests green). New ANSWER.md sections: Escalations joined to the ledger, Follow-ups, Unknowns. Anything without a verified ledger id renders "not done (why)". REASONING.md gets harness sections only when there is data. With no new fields, output is byte-identical to before (snapshots committed first). The integrator now derives the fixed critic ids from `CHECKLIST` instead of a copy.
 - [x] (15:35) WS F merged into `h2/base` (`pnpm vitest` 34 files and 633 tests green). Five completion checks are registered and the cap per check is tested end to end. Replayed over 408 earlier dev and expansion decisions, the over-claim check bounced none and the safety check bounced 2, each fixable with one assumption line. Smoke run with `completionV2`: 3/3 decided on the first submit.
-- [ ] Wave 1: A · B · C · D · E · T
+- [x] (15:38) WS A merged into `h2/base` (36 files and 647 tests green). The per-case work moved to `src/runner/processCase.ts`, with an abort per case, a deterministic crash answer, tolerance for a malformed `tool_failures.json`, and temperature recorded ("provider default" on the Claude 5.5 models). Wave 2 wiring applied early in `processCase.ts`:
+  - the brief and tags are computed whenever `brief`, `guardsV2` or `completionV2` is on, and only the `brief` and `skills` flags change the prompt;
+  - `briefText` reaches the critic only when the brief is on;
+  - `harness` and `brief` are passed to `renderReasoning`;
+  - `brief` is written to `result.json`;
+  - in `caseAgent.ts`, the timeout message now wins over "Request was aborted".
+
+  `pnpm verify` green. The smoke run with every flag on wrote `brief` to `result.json`, but the case got a 400 from the API (see Discoveries, `.env`).
+- [ ] Wave 1: B · C · D · E · T
 - [ ] Wave 2
 - [ ] Wave 3
 - [ ] Wave 4
@@ -511,6 +519,7 @@ Run from the repo root (or from the workstream's worktree in Wave 1). Show the o
 - Observation (WS F): situation tags only reach guards and completion checks when both `brief` and `skills` are on, so `completionV2` alone makes the safety check fall back to severity. Wave 2 to-do: when any of `brief`, `guardsV2` or `completionV2` is on, `run.ts` always compiles the brief and runs `classify`. Only the `brief` and `skills` flags control what goes into the prompt.
 - Observation (WS F): with today's checks, a verified `escalate_to_human` with an empty `decision.escalations` (case 06 in the smoke run) is never checked for packet completeness. Requiring a packet for each verified escalation is a candidate extra check, to be decided on Wave 3 data. Not added yet.
 - Observation (15:35): the main checkout's `.env` changed twice after the worktrees were created, so worktrees had different, stale copies. WS F got 404 "workspace not found" until it blanked `ANTHROPIC_WORKSPACE_ID`. All worktrees were re-synced from the current `dwelly-agent/.env` at 15:36. Before Wave 3, re-copy it again.
+- Observation (15:39): the `dwelly-agent/.env` saved at 15:30 sets `ANTHROPIC_WORKSPACE_ID` to a 36-character UUID. `src/agent/models.ts` sends it as the `anthropic-workspace-id` header, and the API rejects it ("must be a valid workspace ID"). Every LLM call fails in 1 s, in the main checkout as well as in the worktrees. Evidence: `pnpm cases --in cases/practice --only 01` in `dwelly-agent` returned 400 at 15:39. Raised with Marc; `.env` was not edited.
 
 ## Decision log
 

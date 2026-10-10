@@ -67,22 +67,27 @@ export async function processCase(dir: string, timeoutMs: number, env: CaseEnv):
       bundle = loaded.bundle;
       c = toLoadedCase(bundle);
       const harnessErrors: string[] = [];
+      // Guards and completion checks read the brief and tags even when neither is shown to the model;
+      // only the brief and skills flags change the prompt.
+      const needBrief = flags.brief || flags.guardsV2 || flags.completionV2;
       let brief: CaseBrief | undefined;
       let hints: { text: string; hintsError?: string } = { text: '' };
-      if (flags.brief) {
+      if (needBrief) {
         try {
           brief = compileBrief(bundle);
-          hints = { text: renderBrief(brief) };
+          if (flags.brief) hints = { text: renderBrief(brief) };
         } catch (e) {
-          hints = { text: '', hintsError: e instanceof Error ? e.message : String(e) };
+          if (flags.brief) hints = { text: '', hintsError: e instanceof Error ? e.message : String(e) };
+          else harnessErrors.push(`brief: ${e instanceof Error ? e.message : String(e)}`);
         }
-      } else hints = hintsFor(c);
+      }
+      if (!flags.brief) hints = hintsFor(c);
       let skills: Skill[] = [];
-      if (flags.skills) {
+      if (flags.skills || needBrief) {
         try {
           const tags = classify(bundle, brief);
           if (brief) brief.tags = tags;
-          skills = selectSkills(tags);
+          if (flags.skills) skills = selectSkills(tags);
         } catch (e) {
           harnessErrors.push(`skills: ${e instanceof Error ? e.message : String(e)}`);
         }
@@ -108,14 +113,14 @@ export async function processCase(dir: string, timeoutMs: number, env: CaseEnv):
         thinkingLevel: env.thinking,
         timeoutMs: Math.max(1, started + timeoutMs - Date.now()),
         critic: env.criticModel && { model: env.criticModel, streamFn: env.streamFn, attachments: c.inputs.map((i) => i.name) },
-        harness: { flags, bundle, brief, skills, briefText: hints.text },
+        harness: { flags, bundle, brief, skills, briefText: flags.brief ? hints.text : undefined },
       });
       const harness = { flags: flagsLine(flags), enabled: flags, tags: brief?.tags ?? [], skills: skills.map((s) => s.id), errors: harnessErrors, log: run.harnessLog };
-      return { c, hints, screen, chaos, run, harness, toolsetReport: adapter.report(), inputProblems: loaded.problems };
+      return { c, hints, screen, chaos, run, harness, brief, toolsetReport: adapter.report(), inputProblems: loaded.problems };
     };
     const guarded = work();
     guarded.catch(() => {});
-    const { c: lc, hints, screen, chaos, run, harness, toolsetReport, inputProblems } = await bounded(guarded, timeoutMs + env.graceMs, stop, env.interrupt).catch((e) => {
+    const { c: lc, hints, screen, chaos, run, harness, brief, toolsetReport, inputProblems } = await bounded(guarded, timeoutMs + env.graceMs, stop, env.interrupt).catch((e) => {
       if (e instanceof CaseStopped) env.onStopped?.();
       throw e;
     });
@@ -131,7 +136,7 @@ export async function processCase(dir: string, timeoutMs: number, env: CaseEnv):
     const thinkingTokens = assistants.reduce((a, m) => a + (m.usage?.reasoning ?? 0), 0);
     const refused = toolCalls.filter((t) => t.status === 'refused').length;
     writeFileSync(join(outDir, 'ANSWER.md'), renderAnswer(lc, run.decision, run.ledger, run.error));
-    const reasoning = renderReasoning(lc, run.decision, run.ledger, run.messages, usage, run.error, { screen, gateLog: run.gateLog, policyLog: run.policyLog, chaos, critic: run.critic });
+    const reasoning = renderReasoning(lc, run.decision, run.ledger, run.messages, usage, run.error, { screen, gateLog: run.gateLog, policyLog: run.policyLog, chaos, critic: run.critic, harness, brief });
     writeFileSync(join(outDir, 'REASONING.md'), withToolsetLine(reasoning, toolsetLine(toolsetReport)));
     // Debug artefacts: a failure here must not replace a good answer with the crash fallback.
     try {
@@ -164,6 +169,7 @@ export async function processCase(dir: string, timeoutMs: number, env: CaseEnv):
           screen,
           hintsError: hints.hintsError,
           harness,
+          brief: brief && { stage: brief.stage, now: brief.now, tags: brief.tags, conflicts: brief.conflicts, deadlines: brief.deadlines, money: brief.money, questions: brief.questions },
           gateLog: run.gateLog,
           policyLog: run.policyLog,
           decision: run.decision,

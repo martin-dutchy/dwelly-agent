@@ -422,5 +422,5 @@ export async function runCase(opts: CaseRunOptions) {
     critic.unaddressed = criticEvent.unaddressed = unchanged ? critic.kept.map((f) => `[${f.id}] ${f.finding}`) : [];
   }
 
-  return { decision, ledger: ledger.entries, state: toolset.state, gateLog, policyLog, harnessLog, trace, messages: agent.state.messages, error: agent.state.errorMessage ?? (timedOut && !decision ? `timed out after ${Math.round(timeoutMs / 1000)}s` : undefined), critic };
+  return { decision, ledger: ledger.entries, state: toolset.state, gateLog, policyLog, harnessLog, trace, messages: agent.state.messages, error: (timedOut && !decision ? `timed out after ${Math.round(timeoutMs / 1000)}s` : undefined) ?? agent.state.errorMessage, critic };
 }
