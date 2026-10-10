@@ -55,7 +55,7 @@
 
   <section id="brief" hidden>
     <h1 id="title">Your situation</h1>
-    <div class="panel"><h2>What's going on</h2><p class="situation" id="situation"></p></div>
+    <div class="panel"><h2>What's going on</h2><p class="situation" id="situation"></p><p class="muted" id="starthint"></p></div>
     <div class="panel"><h2>What you know</h2><ul id="know"></ul><p class="muted">Only give details when they're asked for, the way you would on a normal call.</p></div>
     <div class="panel" id="twistbox"><h2>Your twist</h2><p id="twist"></p></div>
     <div class="panel"><h2>To make it realistic</h2><ul id="tips"></ul><p class="muted">Use your own words. Hesitations, mistakes and background noise are welcome.</p></div>
@@ -90,7 +90,8 @@
     <h1>Your phone is ringing 📞</h1>
     <div class="panel"><p>Pick up and play your part. The call comes from the agency's number and may show as an international (US) number.</p>
       <p class="muted">Keep this page open if you want to read your card during the call.</p></div>
-    <div class="panel"><h2>Your situation</h2><p id="ringsituation"></p><ul id="ringknow"></ul></div>
+    <div class="panel"><h2 id="ringwho">You are</h2><p class="situation" id="ringstart"></p><p id="ringsituation"></p><ul id="ringknow"></ul></div>
+    <div class="panel" id="ringtwistbox"><h2>Your twist</h2><p id="ringtwist"></p></div>
     <button class="btn" id="again2">I'm done: try another situation</button>
   </section>
 
@@ -116,6 +117,11 @@ const store = { get: (k) => { try { return localStorage.getItem(k); } catch { re
 
 let card, agentSetup, conversation, conversationId, muted = false, testStream, levelTimer;
 
+// Who talks first: the agent explains when it rings you; you explain when you're the one "calling in".
+const whoStarts = (c) =>
+  c.direction === 'outbound'
+    ? `The agency is calling you. Let them explain why. Answer to the name ${c.persona}.`
+    : `You're the one calling the agency: when they answer, you start by saying why you're calling.`;
 let phoneMode = false;
 function setMode(phone) {
   phoneMode = phone;
@@ -137,6 +143,11 @@ async function loadCard(skip) {
   $('title').textContent = `You are ${c.persona} (${roleLabel})`;
   $('twistbox').hidden = !c.twist;
   $('twist').textContent = c.twist ?? '';
+  $('ringwho').textContent = `You are ${c.persona} (${roleLabel})`;
+  $('ringstart').textContent = whoStarts(c);
+  $('ringtwistbox').hidden = !c.twist;
+  $('ringtwist').textContent = c.twist ?? '';
+  $('starthint').textContent = whoStarts(c);
   $('situation').textContent = c.situation;
   $('know').innerHTML = c.youKnow.map((k) => `<li>${esc(k)}</li>`).join('');
   $('tips').innerHTML = c.tips.map((k) => `<li>${esc(k)}</li>`).join('');

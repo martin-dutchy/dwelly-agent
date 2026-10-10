@@ -21,6 +21,9 @@ export function whatsappMessage(card: Card | undefined, o: { name?: string; from
       ? [
           `🎭 You are ${card.persona} (${card.role === 'tenant' ? 'a tenant' : card.role === 'landlord' ? 'the landlord' : 'the contractor'}):`,
           card.situation,
+          card.direction === 'outbound'
+            ? `👉 The agency calls you and explains why. Answer to the name ${card.persona}.`
+            : "👉 You're \"calling the agency\": when they answer, you start by saying why you're calling.",
           '',
           '📝 What you know:',
           ...card.youKnow.map((k) => `• ${k}`),
