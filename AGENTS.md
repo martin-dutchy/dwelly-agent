@@ -14,7 +14,7 @@ Node 22+ · TypeScript (strict, ESM) · pnpm · `@earendil-works/pi-agent-core` 
 | -------------------------- | ------------------------------------------------------------------------------------------------- |
 | `src/run.ts`               | Batch runner: every case folder in, `ANSWERS/<id>/{ANSWER,REASONING}.md` + traces out. Never aborts the batch. |
 | `src/agent/`               | The case agent: pi loop, verified action ledger, Jev gate, decision schema, report renderers, case loaders. |
-| `src/core/`                | Tool definitions, executor, failure injector, shared policy (`policy.md`).                         |
+| `src/core/`                | Tool definitions, executor, failure injector, shared policy (`policy.md`), live-call-only rules (`policy-calls.md`). |
 | `src/eval/`                | Rubric judge (`pnpm eval`) and the test loop (`pnpm loop`: frozen split, grade, diff vs baseline, chaos). |
 | `cases/practice/`          | Our 22 hand-written practice cases with `rubric.json` and scripted tool failures.                  |
 | `cases/splits.json`        | Frozen `dev` / `holdout` split over practice and public cases. Tune on `dev` only; `holdout` prints aggregates only. |
