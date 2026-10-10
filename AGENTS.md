@@ -62,6 +62,7 @@ Skills live in `.agents/skills/` and are symlinked into `.claude/skills/`.
 | Reviewing a design from first principles | `.agents/skills/first-principles-review/SKILL.md` (invoke explicitly)                                            |
 | Understanding the scoring and the data   | [research/pm-case-data-analysis.md](research/pm-case-data-analysis.md), [research/scenarios.md](research/scenarios.md) |
 | Eval harness design                      | [research/evaluation.md](research/evaluation.md), `src/eval/loop.ts`                                             |
+| Choosing which cases and evals to build  | [research/eval-inventory.md](research/eval-inventory.md): the five axes, cut points, inbound-message taxonomy, perturbations, priorities |
 | What tools the agent needs and the exact system triggers in the data | [research/agent-tools.md](research/agent-tools.md)                                                  |
 | Deciding what to work on next            | `.claude/skills/hackathon-scorecard/SKILL.md`                                                                    |
 | The 16:30 Reality Test window            | `.claude/skills/reality-test-run/SKILL.md`                                                                       |
