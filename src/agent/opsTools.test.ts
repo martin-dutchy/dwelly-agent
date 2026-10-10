@@ -218,6 +218,17 @@ describe('case seeding', () => {
     expect(seed.properties![0].address).toBeTruthy();
   });
 
+  it('gives public cases a landlord reachable through the agency record, citing only visible landlord events', () => {
+    const seed = seedFromCase(loadCase('cases/public-cuts/002-quote-approval'));
+    const landlord = seed.properties![0].landlord!;
+    expect(landlord.contact).toBe('agency landlord record');
+    expect(landlord.email).toBeUndefined();
+    expect(landlord.notes!.join(' ')).toMatch(/event 0\d\d \(\w+, to landlord\)/);
+
+    const early = seedFromCase(loadCase('cases/public-cuts/038-tenant-own-appliance'));
+    expect(early.properties![0].landlord!.notes!.join(' ')).toMatch(/No landlord message is visible/);
+  });
+
   it('carries the visible case text as evidence, never the hidden ending', () => {
     const seed = seedFromCase(loadCase('cases/public-cuts/002-quote-approval'));
     expect(quoteAppears('Spoke to landlord who approved for me to instruct a contractor to attend', seed.evidence!)).toBe(true);
