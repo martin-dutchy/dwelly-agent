@@ -1,17 +1,13 @@
 import type { BatchView, CaseRow, Group } from './batchView.js';
-import { ago, esc, layout } from './pages.js';
+import { ago, esc, layout, stopTag } from './pages.js';
+import { STOP, type StopReason } from './status.js';
 import type { Batch } from './store.js';
 
-/** Eval runs: the list of runs, and one run watched live then graded. Same language as the rest of the portal. */
+/**
+ * Eval runs, Braintrust-style: a few summary figures that each open a filtered table, one stop reason per case
+ * that can be grouped and set against the judge score, and the case timeline one click away.
+ */
 
-const OUTCOME: Record<string, [string, string]> = {
-  action_taken: ['Acted', 'o-acted'],
-  resolved: ['Resolved', 'o-resolved'],
-  needs_info: ['Asked for information', 'o-info'],
-  no_action: ['No action needed', 'o-none'],
-  escalated: ['Handed to a person', 'o-person'],
-  'no decision': ['No decision', 'o-fail'],
-};
 const STEP: Record<string, string> = {
   REQUEST_LANDLORD_APPROVAL: 'Ask the landlord to approve',
   ASSIGN_PROVIDER: 'Assign a contractor',
@@ -31,57 +27,59 @@ const STEP: Record<string, string> = {
   ESCALATE_TO_HUMAN: 'Hand to a person',
   OTHER: 'Something else',
 };
+const BAR: Record<StopReason, string> = {
+  resolved: 'var(--ok-fg)',
+  waiting: 'var(--fg-muted)',
+  no_action: 'var(--border)',
+  handed_over: 'var(--needs-border)',
+  policy_stop: 'var(--policy-border)',
+  unconfirmed: 'var(--danger-fg)',
+  no_decision: 'var(--danger-border)',
+  working: 'var(--info-fg)',
+};
 const toolName = (t: string) => t.replace(/_/g, ' ');
-const caseNo = (r: { c: { source_ref: string | null; id: string } }) => r.c.source_ref?.split('@')[0] ?? r.c.id;
+const caseNo = (c: { source_ref: string | null; id: string }) => c.source_ref?.split('@')[0] ?? c.id;
 const shortTitle = (t: string) => t.replace(/^Case \d+:\s*/, '');
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+const low = (r: CaseRow) => !!r.c.grade && (r.c.grade.score < 60 || r.c.grade.critical.length > 0);
 
-const STYLE = `
-.bar { display:flex; height:10px; border-radius:6px; overflow:hidden; background:var(--rule); margin:18px 0 8px; max-width:720px; }
-.bar span { display:block; height:100%; }
-.bar .done { background:var(--ink); } .bar .running { background:var(--link); } .bar .failed { background:var(--alert); }
-.legend { display:flex; gap:18px; flex-wrap:wrap; font-size:13px; color:var(--soft); }
+const CSS = `
+.figures { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:var(--s4); margin-top:var(--s6); }
+.figure { display:block; padding:var(--s4); background:var(--surface); border:1px solid var(--border-subtle); border-radius:8px; color:inherit; text-decoration:none; }
+a.figure:hover { background:var(--bg-hover); }
+.figure .v { font-size:24px; line-height:32px; font-weight:600; font-variant-numeric:tabular-nums; }
+.figure .v.bad { color:var(--danger-fg); } .figure .v.needs { color:var(--needs-fg); }
+.figure .l { color:var(--fg-muted); font-size:13px; line-height:18px; }
+.figure .d { font-size:12px; line-height:16px; font-weight:600; margin-left:6px; } .d.up { color:var(--ok-fg); } .d.down { color:var(--danger-fg); }
+.stack { display:flex; height:12px; border-radius:6px; overflow:hidden; background:var(--border-subtle); max-width:720px; }
+.stack span { display:block; height:100%; }
+.legend { display:flex; gap:var(--s2) var(--s5); flex-wrap:wrap; margin-top:var(--s3); font-size:13px; line-height:18px; }
+.legend a { color:var(--fg); text-decoration:none; } .legend a:hover { text-decoration:underline; }
 .legend i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:6px; vertical-align:-1px; }
-.o-acted { background:var(--ink); } .o-resolved { background:var(--ok); } .o-info { background:#7d8a82; } .o-none { background:#b7c0b9; } .o-person { background:var(--attn); } .o-fail { background:var(--alert); }
-.split { display:grid; grid-template-columns:minmax(0,1fr) 320px; gap:40px; align-items:start; }
-.gradebox { background:var(--surface); border-radius:12px; padding:20px 22px; }
-.gradebox .score { font-family:var(--serif); font-size:44px; line-height:1; }
-.gradebox p { margin:6px 0 0; font-size:14px; color:var(--soft); }
-.gradebox button { margin-top:14px; }
-button.primary[disabled] { opacity:.45; cursor:not-allowed; }
-.reasons { list-style:none; margin:0; padding:0; }
-.reasons > li { padding:14px 0; border-top:1px solid var(--rule); }
-.reasons .r { max-width:72ch; }
-.reasons .r b { font-weight:600; }
-.reasons .n { color:var(--soft); font-size:13px; margin-top:4px; }
-.chip { display:inline-block; font-size:12px; padding:1px 8px; border-radius:10px; background:var(--surface); color:var(--link); text-decoration:none; margin:4px 4px 0 0; }
-.chip:hover { text-decoration:underline; }
-.reasons.denied > li .r::before { content:'✕ '; color:var(--alert); font-weight:700; }
-.reasons.person > li .r::before { content:'? '; color:var(--attn); font-weight:700; }
-.reasons.fail > li .r::before { content:'○ '; color:var(--faint); }
-table.grid { border-collapse:collapse; width:100%; font-size:14px; }
-table.grid th { text-align:left; font-weight:600; font-size:13px; color:var(--soft); padding:8px 10px 8px 0; border-bottom:1px solid var(--rule); }
-table.grid td { padding:9px 10px 9px 0; border-bottom:1px solid var(--rule); vertical-align:top; }
-table.grid td.num, table.grid th.num { text-align:right; }
-table.grid .mini { display:inline-block; height:6px; border-radius:3px; background:var(--ink); vertical-align:1px; margin-right:6px; }
-table.grid .mini.bad { background:var(--alert); } table.grid .mini.soft { background:var(--faint); }
-table.cases a { color:var(--ink); text-decoration:none; } table.cases a:hover { text-decoration:underline; }
-table.cases .no { color:var(--faint); font-size:13px; width:44px; }
-.state { font-size:13px; white-space:nowrap; }
-.state.queued { color:var(--faint); } .state.running { color:var(--link); } .state.failed { color:var(--alert); font-weight:600; }
-.tag { font-size:12px; font-weight:600; padding:1px 8px; border-radius:10px; white-space:nowrap; }
-.tag.attn { color:var(--attn); background:var(--attn-bg); } .tag.alert { color:var(--alert); background:var(--alert-bg); }
-.score-cell { font-variant-numeric:tabular-nums; font-weight:600; } .score-cell.low { color:var(--alert); }
-.filters { display:flex; gap:6px; flex-wrap:wrap; margin:0 0 12px; }
-.filters button { font:inherit; font-size:13px; padding:4px 12px; border-radius:16px; border:1px solid var(--rule); background:transparent; color:var(--ink); cursor:pointer; }
-.filters button[aria-pressed="true"] { background:var(--ink); color:var(--paper); border-color:var(--ink); }
-.runs { list-style:none; margin:0; padding:0; border-top:1px solid var(--rule); }
-.runs li { padding:14px 0; border-bottom:1px solid var(--rule); display:grid; grid-template-columns:minmax(0,1fr) auto; gap:4px 20px; }
-.runs a { color:var(--ink); font-weight:500; text-decoration:none; } .runs a:hover { text-decoration:underline; }
-.start { background:var(--surface); border-radius:12px; padding:20px 22px; max-width:720px; margin-top:24px; }
-.start p { margin:0 0 12px; color:var(--soft); font-size:14px; }
-@media (max-width: 900px) { .split { grid-template-columns:1fr; } }
-@media (max-width: 600px) { table.cases .hide-s { display:none; } }
+.progress { display:flex; height:6px; border-radius:3px; overflow:hidden; background:var(--border-subtle); max-width:720px; margin-top:var(--s4); }
+.progress span { display:block; height:100%; } .progress .done { background:var(--fg); } .progress .running { background:var(--info-fg); }
+ul.groups { list-style:none; margin:0; padding:0; border-top:1px solid var(--border-subtle); }
+ul.groups > li { padding:var(--s3) 0; border-bottom:1px solid var(--border-subtle); display:grid; grid-template-columns:150px minmax(0,1fr); gap:var(--s4); }
+ul.groups .r { max-width:76ch; }
+.chip { display:inline-block; font-size:12px; line-height:16px; padding:2px 8px; margin:var(--s1) var(--s1) 0 0; border-radius:10px; border:1px solid var(--border-subtle); color:var(--accent); text-decoration:none; font-variant-numeric:tabular-nums; }
+.chip:hover { background:var(--bg-hover); }
+.views { display:flex; flex-wrap:wrap; gap:var(--s1) var(--s4); margin-bottom:var(--s3); font-size:13px; }
+.views a { color:var(--fg-muted); text-decoration:none; padding:2px 0; border-bottom:2px solid transparent; } .views a:hover { color:var(--fg); }
+.views a[aria-current="true"] { color:var(--fg); font-weight:600; border-bottom-color:var(--fg); }
+.views .n { font-variant-numeric:tabular-nums; color:var(--fg-muted); font-weight:400; margin-left:3px; }
+table.cases { border-collapse:collapse; width:100%; }
+table.cases th { position:sticky; top:0; background:var(--bg); text-align:left; font-size:12px; line-height:16px; font-weight:600; color:var(--fg-muted); padding:var(--s2) var(--s4) var(--s2) 0; border-bottom:1px solid var(--border); white-space:nowrap; }
+table.cases td { padding:10px var(--s4) 10px 0; border-bottom:1px solid var(--border-subtle); vertical-align:top; }
+table.cases tr[data-href] { cursor:pointer; } table.cases tr[data-href]:hover td { background:var(--bg-hover); }
+table.cases .no { width:40px; color:var(--fg-muted); font-variant-numeric:tabular-nums; }
+table.cases .r, table.cases th.r { text-align:right; font-variant-numeric:tabular-nums; }
+table.cases a { color:var(--fg); text-decoration:none; }
+.score { font-weight:600; } .score.bad { color:var(--danger-fg); }
+.issue { color:var(--fg-muted); font-size:13px; line-height:18px; max-width:46ch; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+table.cases td.reason { white-space:nowrap; }
+.paused .live { animation:none; opacity:.4; }
+@media (max-width: 860px) { .figures { grid-template-columns:repeat(2, minmax(0,1fr)); } }
+@media (max-width: 640px) { ul.groups > li { grid-template-columns:1fr; gap:var(--s1); } table.cases .hide-s { display:none; } }
 `;
 
 export type BatchSummary = { b: Batch; done: number; needed: number; running: number };
@@ -89,116 +87,138 @@ export type BatchSummary = { b: Batch; done: number; needed: number; running: nu
 export function evalsPage(o: { runs: BatchSummary[]; openTasks: number; sets: { id: string; name: string; count: number }[] }) {
   return layout(
     'Eval runs: Dwelly operations',
-    `<style>${STYLE}</style><h1 class="ball wide">${o.runs.length ? 'Eval runs' : 'Run the case set through the agents.'}</h1>
-<p class="lede">Each case is cut at its decision point and handed to the same case worker that runs in production, with the same tools and the same policy checks. Watch it live, then grade it with the judge.</p>
-${o.sets.map((set) => `<form class="start" method="post" action="/ops/api/batches"><input type="hidden" name="set" value="${esc(set.id)}"><p>${esc(set.name)}: ${set.count} cases. Takes about ten minutes and roughly $${(set.count * 0.08).toFixed(0)} in model calls.</p><button class="primary" type="submit">Run all ${set.count} cases</button></form>`).join('')}
-${o.runs.length ? `<section class="section"><h2>Earlier runs</h2><ul class="runs">${o.runs.map((r) => `<li><a href="/ops/evals/${esc(r.b.id)}">${esc(r.b.name)}</a><span class="faint small">${esc(ago(r.b.created_at))}</span><span class="quiet small">${r.done === r.b.total ? `All ${r.b.total} done` : `${r.done} of ${r.b.total} done${r.running ? `, ${r.running} running` : ''}`}. ${r.needed ? `${plural(r.needed, 'case')} needed a person.` : 'None needed a person.'}${r.b.grading === 'done' ? ' Graded.' : ''}</span></li>`).join('')}</ul></section>` : ''}`,
-    { openTasks: o.openTasks },
+    `<h1 class="hero">Eval runs</h1>
+<p class="sub">Each case is cut at its decision point and handed to the same AI case worker that runs in production, with the same tools and policy checks. Watch it run, then grade every answer against what the agency actually did next.</p>
+${o.sets
+  .map(
+    (set) => `<form method="post" action="/ops/api/batches" class="actions-row"><input type="hidden" name="set" value="${esc(set.id)}"><button class="primary" type="submit">Run all ${set.count} ${esc(set.name.toLowerCase())}</button><span class="small muted">About 10 minutes, roughly $${(set.count * 0.06).toFixed(0)} in model calls, plus about $${(set.count * 0.07).toFixed(0)} to grade.</span></form>`,
+  )
+  .join('')}
+${
+  o.runs.length
+    ? `<section><h2>Runs</h2><ul class="rows">${o.runs
+        .map(
+          (r) =>
+            `<li><a class="row" href="/ops/evals/${esc(r.b.id)}"><div><div class="what" style="font-weight:400">${esc(r.b.name)}</div><div class="where">${r.done === r.b.total ? `${r.b.total} cases` : `${r.done} of ${r.b.total} done${r.running ? `, ${r.running} running` : ''}`}${r.needed ? `, ${plural(r.needed, 'case')} handed to a person` : ''}</div></div><div class="side">${r.b.grading === 'done' ? '<span class="plain">Graded</span>' : r.done < r.b.total ? '<span class="plain"><span class="live" aria-hidden="true"></span>Running</span>' : '<span class="plain">Not graded</span>'}<span class="caption">${esc(ago(r.b.created_at))}</span></div></a></li>`,
+        )
+        .join('')}</ul></section>`
+    : ''
+}
+<section><details><summary class="small">Open results from a folder</summary><form method="post" action="/ops/api/import" class="actions-row" style="margin-top:var(--s3)"><label class="small" for="dir">A <code>pnpm cases</code> output folder over the public cases</label><input id="dir" type="text" name="dir" placeholder="runs/pm" required style="width:220px"><button class="secondary" type="submit">Open</button></form></details></section>`,
+    { openTasks: o.openTasks, current: 'evals' },
   );
 }
 
-const caseLink = (c: { id: string; source_ref: string | null }) => `<a class="chip" href="/ops/cases/${esc(c.id)}">${esc(c.source_ref?.split('@')[0] ?? c.id)}</a>`;
+const caseChip = (c: { id: string; source_ref: string | null }) => `<a class="chip" href="/ops/cases/${esc(c.id)}">${esc(caseNo(c))}</a>`;
+const groupRows = (groups: Group[], label: string) =>
+  groups.map((g) => `<li><span>${label}</span><div><div class="r"><b>${esc(toolName(g.tool))}</b>: ${esc(g.reason)}</div><div>${g.cases.map(caseChip).join('')}</div></div></li>`).join('');
 
-function groupList(groups: Group[], cls: string, title: (g: Group) => string) {
-  return `<ul class="reasons ${cls}">${groups
-    .map((g) => `<li><div class="r">${title(g)}</div><div class="n">${plural(g.cases.length, 'case')}: ${g.cases.map(caseLink).join('')}</div></li>`)
-    .join('')}</ul>`;
-}
+type View = { key: string; label: string; test: (r: CaseRow) => boolean };
 
-function row(r: CaseRow) {
-  const tags = [r.task ? '<span class="tag attn">needed a person</span>' : '', r.denied ? `<span class="tag alert">${r.denied} denied</span>` : '', r.notThrough ? `<span class="tag alert">${r.notThrough} did not go through</span>` : ''].join(' ');
-  const state =
-    r.state === 'queued' ? '<span class="state queued">Queued</span>' : r.state === 'running' ? '<span class="state running"><span class="live" aria-hidden="true"></span>Running</span>' : r.state === 'failed' ? '<span class="state failed">No decision</span>' : `<span class="state">${esc(OUTCOME[r.outcome ?? '']?.[0] ?? r.outcome ?? '')}</span>`;
-  const score = r.c.grade ? `<span class="score-cell ${r.c.grade.score < 60 || r.c.grade.critical.length ? 'low' : ''}">${r.c.grade.score}</span>` : '';
-  const filters = [r.task ? 'person' : '', r.denied ? 'denied' : '', r.notThrough || r.state === 'failed' ? 'failed' : '', r.c.grade && (r.c.grade.score < 60 || r.c.grade.critical.length) ? 'low' : ''].join(' ');
-  return `<tr data-f="${filters}"><td class="no">${esc(caseNo(r))}</td><td><a href="/ops/cases/${esc(r.c.id)}">${esc(shortTitle(r.c.title))}</a>${tags ? `<div style="margin-top:3px">${tags}</div>` : ''}</td>
-<td>${state}</td><td class="hide-s">${r.next ? `${esc(STEP[r.next.type] ?? r.next.type)}<div class="small quiet">${esc(r.next.recipient)}, ${esc(r.next.channel)}</div>` : '<span class="faint">None</span>'}</td>
-<td class="num hide-s">${r.confirmed || r.notThrough || r.denied ? `${r.confirmed}${r.notThrough + r.denied ? ` <span class="small" style="color:var(--alert)">+${r.notThrough + r.denied}</span>` : ''}` : ''}</td>
-<td class="num">${score}</td><td class="num small quiet hide-s">${r.cost ? `$${r.cost.toFixed(2)}` : ''}</td></tr>`;
-}
-
-export function evalRunPage(o: { b: Batch; v: BatchView; openTasks: number }) {
-  const { b, v } = o;
-  const total = b.total;
+export function evalRunPage(o: { b: Batch; v: BatchView; openTasks: number; prev?: { mean: number | null; scores: Record<string, number> } }) {
+  const { b, v, prev } = o;
   const live = v.running + v.queued > 0;
-  const headline = live
-    ? `${v.done} of ${total} cases done. ${v.running} running now.`
-    : `All ${total} cases are done. ${v.needed.length ? `${plural(v.needed.length, 'case')} needed a person.` : 'None needed a person.'}`;
-  const exceptions = [
-    v.denials.length ? `${plural(v.denials.reduce((a, g) => a + g.cases.length, 0), 'denial')} by policy` : '',
-    v.notThrough.length ? `${plural(v.notThrough.reduce((a, g) => a + g.cases.length, 0), 'action')} that did not go through` : '',
-    v.noDecision.length ? `${plural(v.noDecision.length, 'case')} without a decision` : '',
-  ].filter(Boolean);
-  const pct = (n: number) => `${(100 * n) / Math.max(total, 1)}%`;
-  const maxTool = Math.max(1, ...v.tools.map((t) => t.requested));
-  const maxStep = Math.max(1, ...v.nextSteps.map(([, n]) => n));
   const failed = v.rows.filter((r) => r.state === 'failed').length;
-  const lowest = v.rows.filter((r) => r.c.grade).sort((a, b) => a.c.grade!.score - b.c.grade!.score).slice(0, 5);
+  const pct = (n: number, of = b.total) => `${(100 * n) / Math.max(of, 1)}%`;
+  const handed = v.rows.filter((r) => r.reason === 'handed_over').length;
+  const unconfirmed = v.rows.filter((r) => r.reason === 'unconfirmed').length;
+  const delta = v.meanScore !== null && prev?.mean != null ? v.meanScore - prev.mean : null;
+  const views: View[] = [
+    { key: 'all', label: 'All', test: () => true },
+    { key: 'low', label: 'Low score', test: low },
+    { key: 'critical', label: 'Critical', test: (r) => !!r.c.grade?.critical.length },
+    { key: 'handed_over', label: 'Handed to a person', test: (r) => r.reason === 'handed_over' },
+    { key: 'unconfirmed', label: 'Not confirmed', test: (r) => r.reason === 'unconfirmed' || r.notThrough > 0 },
+    { key: 'denied', label: 'Denied by policy', test: (r) => r.denied > 0 },
+    { key: 'no_decision', label: 'Did not finish', test: (r) => r.reason === 'no_decision' },
+  ];
+  const counts = Object.fromEntries(views.map((w) => [w.key, v.rows.filter(w.test).length]));
+  const figure = (href: string, value: string, label: string, tone = '', extra = '') =>
+    `<a class="figure" href="${href}"><div class="v ${tone}">${value}${extra}</div><div class="l">${label}</div></a>`;
+  const scoreHead = v.meanScore !== null ? `Score, mean ${v.meanScore}` : 'Score';
+  const firstIssue = (r: CaseRow) => r.c.grade?.critical[0] ?? r.c.grade?.failed_required[0] ?? r.c.grade?.red_flags[0] ?? r.error ?? '';
+
+  const row = (r: CaseRow) => {
+    const no = caseNo(r.c);
+    const p = prev?.scores[no];
+    const d = r.c.grade && p !== undefined ? r.c.grade.score - p : null;
+    const views_ = views.filter((w) => w.key !== 'all' && w.test(r)).map((w) => w.key).join(' ');
+    return `<tr data-href="/ops/cases/${esc(r.c.id)}" data-v="${views_}"><td class="no">${esc(no)}</td><td><a href="/ops/cases/${esc(r.c.id)}">${esc(shortTitle(r.c.title))}</a></td>
+<td class="reason">${r.state === 'queued' ? '<span class="plain">Queued</span>' : stopTag(r.reason)}</td>
+<td class="r">${r.c.grade ? `<span class="score ${low(r) ? 'bad' : ''}">${r.c.grade.score}</span>` : ''}</td>
+${prev ? `<td class="r hide-s">${d === null ? '' : `<span class="d ${d > 0 ? 'up' : d < 0 ? 'down' : ''}">${d > 0 ? '+' : ''}${d}</span>`}</td>` : ''}
+<td class="hide-s"><div class="issue">${esc(firstIssue(r))}</div>${r.next && !firstIssue(r) ? `<div class="issue">${esc(STEP[r.next.type] ?? r.next.type)}, ${esc(r.next.recipient)}</div>` : ''}</td>
+<td class="r hide-s small muted">${r.cost ? `$${r.cost.toFixed(2)}` : ''}</td></tr>`;
+  };
 
   return layout(
     `${b.name}: eval run`,
-    `<style>${STYLE}</style><div class="crumbs"><a href="/ops/evals">Eval runs</a> / ${esc(b.name)}</div>
-<h1 class="ball wide">${live ? '<span class="live" aria-hidden="true"></span>' : ''}${esc(headline)}</h1>
-<p class="lede">${exceptions.length ? `Worth a look: ${esc(exceptions.join(', '))}.` : v.done ? 'No denials, no failed actions, every case reached a decision.' : 'Cases appear below as the case worker finishes them.'} ${v.cost ? `Model cost so far $${v.cost.toFixed(2)}.` : ''}</p>
-<div class="bar" role="img" aria-label="${v.done} done, ${v.running} running, ${v.queued} queued"><span class="done" style="width:${pct(v.done - failed)}"></span><span class="failed" style="width:${pct(failed)}"></span><span class="running" style="width:${pct(v.running)}"></span></div>
-<div class="legend"><span><i style="background:var(--ink)"></i>${v.done - failed} done</span>${failed ? `<span><i style="background:var(--alert)"></i>${failed} no decision</span>` : ''}<span><i style="background:var(--link)"></i>${v.running} running</span><span><i style="background:var(--rule)"></i>${v.queued} queued</span></div>
+    `<div class="crumbs"><a href="/ops/evals">Eval runs</a> / ${esc(b.name)}</div>
+<h1 class="hero">${esc(b.name)}</h1>
+<p class="sub meta" id="live-line" aria-live="polite">${live ? '<span class="live" aria-hidden="true"></span>' : ''}${v.done} of ${b.total} done${live ? `, ${v.running} running, ${v.queued} queued` : ''}. Model cost $${v.cost.toFixed(2)}.${live ? ' <button type="button" class="secondary" id="pause" style="margin-left:8px">Pause live updates</button>' : ''}</p>
+${live ? `<div class="progress" aria-hidden="true"><span class="done" style="width:${pct(v.done)}"></span><span class="running" style="width:${pct(v.running)}"></span></div>` : ''}
 
-<div class="split section"><div>
-<h2 style="font-size:15px;font-weight:600;margin:0 0 12px">How the cases ended</h2>
-${v.outcomes.length ? `<div class="bar" style="margin-top:0">${v.outcomes.map(([k, n]) => `<span class="${OUTCOME[k]?.[1] ?? 'o-none'}" style="width:${(100 * n) / Math.max(v.done, 1)}%"></span>`).join('')}</div><div class="legend">${v.outcomes.map(([k, n]) => `<span><i class="${OUTCOME[k]?.[1] ?? 'o-none'}"></i>${n} ${esc((OUTCOME[k]?.[0] ?? k).toLowerCase())}</span>`).join('')}</div>` : '<p class="quiet">Nothing finished yet.</p>'}
+<div class="figures">
+${
+  v.meanScore !== null
+    ? figure('#low', String(v.meanScore), 'Mean judge score', '', delta !== null ? `<span class="d ${delta >= 0 ? 'up' : 'down'}">${delta >= 0 ? '+' : ''}${delta} vs previous</span>` : '')
+    : b.grading === 'running'
+      ? `<div class="figure"><div class="v"><span class="live" aria-hidden="true"></span>Grading</div><div class="l">The judge is scoring every answer</div></div>`
+      : `<form class="figure" method="post" action="/ops/evals/${esc(b.id)}/grade"><div class="l" style="margin-bottom:var(--s2)">Not graded yet</div><button class="primary" type="submit" ${live ? 'disabled title="Available when every case is done"' : ''}>Grade with the judge</button></form>`
+}
+${figure('#critical', String(v.critical), 'Critical failures', v.critical ? 'bad' : '')}
+${figure('#handed_over', String(handed), 'Handed to a person', handed ? 'needs' : '')}
+${figure('#unconfirmed', String(unconfirmed), 'Actions not confirmed', unconfirmed ? 'bad' : '')}
 </div>
-<div class="gradebox">${
-      b.grading === 'done' && v.meanScore !== null
-        ? `<div class="score">${v.meanScore}</div><p>Average judge score over ${v.graded} cases. ${v.critical ? `<b style="color:var(--alert)">${plural(v.critical, 'case')} with a critical failure.</b>` : 'No critical failures.'}</p>`
-        : b.grading === 'running'
-          ? `<p style="margin:0"><span class="live" aria-hidden="true"></span>The judge is grading every case against what the agency actually did next.</p>`
-          : `<p style="margin:0">${b.grading === 'failed' ? 'Grading stopped part-way. Scores that were written are shown below.' : 'Grade each answer against what the agency actually did next, with the same judge as <code>pnpm eval</code>.'}</p>
-<form method="post" action="/ops/evals/${esc(b.id)}/grade"><button class="primary" type="submit" ${live ? 'disabled title="Available when every case is done"' : ''}>Grade with the judge</button></form>`
-    }</div></div>
+
+<section><h2>How cases ended</h2>
+${v.byReason.length ? `<div class="stack" role="img" aria-label="${esc(v.byReason.map(([r, n]) => `${n} ${STOP[r].label}`).join(', '))}">${v.byReason.map(([r, n]) => `<span style="width:${pct(n, v.rows.length)};background:${BAR[r]}"></span>`).join('')}</div>
+<div class="legend">${v.byReason.map(([r, n]) => `<a href="#${r === 'policy_stop' ? 'denied' : r}"><i style="background:${BAR[r]}"></i>${n} ${esc(STOP[r].label.toLowerCase())}</a>`).join('')}</div>` : '<p class="muted">Nothing finished yet.</p>'}
+</section>
 
 ${
-  v.needed.length || v.denials.length || v.notThrough.length || v.noDecision.length || lowest.some((r) => r.c.grade!.score < 60)
-    ? `<section class="section"><h2>Why cases stopped short</h2>
-${v.needed.length ? `<h3 class="small quiet" style="margin:18px 0 0;font-weight:600">Needed a person</h3><ul class="reasons person">${v.needed.map(({ c, t }) => `<li><div class="r">${esc(t.question)}</div><div class="n">${esc(t.team)}, ${esc(t.priority)}: ${caseLink(c)}${t.status === 'open' ? ` <a class="chip" href="/ops/tasks/${esc(t.id)}">Decide</a>` : ''}</div></li>`).join('')}</ul>` : ''}
-${v.denials.length ? `<h3 class="small quiet" style="margin:22px 0 0;font-weight:600">Denied by policy</h3>${groupList(v.denials, 'denied', (g) => `<b>${esc(toolName(g.tool))}</b>: ${esc(g.reason)}`)}` : ''}
-${v.notThrough.length ? `<h3 class="small quiet" style="margin:22px 0 0;font-weight:600">Did not go through</h3>${groupList(v.notThrough, 'fail', (g) => `<b>${esc(toolName(g.tool))}</b>: ${esc(g.reason)}`)}` : ''}
-${v.noDecision.length ? `<h3 class="small quiet" style="margin:22px 0 0;font-weight:600">No decision</h3><ul class="reasons denied">${v.noDecision.map((r) => `<li><div class="r">${esc(r.error ?? 'The case worker stopped without a decision.')}</div><div class="n">${caseLink(r.c)}</div></li>`).join('')}</ul>` : ''}
-${lowest.some((r) => r.c.grade!.score < 60) ? `<h3 class="small quiet" style="margin:22px 0 0;font-weight:600">Lowest judge scores</h3><ul class="reasons fail">${lowest.filter((r) => r.c.grade!.score < 60).map((r) => `<li><div class="r"><b>${r.c.grade!.score}</b>: ${esc(r.c.grade!.critical[0] ?? r.c.grade!.failed_required[0] ?? r.c.grade!.red_flags[0] ?? r.c.grade!.note)}</div><div class="n">${caseLink(r.c)}</div></li>`).join('')}</ul>` : ''}
-</section>`
+  v.needed.length || v.denials.length || v.notThrough.length || failed
+    ? `<section><h2>Why cases stopped short</h2><ul class="groups">
+${v.needed.map(({ c, t }) => `<li><span>${stopTag('handed_over')}</span><div><div class="r">${esc(t.question)}</div><div>${caseChip(c)}${t.status === 'open' ? `<a class="chip" href="/ops/tasks/${esc(t.id)}">Decide</a>` : ''}</div></div></li>`).join('')}
+${groupRows(v.denials, stopTag('policy_stop'))}
+${groupRows(v.notThrough, stopTag('unconfirmed'))}
+${v.noDecision.map((r) => `<li><span>${stopTag('no_decision')}</span><div><div class="r">${esc(r.error ?? 'Stopped without a decision.')}</div><div>${caseChip(r.c)}</div></div></li>`).join('')}
+</ul></section>`
     : ''
 }
 
-<div class="split section"><div>
-<h2 style="font-size:15px;font-weight:600;margin:0 0 12px">Tool calls the agents asked for</h2>
-${v.tools.length ? `<table class="grid"><tr><th>Tool</th><th class="num">Asked</th><th class="num">Confirmed</th><th class="num">Did not go through</th><th class="num">Denied</th></tr>${v.tools.map((t) => `<tr><td><span class="mini" style="width:${Math.round((60 * t.requested) / maxTool)}px"></span>${esc(toolName(t.tool))}</td><td class="num">${t.requested}</td><td class="num">${t.confirmed}</td><td class="num">${t.notThrough || ''}</td><td class="num" style="color:var(--alert)">${t.denied || ''}</td></tr>`).join('')}</table>` : '<p class="quiet">None yet.</p>'}
-</div><div>
-<h2 style="font-size:15px;font-weight:600;margin:0 0 12px">Next steps chosen</h2>
-${v.nextSteps.length ? `<table class="grid">${v.nextSteps.map(([k, n]) => `<tr><td>${esc(STEP[k] ?? k)}</td><td class="num"><span class="mini soft" style="width:${Math.round((80 * n) / maxStep)}px"></span>${n}</td></tr>`).join('')}</table>` : '<p class="quiet">None yet.</p>'}
-</div></div>
+<section><h2>Every case</h2>
+<nav class="views" aria-label="Views">${views.map((w) => `<a href="#${w.key}" data-view="${w.key}">${esc(w.label)}<span class="n">${counts[w.key]}</span></a>`).join('')}</nav>
+<table class="cases"><thead><tr><th></th><th>Case</th><th>Stop reason</th><th class="r">${esc(scoreHead)}</th>${prev ? '<th class="r hide-s">Change</th>' : ''}<th class="hide-s">First issue, or next step</th><th class="r hide-s">Cost</th></tr></thead>
+<tbody>${v.rows.map(row).join('')}</tbody></table></section>
 
-<section class="section"><h2>Every case</h2>
-<div class="filters" role="group" aria-label="Filter cases">${[
-      ['all', 'All'],
-      ['person', 'Needed a person'],
-      ['denied', 'Denied'],
-      ['failed', 'Did not go through'],
-      ...(v.graded ? [['low', 'Low score']] : []),
-    ]
-      .map(([k, l]) => `<button type="button" data-filter="${k}" aria-pressed="false">${l}</button>`)
-      .join('')}</div>
-<table class="grid cases"><tr><th></th><th>Case</th><th>Ended</th><th class="hide-s">Next step</th><th class="num hide-s">Actions</th><th class="num">Score</th><th class="num hide-s">Cost</th></tr>${v.rows.map(row).join('')}</table></section>
+<section><details><summary>Tool calls the agents asked for, and next steps chosen</summary>
+<table class="log" style="margin-top:var(--s3)"><tr><th>Tool</th><th style="text-align:right">Asked</th><th style="text-align:right">Confirmed</th><th style="text-align:right">Not confirmed</th><th style="text-align:right">Denied by policy</th></tr>${v.tools
+      .map((t) => `<tr><td>${esc(toolName(t.tool))}</td><td style="text-align:right">${t.requested}</td><td style="text-align:right">${t.confirmed}</td><td style="text-align:right;color:var(--danger-fg)">${t.notThrough || ''}</td><td style="text-align:right;color:var(--policy-fg)">${t.denied || ''}</td></tr>`)
+      .join('')}</table>
+<table class="log" style="margin-top:var(--s5)"><tr><th>Next step</th><th style="text-align:right">Cases</th></tr>${v.nextSteps.map(([k, n]) => `<tr><td>${esc(STEP[k] ?? k)}</td><td style="text-align:right">${n}</td></tr>`).join('')}</table>
+</details></section>
 <script>
 (() => {
-  const apply = (f) => {
-    document.querySelectorAll('.filters button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.filter === f)));
-    document.querySelectorAll('table.cases tr[data-f]').forEach((tr) => { tr.style.display = f === 'all' || tr.dataset.f.split(' ').includes(f) ? '' : 'none'; });
+  const apply = () => {
+    const k = location.hash.slice(1) || 'all';
+    document.querySelectorAll('.views a').forEach((a) => a.setAttribute('aria-current', String(a.dataset.view === k)));
+    document.querySelectorAll('table.cases tbody tr').forEach((tr) => { tr.hidden = k !== 'all' && !tr.dataset.v.split(' ').includes(k); });
   };
-  const current = () => location.hash.slice(1) || 'all';
-  document.querySelectorAll('.filters button').forEach((b) => b.addEventListener('click', () => { history.replaceState(null, '', '#' + b.dataset.filter); apply(b.dataset.filter); }));
-  apply(current());
-  ${live || b.grading === 'running' ? "try { const y = sessionStorage.getItem('evalScroll'); if (y) scrollTo(0, +y); } catch {} setTimeout(() => { try { sessionStorage.setItem('evalScroll', String(scrollY)); } catch {} location.reload(); }, 5000);" : "try { sessionStorage.removeItem('evalScroll'); } catch {}"}
+  addEventListener('hashchange', apply); apply();
+  document.querySelectorAll('table.cases tr[data-href]').forEach((tr) => tr.addEventListener('click', (e) => { if (!e.target.closest('a')) location.href = tr.dataset.href; }));
+  ${
+    live || b.grading === 'running'
+      ? `let paused = false; try { paused = sessionStorage.getItem('evalPaused') === '1'; const y = sessionStorage.getItem('evalScroll'); if (y) scrollTo(0, +y); } catch {}
+  const btn = document.getElementById('pause');
+  const sync = () => { document.body.classList.toggle('paused', paused); if (btn) btn.textContent = paused ? 'Resume live updates' : 'Pause live updates'; };
+  btn?.addEventListener('click', () => { paused = !paused; try { sessionStorage.setItem('evalPaused', paused ? '1' : '0'); } catch {} sync(); });
+  sync();
+  setInterval(() => { if (!paused) { try { sessionStorage.setItem('evalScroll', String(scrollY)); } catch {} location.reload(); } }, 6000);`
+      : "try { sessionStorage.removeItem('evalScroll'); } catch {}"
+  }
 })();
 </script>`,
-    { openTasks: o.openTasks },
+    { openTasks: o.openTasks, current: 'evals', wide: true, css: CSS },
   );
 }

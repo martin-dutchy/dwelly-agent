@@ -228,3 +228,44 @@ describe('eval runs', () => {
     rmSync(b.answers_dir, { recursive: true, force: true });
   });
 });
+
+describe('shared vocabulary', () => {
+  it('picks one stop reason per case by precedence', async () => {
+    const { stopReason } = await import('./status.js');
+    const c = { id: 'C', status: 'waiting_on_party' } as never;
+    const ev = (kind: string, status: string | null, extra: object = {}) => ({ case_id: 'C', ts: '2026-10-10T10:00:00Z', kind, actor: 'agent', title: '', detail: null, status, run_id: 'r', data: null, ...extra }) as never;
+    const decided = ev('decision', 'action_taken');
+    expect(stopReason(c, [ev('run_started', null), ev('message', 'verified'), decided], [])).toBe('waiting');
+    expect(stopReason(c, [ev('run_started', null), ev('message', 'failed'), decided], [{ case_id: 'C' } as never])).toBe('unconfirmed');
+    expect(stopReason(c, [ev('run_started', null), ev('escalation', 'verified'), decided], [{ case_id: 'C' } as never])).toBe('handed_over');
+    expect(stopReason(c, [ev('run_started', null), ev('blocked', 'denied'), decided], [])).toBe('policy_stop');
+    expect(stopReason(c, [ev('run_started', null)], [])).toBe('no_decision');
+  });
+
+  it('asks for a reason only on options that are hard to undo', async () => {
+    const { needsReason } = await import('./status.js');
+    expect(needsReason('Release the £1,932 payout to the new account')).toBe(true);
+    expect(needsReason('Approve the £640 quote')).toBe(true);
+    expect(needsReason('Keep the hold and call the landlord back')).toBe(false);
+    expect(needsReason('Ask the landlord to confirm in writing')).toBe(false);
+  });
+
+  it('refuses a hard-to-undo decision without a reason', async () => {
+    const ops = await createOps(memoryOpsStore());
+    await ops.store.upsertCase({ id: 'C1', title: 'Case 1', property: null, source: 'public', source_ref: null, status: 'waiting_on_human', index_md: '# Case 1', history_md: '# h\n\nTotal events: 0\n' });
+    const task = await ops.store.addTask({ case_id: 'C1', run_id: null, priority: 'P2', team: 'accounts', question: 'Release payout?', recommendation: 'Release the payout', options: [], context: {} });
+    const server = createVoiceServer({ ADMIN_PASSWORD: 'pw' } as NodeJS.ProcessEnv, memoryStore(), ops).listen(0);
+    const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    const headers = { authorization: `Basic ${Buffer.from('x:pw').toString('base64')}`, 'content-type': 'application/x-www-form-urlencoded' };
+    try {
+      const r = await fetch(`${base}/ops/tasks/${task.id}/decide`, { method: 'POST', headers, body: 'choice=Release+the+payout&by=Iona&note=ok', redirect: 'manual' });
+      expect(r.status).toBe(400);
+      expect(await r.text()).toContain('hard to undo');
+      expect((await ops.store.getTask(task.id))?.status).toBe('open');
+      const ok = await fetch(`${base}/ops/tasks/${task.id}/decide`, { method: 'POST', headers, body: 'choice=Release+the+payout&by=Iona&note=Confirmed+by+phone+with+the+landlord', redirect: 'manual' });
+      expect(ok.status).toBe(303);
+    } finally {
+      server.close();
+    }
+  });
+});

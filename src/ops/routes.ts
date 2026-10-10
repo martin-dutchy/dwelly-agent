@@ -2,11 +2,12 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { CallRow, EventRow } from '../voice/store.js';
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { CASE_SETS, gradeBatch, startBatch } from './batch.js';
+import { CASE_SETS, gradeBatch, importRun, startBatch } from './batch.js';
 import { batchView } from './batchView.js';
 import { evalRunPage, evalsPage } from './evalPages.js';
 import { decideTask, ingestCall, ingestPracticeCase, ingestPublicCase } from './ingest.js';
 import { casePage, inboxPage, taskPage, textPage } from './pages.js';
+import { needsReason } from './status.js';
 import { type OpsStore, createOpsStore } from './store.js';
 import { type Worker, createWorker } from './worker.js';
 
@@ -25,6 +26,13 @@ export async function createOps(store: OpsStore = createOpsStore()): Promise<Ops
   const worker = createWorker(store);
   // Eval runs get their own pool so a 50-case run never delays live follow-ups after calls.
   const evalWorker = createWorker(store, { concurrency: Number(process.env.OPS_EVAL_CONCURRENCY ?? 6) });
+  // Without a database, bring back earlier eval runs from disk so a restart loses nothing.
+  if (!process.env.DATABASE_URL && process.env.OPS_IMPORT_RUNS !== '0') {
+    const root = join(process.cwd(), 'runs', 'ops');
+    try {
+      for (const d of readdirSync(root)) await importRun(store, join(root, d), { id: d }).catch((e) => console.error('[ops] import', d, e));
+    } catch {}
+  }
   return {
     store,
     worker,
@@ -94,6 +102,12 @@ export async function opsRoutes(path: string, req: IncomingMessage, res: ServerR
     const choice = String(f.choice ?? '').trim();
     const by = String(f.by ?? '').trim().slice(0, 80);
     if (!choice || !by) return html(res, textPage('Missing details', 'Choose a decision and give your name.'), 400);
+    // Hard-to-undo choices need a written reason: enforced here, not only in the page's script.
+    if (needsReason(choice) && String(f.note ?? '').trim().length < 10) {
+      const t = await store.getTask(decide);
+      const c = t && (await store.getCase(t.case_id));
+      if (t && c) return html(res, taskPage({ t, c, openTasks: await openTasks(), error: 'That option is hard to undo. Add a short reason before sending.' }), 400);
+    }
     const t = await decideTask(store, worker, decide, { choice: choice.slice(0, 500), note: String(f.note ?? '').slice(0, 4000), by });
     if (!t) return html(res, textPage('Already decided', 'This task was already decided or does not exist.'), 409);
     return (req.headers.accept ?? '').includes('application/json') ? json(res, t) : redirect(res, `/ops/cases/${encodeURIComponent(t.case_id)}`);
@@ -123,6 +137,15 @@ export async function opsRoutes(path: string, req: IncomingMessage, res: ServerR
     });
     return html(res, evalsPage({ runs, openTasks: await openTasks(), sets: sets.filter((x) => x.count) }));
   }
+  if (path === '/ops/api/import' && req.method === 'POST') {
+    // Show a `pnpm cases` output folder (or an earlier portal run) as an eval run: nothing is re-run.
+    const f = await readForm(req);
+    const dir = join(process.cwd(), String(f.dir ?? ''));
+    if (!f.dir || !dir.startsWith(join(process.cwd(), 'runs'))) return html(res, textPage('Bad folder', 'Give a folder under runs/, e.g. runs/pm'), 400);
+    const b = await importRun(store, dir);
+    if (!b) return html(res, textPage('Nothing to import', `No <case>/result.json under ${f.dir} matches a public case.`), 400);
+    return redirect(res, `/ops/evals/${encodeURIComponent(b.id)}`);
+  }
   if (path === '/ops/api/batches' && req.method === 'POST') {
     const f = await readForm(req);
     const set = String(f.set ?? 'pm-public');
@@ -141,7 +164,16 @@ export async function opsRoutes(path: string, req: IncomingMessage, res: ServerR
     for (const c of cs) runs[c.id] = await store.runs(c.id);
     const v = batchView(cs, await eventsOf(store, [...ids]), (await store.listTasks()).filter((t) => ids.has(t.case_id)), runs);
     if (path.startsWith('/ops/api/')) return json(res, { batch: b, done: v.done, running: v.running, queued: v.queued, outcomes: v.outcomes, needed: v.needed.length, tools: v.tools, nextSteps: v.nextSteps, meanScore: v.meanScore, critical: v.critical, cost: v.cost });
-    return html(res, evalRunPage({ b, v, openTasks: await openTasks() }));
+    // Compare with the latest earlier graded run of the same case set.
+    const earlier = (await store.listBatches()).filter((x) => x.case_set === b.case_set && x.created_at < b.created_at && x.grading === 'done');
+    let prev: { mean: number | null; scores: Record<string, number> } | undefined;
+    if (earlier[0]) {
+      const scores: Record<string, number> = {};
+      for (const c of await store.batchCases(earlier[0].id)) if (c.grade && c.source_ref) scores[c.source_ref.split('@')[0]] = c.grade.score;
+      const vals = Object.values(scores);
+      prev = { mean: vals.length ? Math.round(vals.reduce((a, x) => a + x, 0) / vals.length) : null, scores };
+    }
+    return html(res, evalRunPage({ b, v, openTasks: await openTasks(), prev }));
   }
   const grade = path.match(/^\/ops\/evals\/([\w-]+)\/grade$/)?.[1];
   if (grade && req.method === 'POST') {

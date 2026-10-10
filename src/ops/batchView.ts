@@ -1,3 +1,4 @@
+import { type StopReason, STOP_ORDER, stopReason } from './status.js';
 import type { HumanTask, OpsCase, OpsEvent, OpsRun } from './store.js';
 
 /**
@@ -16,6 +17,7 @@ export type CaseRow = {
   task: HumanTask | null;
   cost: number;
   error: string | null;
+  reason: StopReason;
 };
 export type Group = { key: string; tool: string; reason: string; cases: OpsCase[] };
 export type ToolStat = { tool: string; requested: number; confirmed: number; notThrough: number; denied: number };
@@ -33,6 +35,7 @@ export type BatchView = {
   tools: ToolStat[];
   nextSteps: [string, number][];
   cost: number;
+  byReason: [StopReason, number][];
   graded: number;
   meanScore: number | null;
   critical: number;
@@ -42,6 +45,7 @@ const ACTION_KINDS = new Set(['action', 'message', 'follow_up', 'escalation']);
 /** Policy reasons carry amounts and refs; strip them so the same rule groups together. */
 const ruleKey = (tool: string, reason: string) =>
   `${tool}|${reason
+    .replace(/^Ticket .+? not found/, 'Ticket # not found')
     .split(/(?<=\.)\s/)[0]
     .replace(/£\s?[\d,.]+|\b[A-Z]{1,4}-?\d[\w-]*|\d[\d,.:/-]*/g, '#')
     .toLowerCase()
@@ -109,6 +113,7 @@ export function batchView(cases: OpsCase[], events: Record<string, OpsEvent[]>, 
       task: tasks.find((t) => t.case_id === c.id) ?? null,
       cost: (runs[c.id] ?? []).reduce((a, r) => a + (r.cost ?? 0), 0),
       error: failed?.detail ?? null,
+      reason: stopReason(c, es, tasks),
     };
   });
 
@@ -126,6 +131,7 @@ export function batchView(cases: OpsCase[], events: Record<string, OpsEvent[]>, 
     tools: [...tools.values()].sort((a, b) => b.requested - a.requested),
     nextSteps: [...steps].sort((a, b) => b[1] - a[1]),
     cost: rows.reduce((a, r) => a + r.cost, 0),
+    byReason: STOP_ORDER.map((r) => [r, rows.filter((x) => x.reason === r).length] as [StopReason, number]).filter(([, n]) => n),
     graded: graded.length,
     meanScore: graded.length ? Math.round(graded.reduce((a, r) => a + r.c.grade!.score, 0) / graded.length) : null,
     critical: graded.filter((r) => r.c.grade!.critical.length).length,

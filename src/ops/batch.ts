@@ -64,5 +64,42 @@ export async function gradeBatch(store: OpsStore, batch: Batch, opts: { model?: 
     const g = caseNo ? readGrade(join(batch.answers_dir, caseNo, 'grades.json')) : undefined;
     if (g) await store.setGrade(c.id, g);
   }
-  await store.setGrading(batch.id, code === 0 ? 'done' : 'failed');
+  // The judge exits 1 when it finds critical failures (a CI signal); grading is done when every case has a grade.
+  const graded = (await store.batchCases(batch.id)).filter((c) => c.grade).length;
+  await store.setGrading(batch.id, graded === batch.total ? 'done' : code === 0 ? 'done' : 'failed');
+}
+
+/**
+ * Rebuild an eval run from a folder of results on disk: this portal's own runs (runs/ops/<id>) or any
+ * `pnpm cases` output over the public cases. Each <case>/result.json becomes the case's timeline, and a
+ * grades.json next to it becomes its score. Nothing is re-run.
+ */
+export async function importRun(store: OpsStore, answersDir: string, o: { id?: string; name?: string; set?: keyof typeof CASE_SETS } = {}) {
+  const set = o.set ?? 'pm-public';
+  const casesDir = CASE_SETS[set].dir();
+  const ids = readdirSync(answersDir).filter((f) => existsSync(join(answersDir, f, 'result.json')) && existsSync(join(casesDir, f))).sort();
+  if (!ids.length) return undefined;
+  const id = o.id ?? `import-${answersDir.split('/').filter(Boolean).at(-1)!.replace(/[^\w-]/g, '').slice(0, 24)}`;
+  if (await store.getBatch(id)) return store.getBatch(id);
+  const graded = ids.every((f) => existsSync(join(answersDir, f, 'grades.json')));
+  const when = new Date(statSync(join(answersDir, ids[0], 'result.json')).mtime).toLocaleString('en-GB', { timeZone: 'Europe/London', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  const b = await store.addBatch({ id, name: o.name ?? `${CASE_SETS[set].name}, ${when}`, case_set: set, total: ids.length, answers_dir: answersDir, cases_dir: casesDir, grading: graded ? 'done' : 'not_started' });
+  const { ingestPublicCaseRecord } = await import('./ingest.js');
+  const { recordRun } = await import('./record.js');
+  for (const caseNo of ids) {
+    const r = JSON.parse(readFileSync(join(answersDir, caseNo, 'result.json'), 'utf8'));
+    const c = await ingestPublicCaseRecord(store, caseNo, typeof r.cutoff === 'number' ? r.cutoff : undefined, casesDir, b.id);
+    const runId = newId('run');
+    await store.startRun({ id: runId, case_id: c.id, trigger: 'imported result' });
+    const out = { decision: r.decision, ledger: r.ledger ?? [], policyLog: r.policyLog, gateLog: r.gateLog, error: r.error };
+    const { events, tasks, status } = recordRun({ caseId: c.id, runId, run: out, historyMd: c.history_md, at: new Date(Date.parse(b.created_at)) });
+    await store.addEvents([{ case_id: c.id, ts: new Date(Date.parse(b.created_at) - 1).toISOString(), kind: 'run_started', actor: 'agent', title: 'Case worker started: new case', detail: null, status: null, run_id: runId, data: null }, ...events]);
+    for (const t of tasks) await store.addTask(t);
+    await store.setStatus(c.id, status);
+    const read = (f: string) => (existsSync(join(answersDir, caseNo, f)) ? readFileSync(join(answersDir, caseNo, f), 'utf8') : null);
+    await store.finishRun(runId, { outcome: r.decision?.outcome ?? 'no_decision', cost: r.cost ?? r.usage?.cost ?? null, answer_md: read('ANSWER.md'), reasoning_md: read('REASONING.md') });
+    const g = readGrade(join(answersDir, caseNo, 'grades.json'));
+    if (g) await store.setGrade(c.id, g);
+  }
+  return b;
 }

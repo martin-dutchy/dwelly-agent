@@ -116,6 +116,20 @@ export async function ingestCall(store: OpsStore, worker: Worker, call: CallRow,
 }
 
 /** Open a public example at its decision point (or after a given event) and let the case worker take it. */
+/** Store a public case cut after an event, without running anything. */
+export async function ingestPublicCaseRecord(store: OpsStore, caseNo: string, afterEvent: number | undefined, root: string, batchId?: string) {
+  const dir = join(root, caseNo);
+  const indexMd = readFileSync(join(dir, 'index.md'), 'utf8');
+  const historyMd = readFileSync(join(dir, 'history.md'), 'utf8');
+  const cut = afterEvent ?? loadPublicCase(dir, 'auto').cutoff;
+  const { preamble, events } = parseHistory(historyMd);
+  const kept = events.slice(0, cut);
+  const id = batchId ? `${batchId}-${caseNo}` : `PM${caseNo}-e${cut}`;
+  const history = `${preamble.replace(/Total events: \d+/, `Total events: ${kept.length}`)}\n\n${kept.map((e) => `<a id="event-${String(e.n).padStart(3, '0')}"></a>\n## ${e.header}\n\n${e.body}`).join('\n\n')}\n`;
+  const index = openIndex(indexMd);
+  return store.upsertCase({ id, title: title(index, id), property: property(index), source: 'public', source_ref: `${caseNo}@${cut}`, status: batchId ? 'queued' : 'agent_working', index_md: index, history_md: history, batch_id: batchId ?? null });
+}
+
 export async function ingestPublicCase(store: OpsStore, worker: Worker, caseNo: string, afterEvent?: number, root = PUBLIC(), batchId?: string) {
   const dir = join(root, caseNo);
   const indexMd = readFileSync(join(dir, 'index.md'), 'utf8');

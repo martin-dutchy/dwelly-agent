@@ -111,7 +111,9 @@ export function createWorker(store: OpsStore, opts: WorkerOptions = {}) {
         mkdirSync(outDir, { recursive: true });
         writeFileSync(join(outDir, 'ANSWER.md'), answer_md);
         writeFileSync(join(outDir, 'REASONING.md'), reasoning_md);
-        writeFileSync(join(outDir, 'result.json'), JSON.stringify({ id: caseNo, cutoff: Number(cut), decision: out.decision, ledger: out.ledger, policyLog: out.policyLog, error: out.error, cost: out.cost }, null, 2));
+        // Same fields the batch runner writes: the judge's checks read `state` (ids tools returned, e.g. quote ids).
+        const extra = out as { state?: unknown; gateLog?: unknown };
+        writeFileSync(join(outDir, 'result.json'), JSON.stringify({ id: caseNo, cutoff: Number(cut), decision: out.decision, ledger: out.ledger, state: extra.state, gateLog: extra.gateLog, policyLog: out.policyLog, error: out.error, cost: out.cost }, null, 2));
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
