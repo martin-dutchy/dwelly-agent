@@ -1,6 +1,6 @@
 # M5 (runner half): time budget, resumable runs, rate-limit guidance, 15:15 rehearsal
 
-Status: ready to implement once the open questions are accepted · Shape: default plan · Owner: Marc · Written 2026-10-10 12:15 BST by Claude for Marc · Window: pure modules from 12:45 in parallel; `run.ts` wiring 13:30 to 15:00 after PR #11 lands (13:00 to 13:30); rehearsal 15:15.
+Status: approved by Marc 12:06 BST (see Decision log) · Shape: default plan · Owner: Marc · Written 2026-10-10 12:15 BST by Claude for Marc · Window: pure modules from 12:45 in parallel; `run.ts` wiring 13:30 to 15:00 after PR #11 lands (13:00 to 13:30); rehearsal 15:15.
 
 Parent: [docs/plans/dwelly-case-worker-master-plan.md](../../docs/plans/dwelly-case-worker-master-plan.md) (M5 row, AC1, AC2, AC13, section 6 "Time fallback at 16:50" and the 15:15 scope-ladder row). Runbook this plan must match: [.claude/skills/reality-test-run/SKILL.md](../../.claude/skills/reality-test-run/SKILL.md) (section "Runner flags still to come" and "Rehearsal record"). Sibling: the adapter half, [src/agent/adapters/plans/organiser-api-adapter-plan.md](../agent/adapters/plans/organiser-api-adapter-plan.md). Conventions: `AGENTS.md`, `docs/plans/README.md`.
 
@@ -243,3 +243,5 @@ Run from the repo root and show the output.
   Rationale: `runs/` is git-ignored. Date/Author: 2026-10-10 12:15, Claude for Marc.
 - Decision: open questions Q1 to Q10 are pending Marc's answers; the defaults are the plan of record until he answers.
   Rationale: hackathon exception in `docs/plans/README.md`. Date/Author: 2026-10-10 12:15, Claude for Marc.
+- Decision: Marc approved the plan with the recommended defaults for Q2 to Q10, and overrode Q1: the runner flags are built on `main`'s `run.ts` now, without waiting for PR #11. This plan's "Fallback at 13:45" path is the plan of record from the start. PR #11 rebases on top of the flags afterwards and merges only if it is green before the 15:15 rehearsal; otherwise it waits until after 17:00. The same lane also wires the M1 case-state hints into `run.ts` (4 lines, `hintsFor` from `src/agent/maintenance/stateReconstruct.ts`) and then builds the organiser API adapter, so `run.ts` has one writer.
+  Rationale: the rehearsal needs the flags by 15:00, and waiting on a rebase of someone else's branch puts the critical path on the slowest dependency. Date/Author: 2026-10-10 12:06 BST, Marc.

@@ -1,6 +1,6 @@
 # M3: critic pass and deterministic pre-submit validators
 
-Status: ready to implement once the open questions are accepted · Shape: default plan · Owner: Marc · Written 2026-10-10 12:10 BST by Claude for Marc · Window: 12:45 to 14:00 BST (A/B decision by 15:00 at the latest).
+Status: approved by Marc 12:06 BST (see Decision log) · Shape: default plan · Owner: Marc · Written 2026-10-10 12:10 BST by Claude for Marc · Window: 12:45 to 14:00 BST (A/B decision by 15:00 at the latest).
 
 Parent: [docs/plans/dwelly-case-worker-master-plan.md](../../../docs/plans/dwelly-case-worker-master-plan.md) (M3 row, AC12, section 6 "Critic gate" and the 15:00 scope-ladder row). Design source: [research/evaluation.md](../../../research/evaluation.md) section 4. Architecture: [docs/plans/master-plan-review-2026-10-10.md](../../../docs/plans/master-plan-review-2026-10-10.md) section 1 ("the critic is a call, not an agent") and section 3 (tool tiers T0 to T3). Sibling plans it depends on: [M1](../maintenance/plans/maintenance-policy-and-state-implementation-plan.md) (validators, `quoteAppears`) and [M4](../../eval/plans/harness-hardening-implementation-plan.md) (`--k`, `summary.json`). Conventions: `AGENTS.md`, `docs/plans/README.md`.
 
@@ -274,4 +274,6 @@ Run from the repo root and show the output.
   Rationale: no new control flow; the case timeout already bounds it; the existing tests' faux-provider pattern covers it. Date/Author: 2026-10-10 12:10, Claude for Marc.
 - Decision: open questions Q1 to Q10 are pending Marc's answers; the defaults in the table are the plan of record until he answers.
   Rationale: hackathon exception in `docs/plans/README.md`. Date/Author: 2026-10-10 12:10, Claude for Marc.
+- Decision: Marc approved the plan with every recommended default (Q1 to Q10).
+  Rationale: answered in chat. Date/Author: 2026-10-10 12:06 BST, Marc.
 - Decision (A/B outcome): _to be filled at step 7 with both `summary.json` paths and the table._

@@ -1,6 +1,6 @@
 # M5 (adapter half): organiser API adapter stub with mock fallback
 
-Status: ready to implement once the open questions are accepted · Shape: default plan · Owner: Marc · Written 2026-10-10 12:20 BST by Claude for Marc · Window: steps 1 and 2 are new files and can be built in parallel from 12:45 by whoever is free; step 3 (the `run.ts` wiring) waits for the runner plan's step 3 and lands by 14:30. Time box 45 minutes for steps 1 to 3; step 4 only if time is left; hard stop 15:05.
+Status: approved by Marc 12:06 BST (see Decision log) · Shape: default plan · Owner: Marc · Written 2026-10-10 12:20 BST by Claude for Marc · Window: steps 1 and 2 are new files and can be built in parallel from 12:45 by whoever is free; step 3 (the `run.ts` wiring) waits for the runner plan's step 3 and lands by 14:30. Time box 45 minutes for steps 1 to 3; step 4 only if time is left; hard stop 15:05.
 
 Parent: [docs/plans/dwelly-case-worker-master-plan.md](../../../../docs/plans/dwelly-case-worker-master-plan.md) (M5 row; section 6 "Format fallback at 16:30": "If an organiser API is supplied, the adapter is switched on by env var; if it fails in the first case, fall back to the mock toolset and say so in REASONING"; section 8 "Are tools supplied?"). Runbook: [.claude/skills/reality-test-run/SKILL.md](../../../../.claude/skills/reality-test-run/SKILL.md) Step 6. Sibling: [src/plans/reality-runner-implementation-plan.md](../../../plans/reality-runner-implementation-plan.md). Conventions: `AGENTS.md`, `docs/plans/README.md`.
 
@@ -175,3 +175,5 @@ Run from the repo root and show the output.
   Rationale: the agent loop only ever sees the `Toolset` interface; a wrapper is the smallest change that keeps every invariant. Date/Author: 2026-10-10 12:20, Claude for Marc.
 - Decision: open questions Q1 to Q8 are pending Marc's answers; the defaults are the plan of record until he answers.
   Rationale: hackathon exception in `docs/plans/README.md`. Date/Author: 2026-10-10 12:20, Claude for Marc.
+- Decision: Marc approved the plan with every recommended default (Q1 to Q8): built last and small, after the runner flags, in the same lane (one writer for `run.ts`); hard stop 15:05.
+  Rationale: answered in chat. Date/Author: 2026-10-10 12:06 BST, Marc.
