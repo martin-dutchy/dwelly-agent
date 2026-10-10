@@ -9,7 +9,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { claude, streamFn } from '../agent/models.js';
 import { onAudit } from '../core/audit.js';
 import { verifySignature } from './elevenlabs/postCall.js';
-import { fetchAudio, finalizeCall } from './finalize.js';
+import { fetchAudio, finalizeCall, onCallFinalized } from './finalize.js';
+import { type Ops, createOps, opsRoutes } from '../ops/routes.js';
 import { adminCallPage, adminHomePage } from './http/adminPages.js';
 import { type ChatRequest, createPiBrain } from './pi/brain.js';
 import { buildCallLog, callBrief, firstMessage, grade, publicScenarios, scenarioById, scenarios, testerCard, worldFor } from './scenarios.js';
@@ -367,7 +368,7 @@ async function adminRoutes(path: string, req: IncomingMessage, res: ServerRespon
 
 const publicBase = (req: IncomingMessage, env: Env) => env.PUBLIC_BASE_URL || `http://${req.headers.host}`;
 
-export function createVoiceServer(env: Env = process.env, store: VoiceStore = createStore(env.DATABASE_URL)) {
+export function createVoiceServer(env: Env = process.env, store: VoiceStore = createStore(env.DATABASE_URL), ops?: Ops) {
   // Each call's tools work on a copy of its case: tenant, property, open job.
   setWorldSeeder(worldFor);
   // After a restart, a live call's identity state is rebuilt from the durable event log.
@@ -387,6 +388,15 @@ export function createVoiceServer(env: Env = process.env, store: VoiceStore = cr
 
       const tester = path.match(/^\/t\/([\w-]{6,40})(?:\/(.*))?$/);
       if (tester) return await testerRoutes(tester[1], tester[2] ?? '', req, res, store, env);
+
+      // Operations portal: what the agents did, and the tasks waiting on a person. Same password as the admin.
+      if (ops && (path === '/ops' || path.startsWith('/ops/'))) {
+        if (!isAdmin(req, env)) {
+          res.writeHead(401, { 'www-authenticate': 'Basic realm="voice admin"' }).end('Admin password required');
+          return;
+        }
+        return await opsRoutes(path, req, res, ops);
+      }
 
       if (path === '/admin' || path.startsWith('/admin/')) {
         if (!isAdmin(req, env)) {
@@ -435,7 +445,10 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const unfinished = (await store.listCalls(200)).filter((c) => (c.status === 'live' || c.status === 'ended') && Date.now() - Date.parse(c.started_at) < 86_400_000);
   for (const c of unfinished) void finalizeCall(store, c.conversation_id, { attempts: 120, delayMs: 10_000 });
   if (unfinished.length) console.log(`[voice] resuming grading for ${unfinished.length} call(s)`);
-  createVoiceServer(process.env, store).listen(port, () =>
+  // After each graded call the portal records it and the case worker runs the follow-ups.
+  const ops = await createOps();
+  onCallFinalized(ops.onCallFinalized);
+  createVoiceServer(process.env, store, ops).listen(port, () =>
     console.log(`[voice] listening on :${port} (${process.env.DATABASE_URL ? 'postgres' : 'in-memory'} store). Admin: /admin`),
   );
 }

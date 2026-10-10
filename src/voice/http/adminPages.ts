@@ -36,7 +36,7 @@ const STYLE = `
 
 const shell = (title: string, body: string, script = '') => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title><style>${STYLE}</style></head><body>
-<header><h1>Voice testing</h1><a href="/admin">Calls &amp; invites</a><a href="/admin/console">Test console</a></header>
+<header><h1>Voice testing</h1><a href="/admin">Calls &amp; invites</a><a href="/admin/console">Test console</a><a href="/ops">Operations portal</a></header>
 <main>${body}</main><script>${script}</script></body></html>`;
 
 const verdict = (c: Pick<CallRow, 'passed' | 'status'>) =>
