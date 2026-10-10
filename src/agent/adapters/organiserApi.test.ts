@@ -88,6 +88,16 @@ describe('organiser API adapter', () => {
     expect(report().tripped).toBeUndefined();
   });
 
+  it('a refused write is never read back as verified, even when the mirror already matches', async () => {
+    reply = (_req, res) => res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ ok: false, error: 'already sent' }));
+    const mock = createOpsToolset();
+    await mock.execute('send_message', msg, ctx);
+    expect(mock.verify('send_message', msg, undefined, ctx).status).toBe('verified');
+    const { toolset } = withOrganiserApi(mock, cfgWith(), 'T');
+    await toolset.execute('send_message', msg, ctx);
+    expect(toolset.verify('send_message', msg, undefined, ctx)).toMatchObject({ status: 'not_applied', evidence: expect.stringContaining('refused') });
+  });
+
   it('unmapped tools never reach the server and are listed as local only', async () => {
     const { toolset, report } = withOrganiserApi(createOpsToolset(), cfgWith(), 'T');
     await toolset.execute('log_call', { party: 'tenant', summary: 'x' }, ctx);

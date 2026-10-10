@@ -35,6 +35,10 @@ export function withOrganiserApi(mock: Toolset, cfg: OrganiserConfig | undefined
   if (!cfg) return { toolset: mock, report: () => ({ mode: 'mock', sent, localOnly: [] }) };
   const disabledBy = trip;
   const localOnly = new Set<string>();
+  // Calls the organiser refused. The mock's read-back could still match (e.g. closing a ticket the mirror already
+  // shows closed), so a refusal must never be read back as verified.
+  const refused = new Map<string, string>();
+  const callKey = (name: string, args: unknown) => `${name}|${JSON.stringify(args ?? {})}`;
   let calls = 0;
   let tripped: Trip | undefined;
 
@@ -54,8 +58,10 @@ export function withOrganiserApi(mock: Toolset, cfg: OrganiserConfig | undefined
     if (kind === 'write') sent.writes++;
     else sent.reads++;
     const body = reply.body && typeof reply.body === 'object' ? reply.body : {};
+    refused.delete(callKey(name, args));
     if (body.ok === false || body.error) {
       const error = scrub(typeof body.error === 'string' ? body.error : JSON.stringify(body.error ?? 'refused'), cfg);
+      refused.set(callKey(name, args), error);
       return { ok: false, error, say: `The organiser system refused this: ${error}`, organiser: { status: reply.status } };
     }
     const id = body.id ?? body.ref ?? undefined;
@@ -72,6 +78,8 @@ export function withOrganiserApi(mock: Toolset, cfg: OrganiserConfig | undefined
     guard: mock.guard,
     execute,
     verify: (name, args, result, ctx) => {
+      const refusal = refused.get(callKey(name, args));
+      if (refusal !== undefined) return { status: 'not_applied', evidence: `organiser API refused it: ${refusal}` };
       const v = mock.verify(name, args, result, ctx);
       const o = result?.organiser as { status: number; id?: unknown } | undefined;
       return o ? { ...v, evidence: `organiser API accepted (HTTP ${o.status}${o.id !== undefined ? `, id ${o.id}` : ''}); ${v.evidence}` } : v;

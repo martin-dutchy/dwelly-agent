@@ -179,6 +179,7 @@ Run from the repo root and show the output.
 
 - Another case's trip can land while a case is mid-run (concurrency > 1). Its later calls then go to the mock; the report carries `disabledMidCase` and the REASONING line says so.
 - `report.ts` was left alone (the M1 lane edits it): `run.ts` inserts the `Toolset:` line under the REASONING title with `withToolsetLine`.
+- (2026-10-10 12:55 BST, review follow-up) A business refusal (`ok:false`) was read back against the mock, so a refused `close_ticket` on a ticket the mirror already showed closed came back `verified`. The adapter now remembers refused calls and `verify` returns `not_applied` for them (test: "a refused write is never read back as verified"). Unlisted tools stay local only (`toolMap.ts`); R2 "identity by default" is superseded by that.
 
 ## Decision log
 
