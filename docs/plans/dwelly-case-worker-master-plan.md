@@ -243,7 +243,9 @@ Create each as a default plan (not ExecPlan) in a `plans/` folder next to the co
 - [x] (2026-10-10 11:40 BST) M1 sub-plan written: `src/agent/maintenance/plans/maintenance-policy-and-state-implementation-plan.md` (steps 1–7 are the milestone, 8–9 cut first if behind).
 - [ ] M0 Baseline
 - [x] (2026-10-10 11:15 BST) M0b Runner landmines: `--at none` is the default outside `HackatonPublicCases/` (36/36 events on a copy of case 047), history compaction keeps the first event and the last 12 verbatim and collapses hold/reminder runs; tests in `publicCases.test.ts`, branch `m0b-runner-landmines`.
+  - [x] (2026-10-10 11:45 BST) Pre-M1 baselines on the dev split as it stood before public-cuts (practice + public examples, 23 cases): `evals/baseline-quick-dev.json` (Haiku, mean 73.9, 1 critical) and `evals/baseline-final-dev.json` (Sonnet, mean 93.4, 0 critical), all 23 decided. Public-cuts has its own `evals/baseline-final-dev-partial.json`.
 - [ ] M1 Maintenance policy + state + vocabulary
+  - [x] (2026-10-10 11:45 BST) Step 8 text drafted: `src/agent/maintenance/maintenance-policy.md` (job stages, permitted actions, evidence rules, act / ask / wait / escalate, inbound-message tables per party, message style, closing checklist). Not yet wired into the system prompt.
 - [x] (2026-10-10 11:50 BST) M2 Edge-case corpus: 15 real cuts + 10 mutations in `cases/public-cuts/` with `rubric.json` and `expected.json`, added to the `dev` split; `pnpm verify` green (150 tests; earlier counts of 203 and 275 included duplicate copies of tests from `.claude/worktrees`, now excluded in `vitest.config.ts`). Not yet run through the agent or judge (no API key on Marc's machine). Inventory that drives it: `research/eval-inventory.md`.
 - [ ] M3 Critic pass + validators (A/B decided)
 - [ ] M4 Harness hardening (k=3, checks, baseline, summary.json)
