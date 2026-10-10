@@ -1,0 +1,268 @@
+{
+  "id": "012-duplicate-report",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "cutoff": 21,
+  "totalEvents": 21,
+  "inputs": [
+    {
+      "name": "history.md",
+      "method": "derived",
+      "bytes": 8347,
+      "chars": 8273,
+      "note": "events 1–21 of 21 from history.md"
+    }
+  ],
+  "withheld": [
+    {
+      "name": "index.md",
+      "reason": "sections that reveal the ending: Next action at escalation, History, Attachments"
+    },
+    {
+      "name": "checks.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    },
+    {
+      "name": "rubric.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    }
+  ],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Stage: visit booked for 29/04/2026 (8am–12pm), recorded by system (event 017) after the provider phoned the tenant (event 016). The tenant's latest email chases a visit that is already booked, so it is a duplicate. No second job was opened. Waiting for the visit; follow-up set for 30/04.",
+    "next_actions": [
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Tell the tenant the visit is already booked for 29/04 8-12 and that no new job was opened",
+        "recipient": "Leo Turner, tenant",
+        "channel": "email",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "CHASE_PROVIDER",
+        "action": "Ask the provider to confirm the booking and its company name",
+        "recipient": "Riverside Compliance, contractor",
+        "channel": "email",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "WAIT",
+        "action": "Wait for the visit, then check the result and provider identity on 30/04",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A3"
+      }
+    ],
+    "boundaries": [
+      "The reply does not establish the cause of the fault or who pays.",
+      "The visit is an inspection only; any repair needs a quote and landlord approval, or the spend limit.",
+      "The provider has not yet confirmed the company name."
+    ],
+    "remaining_work": [
+      "Visit on 29/04, then record the work result",
+      "Quote and landlord approval if a repair is needed",
+      "Resolve the provider name mismatch",
+      "Follow-up due 30/04 (agency)"
+    ],
+    "missing_info": [
+      "Provider's confirmation of the booking and company name"
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "The tenant's latest email duplicates an open job with a visit already booked for 29/04 8am–12pm. I told the tenant, asked the provider to confirm the booking and its company name, set a follow-up for 30/04 and returned the ticket to auto mode.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "Visit booked for 29/04/2026 8am–12pm. The tenant's chase is a duplicate. Outstanding: the visit itself, the result, and a quote and landlord approval if a repair is needed."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Email the tenant to say the visit is already booked. Email Riverside Compliance to confirm the booking and its company name. Both are done."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "No. This is a routine duplicate and the record mismatches can be settled by asking the provider."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Replied to tenant"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Asked provider to confirm the booking and company"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Follow-up set for 30/04"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Returned the ticket to auto mode"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Provider named as Riverside Compliance (events 014–019) but Cedar Utilities in the call note (event 016); the SMS was branded Harbour Homes (event 020).",
+      "The call note says 'Leo Kendall' while the records say Leo Turner.",
+      "Event 004 notes confusion with an earlier sink email; the event 011 tenant reply confirms the checks failed. I trusted the system record of the visit."
+    ],
+    "assumptions": [
+      "The 29/04 booking in the system record is valid and still stands."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Leo Turner",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 021 email)",
+        "ticket_ref": "NBL-012-duplicate-report",
+        "body": "Hi Leo, thanks for getting back to us. Someone is already booked to look at the dishwasher door: our records show Wednesday 29/04/2026, between 8am and 12pm, with Riverside Compliance (to rearrange, call 07700 900410). You don't need to do anything else, and we haven't opened a second job. We're also double-checking the booking with the engineer and will be in touch if anything changes. If the visit doesn't go ahead, let us know."
+      },
+      "key": "send_message:{body:\"Hi Leo, thanks for getting back to us. Someone is already booked to look at the dishwasher door: our records show Wednesday 29/04/2026, between 8am and 12pm, with Riverside Compliance (to rearrange, call 07700 900410). You don't need to do anything else, and we haven't opened a second job. We're also double-checking the booking with the engineer and will be in touch if anything changes. If the visit doesn't go ahead, let us know.\",channel:\"email\",contact:\"existing thread (event 021 email)\",recipient_name:\"Leo Turner\",recipient_role:\"tenant\",ticket_ref:\"NBL-012-duplicate-report\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-101",
+      "evidence": [
+        "MSG-101 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Riverside Compliance",
+        "recipient_role": "contractor",
+        "channel": "email",
+        "contact": "existing thread (event 018 email)",
+        "ticket_ref": "NBL-012-duplicate-report",
+        "body": "Hello, please could you confirm you are attending Flat 9, 89 Juniper Mews on Wednesday 29/04/2026 between 8 and 12 for the dishwasher door inspection? Our call note mentions \"Grant from Cedar Utilities\", so please confirm the company name too. The tenant has chased today. If a quote is needed, please send it to us before any work starts."
+      },
+      "key": "send_message:{body:\"Hello, please could you confirm you are attending Flat 9, 89 Juniper Mews on Wednesday 29/04/2026 between 8 and 12 for the dishwasher door inspection? Our call note mentions \\\"Grant from Cedar Utilities\\\", so please confirm the company name too. The tenant has chased today. If a quote is needed, please send it to us before any work starts.\",channel:\"email\",contact:\"existing thread (event 018 email)\",recipient_name:\"Riverside Compliance\",recipient_role:\"contractor\",ticket_ref:\"NBL-012-duplicate-report\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-102",
+      "evidence": [
+        "MSG-102 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "schedule_follow_up",
+      "args": {
+        "ticket_ref": "NBL-012-duplicate-report",
+        "due_on": "2026-04-30",
+        "purpose": "Check visit on 29/04 happened and record result; confirm provider identity (Riverside vs Cedar Utilities)",
+        "party": "Riverside Compliance / tenant"
+      },
+      "key": "schedule_follow_up:{due_on:\"2026-04-30\",party:\"Riverside Compliance / tenant\",purpose:\"Check visit on 29/04 happened and record result; confirm provider identity (Riverside vs Cedar Utilities)\",ticket_ref:\"NBL-012-duplicate-report\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "FUP-103",
+      "evidence": [
+        "FUP-103 found in the schedule_follow_up log"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "resume_auto",
+      "args": {
+        "ticket_ref": "NBL-012-duplicate-report"
+      },
+      "key": "resume_auto:{ticket_ref:\"NBL-012-duplicate-report\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-012-duplicate-report",
+      "evidence": [
+        "Ticket NBL-012-duplicate-report read back after resume_auto"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-012-duplicate-report",
+        "stage": "visit",
+        "property": "Flat 9, 89 Juniper Mews, Willowbank, ZZ2 0ZZ",
+        "description": "Dishwasher door not closing,",
+        "mode": "auto"
+      }
+    ],
+    "records": [
+      {
+        "id": "MSG-101",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Leo Turner",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 021 email)",
+          "body": "Hi Leo, thanks for getting back to us. Someone is already booked to look at the dishwasher door: our records show Wednesday 29/04/2026, between 8am and 12pm, with Riverside Compliance (to rearrange, call 07700 900410). You don't need to do anything else, and we haven't opened a second job. We're also double-checking the booking with the engineer and will be in touch if anything changes. If the visit doesn't go ahead, let us know.",
+          "ticket_ref": "NBL-012-duplicate-report"
+        },
+        "at": 1791635460275
+      },
+      {
+        "id": "MSG-102",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Riverside Compliance",
+          "recipient_role": "contractor",
+          "channel": "email",
+          "contact": "existing thread (event 018 email)",
+          "body": "Hello, please could you confirm you are attending Flat 9, 89 Juniper Mews on Wednesday 29/04/2026 between 8 and 12 for the dishwasher door inspection? Our call note mentions \"Grant from Cedar Utilities\", so please confirm the company name too. The tenant has chased today. If a quote is needed, please send it to us before any work starts.",
+          "ticket_ref": "NBL-012-duplicate-report"
+        },
+        "at": 1791635460275
+      },
+      {
+        "id": "FUP-103",
+        "tool": "schedule_follow_up",
+        "args": {
+          "ticket_ref": "NBL-012-duplicate-report",
+          "due_on": "2026-04-30",
+          "party": "Riverside Compliance / tenant",
+          "purpose": "Check visit on 29/04 happened and record result; confirm provider identity (Riverside vs Cedar Utilities)"
+        },
+        "at": 1791635460275
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 9, 89 Juniper Mews, Willowbank, ZZ2 0ZZ",
+        "landlord": {
+          "contact": "agency landlord record",
+          "notes": [
+            "Contact details are held in the agency system and not shown in this case file; messages to the landlord go through it. Use contact \"agency landlord record\".",
+            "No landlord message is visible in this case yet."
+          ]
+        }
+      }
+    ]
+  },
+  "usage": {
+    "input": 8,
+    "output": 2532,
+    "cost": 0.04252020000000001,
+    "turns": 3,
+    "durationMs": 18994,
+    "retries": 0,
+    "thinkingTokens": 204
+  }
+}

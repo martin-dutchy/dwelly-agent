@@ -1,0 +1,303 @@
+{
+  "id": "025-warranty-dates",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "cutoff": 20,
+  "totalEvents": 64,
+  "inputs": [
+    {
+      "name": "history.md",
+      "method": "derived",
+      "bytes": 6617,
+      "chars": 6575,
+      "note": "events 1–20 of 64 from history.md"
+    }
+  ],
+  "withheld": [
+    {
+      "name": "history.md",
+      "reason": "events 21–64 come after the decision point"
+    },
+    {
+      "name": "index.md",
+      "reason": "sections that reveal the ending: Overview, Outcome, Next action at escalation, History, Attachments"
+    },
+    {
+      "name": "rubric.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    }
+  ],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Provider (Harbour Services) assigned, ticket at mp_time, on hold waiting for provider. Visit date unconfirmed (22/05 per call vs \"21 June\" in emails). Provider says oven out of warranty; landlord only authorised a charge-free warranty service, so no spend is authorised. Landlord approval for chargeable work requested.",
+    "next_actions": [
+      {
+        "type": "REQUEST_LANDLORD_APPROVAL",
+        "action": "Ask landlord whether Harbour Services may inspect and quote at landlord cost (quote returned for approval first), or whether they will use their own contractor",
+        "recipient": "Felix, landlord",
+        "channel": "email",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "CHASE_PROVIDER",
+        "action": "Ask Harbour Services to confirm exact visit date/time and warranty basis; inspect and quote only, no chargeable work yet",
+        "recipient": "Harbour Services, contractor",
+        "channel": "email",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Tell tenant the visit date is not yet confirmed and the warranty/approval position is being checked; next update by 23 May",
+        "recipient": "Leo Bennett, tenant",
+        "channel": "email",
+        "ledger_id": "A3"
+      },
+      {
+        "type": "WAIT",
+        "action": "Follow-up on 23 May to confirm date and chase landlord",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A4"
+      }
+    ],
+    "boundaries": [
+      "No visit has been booked by me; the date is unverified",
+      "Provider's no-warranty claim is theirs, not verified",
+      "No spend or quote approved",
+      "Nothing establishes the fault cause"
+    ],
+    "remaining_work": [
+      "Provider to confirm visit date and warranty basis",
+      "Landlord to decide on chargeable repair or own contractor",
+      "Quote loop if needed",
+      "Review 2024-05-23"
+    ],
+    "missing_info": [
+      "Confirmed visit date",
+      "Warranty documents/terms and who actually fitted oven (Keystone Works vs Harbour Services; March 2025 date is after today)",
+      "Landlord decision on cost",
+      "Attachments unavailable"
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "Provider says oven is out of warranty and gave conflicting visit dates. I asked the provider to confirm the date and warranty basis, asked the landlord to approve inspect-and-quote or choose their own contractor, updated the tenant, and set a follow-up for 23 May.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "Provider assigned, visit date unconfirmed (22/05 vs 21/06), warranty claimed void by provider, landlord authorisation covers only a free warranty service; landlord decision on chargeable work outstanding."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Landlord approval request (email, Felix); provider date/warranty confirmation (email, Harbour Services); tenant update (email, Leo Bennett)."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "No escalation; the decision is the landlord's and has been requested. Routine routes are in progress."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Requested landlord approval for chargeable inspect/quote or own contractor"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Emailed provider to confirm date and warranty basis"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Emailed tenant with status"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Follow-up set for 2024-05-23"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Visit date: 22/05/2024 (event 018 call) vs 21/06/2024 (events 019, 020); neither confirmed",
+      "Landlord named Keystone Works as the replacing contractor; agency note says Harbour Services",
+      "Replacement date March 2025 (event 014) is after today (2024-05-21) and conflicts with tenant's 'last year'"
+    ],
+    "assumptions": [
+      "System line 'Landlord approval confirmed' (event 009) does not authorise chargeable spend given the landlord's warranty-only request"
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "request_landlord_approval",
+      "args": {
+        "landlord": "Felix",
+        "ticket_ref": "NBL-025-warranty-dates",
+        "decision_needed": "Harbour Services say the oven is no longer under warranty (their statement, not yet checked). You asked for a charge-free warranty service. Do you want Harbour Services to inspect and quote for the repair at your cost (we would send you the quote before any work), or will you arrange your own contractor?",
+        "options": [
+          "Yes, Harbour Services to inspect and quote; send me the quote before any work",
+          "I will arrange my own contractor"
+        ]
+      },
+      "key": "request_landlord_approval:{decision_needed:\"Harbour Services say the oven is no longer under warranty (their statement, not yet checked). You asked for a charge-free warranty service. Do you want Harbour Services to inspect and quote for the repair at your cost (we would send you the quote before any work), or will you arrange your own contractor?\",landlord:\"Felix\",options:[\"Yes, Harbour Services to inspect and quote; send me the quote before any work\",\"I will arrange my own contractor\"],ticket_ref:\"NBL-025-warranty-dates\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "APR-101",
+      "evidence": [
+        "APR-101 found in the request_landlord_approval log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Harbour Services",
+        "recipient_role": "contractor",
+        "channel": "email",
+        "contact": "existing thread (event 020 email)",
+        "ticket_ref": "NBL-025-warranty-dates",
+        "body": "Hello, thanks for your emails. Your two emails say the visit is \"tomorrow, 21st June\", but tomorrow is 22 May, and the call summary says tomorrow at 2:30pm. Please confirm the exact date and time of the visit. Also, please confirm on what basis the oven is out of warranty (the landlord's records show it was replaced last year, and your note gave March 2025). For now please inspect and send a quote with photos only; do not start any chargeable work until we confirm landlord approval in writing."
+      },
+      "key": "send_message:{body:\"Hello, thanks for your emails. Your two emails say the visit is \\\"tomorrow, 21st June\\\", but tomorrow is 22 May, and the call summary says tomorrow at 2:30pm. Please confirm the exact date and time of the visit. Also, please confirm on what basis the oven is out of warranty (the landlord's records show it was replaced last year, and your note gave March 2025). For now please inspect and send a quote with photos only; do not start any chargeable work until we confirm landlord approval in writing.\",channel:\"email\",contact:\"existing thread (event 020 email)\",recipient_name:\"Harbour Services\",recipient_role:\"contractor\",ticket_ref:\"NBL-025-warranty-dates\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-102",
+      "evidence": [
+        "MSG-102 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Leo Bennett",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 012 email)",
+        "ticket_ref": "NBL-025-warranty-dates",
+        "body": "Dear Leo, Harbour Services tell us they have arranged a visit with you for tomorrow afternoon, but their written confirmation gives a different date, so we are checking it with them and will confirm once they reply. They have also said the oven is no longer under warranty, so we are checking with your landlord how to proceed on any repair. We will update you by Thursday 23 May at the latest."
+      },
+      "key": "send_message:{body:\"Dear Leo, Harbour Services tell us they have arranged a visit with you for tomorrow afternoon, but their written confirmation gives a different date, so we are checking it with them and will confirm once they reply. They have also said the oven is no longer under warranty, so we are checking with your landlord how to proceed on any repair. We will update you by Thursday 23 May at the latest.\",channel:\"email\",contact:\"existing thread (event 012 email)\",recipient_name:\"Leo Bennett\",recipient_role:\"tenant\",ticket_ref:\"NBL-025-warranty-dates\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-103",
+      "evidence": [
+        "MSG-103 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "schedule_follow_up",
+      "args": {
+        "ticket_ref": "NBL-025-warranty-dates",
+        "due_on": "2024-05-23",
+        "party": "Harbour Services / landlord",
+        "purpose": "Confirm visit date with provider; chase landlord decision on chargeable repair"
+      },
+      "key": "schedule_follow_up:{due_on:\"2024-05-23\",party:\"Harbour Services / landlord\",purpose:\"Confirm visit date with provider; chase landlord decision on chargeable repair\",ticket_ref:\"NBL-025-warranty-dates\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "FUP-104",
+      "evidence": [
+        "FUP-104 found in the schedule_follow_up log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-025-warranty-dates",
+        "stage": "mp_time",
+        "property": "Flat 2, 176 Lantern Quay, Westmarsh, ZZ8 5ZZ",
+        "description": "The oven has stopped heating up. Does not work on any settings, the light still switches on and it makes a sound but does not heat up on oven or grill settings. It was replaced sometime last year as the last one stopped working too.",
+        "landlord_approval": "confirmed",
+        "hold": {
+          "reason": "Waiting for Provider",
+          "comment": "Held awaiting update from contractor as to is oven is under warranty."
+        }
+      }
+    ],
+    "records": [
+      {
+        "id": "APR-101",
+        "tool": "request_landlord_approval",
+        "args": {
+          "landlord": "Felix",
+          "decision_needed": "Harbour Services say the oven is no longer under warranty (their statement, not yet checked). You asked for a charge-free warranty service. Do you want Harbour Services to inspect and quote for the repair at your cost (we would send you the quote before any work), or will you arrange your own contractor?",
+          "ticket_ref": "NBL-025-warranty-dates",
+          "options": [
+            "Yes, Harbour Services to inspect and quote; send me the quote before any work",
+            "I will arrange my own contractor"
+          ]
+        },
+        "at": 1791635468036
+      },
+      {
+        "id": "MSG-102",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Harbour Services",
+          "recipient_role": "contractor",
+          "channel": "email",
+          "contact": "existing thread (event 020 email)",
+          "body": "Hello, thanks for your emails. Your two emails say the visit is \"tomorrow, 21st June\", but tomorrow is 22 May, and the call summary says tomorrow at 2:30pm. Please confirm the exact date and time of the visit. Also, please confirm on what basis the oven is out of warranty (the landlord's records show it was replaced last year, and your note gave March 2025). For now please inspect and send a quote with photos only; do not start any chargeable work until we confirm landlord approval in writing.",
+          "ticket_ref": "NBL-025-warranty-dates"
+        },
+        "at": 1791635468036
+      },
+      {
+        "id": "MSG-103",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Leo Bennett",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 012 email)",
+          "body": "Dear Leo, Harbour Services tell us they have arranged a visit with you for tomorrow afternoon, but their written confirmation gives a different date, so we are checking it with them and will confirm once they reply. They have also said the oven is no longer under warranty, so we are checking with your landlord how to proceed on any repair. We will update you by Thursday 23 May at the latest.",
+          "ticket_ref": "NBL-025-warranty-dates"
+        },
+        "at": 1791635468036
+      },
+      {
+        "id": "FUP-104",
+        "tool": "schedule_follow_up",
+        "args": {
+          "ticket_ref": "NBL-025-warranty-dates",
+          "due_on": "2024-05-23",
+          "party": "Harbour Services / landlord",
+          "purpose": "Confirm visit date with provider; chase landlord decision on chargeable repair"
+        },
+        "at": 1791635468037
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 2, 176 Lantern Quay, Westmarsh, ZZ8 5ZZ",
+        "landlord": {
+          "contact": "agency landlord record",
+          "notes": [
+            "Contact details are held in the agency system and not shown in this case file; messages to the landlord go through it. Use contact \"agency landlord record\".",
+            "Landlord messages visible in this case: event 003 (email, to landlord); event 006 (email, from landlord); event 014 (email, to landlord)."
+          ]
+        }
+      }
+    ]
+  },
+  "usage": {
+    "input": 8,
+    "output": 3236,
+    "cost": 0.05133830000000001,
+    "turns": 3,
+    "durationMs": 24087,
+    "retries": 0,
+    "thinkingTokens": 390
+  }
+}

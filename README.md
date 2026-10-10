@@ -81,13 +81,15 @@ case folder ──► src/agent/cases.ts (practice format)  ─┐
 ## 4. How to run it
 
 ### Prerequisites
-- Node.js 22+, pnpm
+- Node.js 22+, pnpm (installs need pnpm 8, run via `npx`; scripts run under any pnpm)
 - An Anthropic API key
+- Optional: poppler for PDF text extraction (`brew install poppler`); one test needs it
 
 ### Install & configure
 ```bash
 npx -y pnpm@8 install --frozen-lockfile   # lockfile is pnpm 8 format; pnpm 10 refuses it
 cp .env.example .env   # fill in keys
+pnpm verify            # typecheck + tests, no API calls
 ```
 
 ### Run
