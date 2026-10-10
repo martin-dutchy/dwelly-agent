@@ -329,3 +329,206 @@ describe('rendering without harness v2 fields (R4 baseline)', () => {
     `);
   });
 });
+
+const offHarness = { flags: 'none', tags: [], skills: [], errors: [], log: { guardBlocks: [], completion: [], skillsLoaded: [] } };
+const between = (s: string, from: string, to: string) => s.slice(s.indexOf(from), s.indexOf(to, s.indexOf(from)));
+
+describe('harness extras with every flag off (R4)', () => {
+  it('REASONING.md is byte-identical to the run without extras', () => {
+    const before = renderReasoning(c, full, ledger, fullMessages, usage, 'late', fullChecks as any);
+    expect(renderReasoning(c, full, ledger, fullMessages, usage, 'late', { ...(fullChecks as any), harness: offHarness, brief: { conflicts: [], deadlines: [], tags: [] } })).toBe(before);
+  });
+});
+
+const v2Ledger: LedgerEntry[] = [
+  ...ledger,
+  entry('A5', 'put_on_hold', 'unverifiable', { ticket_ref: 'T1', review_on: '2026-10-20' }, 'Hold store has no read endpoint.'),
+  { ...entry('A6', 'schedule_follow_up', 'verified', { ticket_ref: 'T1', review_on: '2026-10-13' }, 'Verified: FUP-7 found.', 2), failureClass: 'retry' } as LedgerEntry,
+  { ...entry('A7', 'escalate_to_human', 'failed', { priority: 'routine', team: 'accounts', reason: 'Invoice mismatch' }, 'Escalation not found.'), apiError: 'timeout', failureClass: 'record_and_escalate' } as LedgerEntry,
+  entry('A8', 'escalate_to_human', 'verified', { priority: 'routine', team: 'compliance', reason: 'Gas certificate expiring' }, 'Verified: escalation E-2 found.'),
+];
+const v2: Decision = {
+  ...full,
+  escalations: [
+    { to: 'property manager', decision_needed: 'Approve the £420 quote', options: ['Approve', 'Decline'], recommendation: 'Approve', deadline: '2026-10-12', evidence: ['doc:inputs/quote.md', 'crm:property.spend_limit'], already_done: ['Told the landlord about the quote (A1)', 'Scheduled a review (A3)', 'Checked the CRM'], ledger_id: 'A2' },
+    { to: 'accounts', decision_needed: 'Pay the invoice?', options: ['Pay', 'Hold'], recommendation: 'Hold', deadline: '2026-10-15', evidence: [], already_done: [], ledger_id: 'A7' },
+    { to: 'property manager', decision_needed: 'Tenant compensation request', options: [], recommendation: 'Decline', deadline: '2026-10-16', evidence: ['ev:4'], already_done: [] },
+  ],
+  follow_ups: [
+    { party: 'Ava Kendall, landlord', purpose: 'Chase | quote decision', review_on: '2026-10-13', ledger_id: 'A6' },
+    { party: 'Plumber', purpose: 'Visit date', review_on: '2026-10-14', ledger_id: 'A3' },
+    { party: 'Sam, tenant', purpose: 'Access', review_on: '2026-10-20', ledger_id: 'A5' },
+    { party: 'Sam, tenant', purpose: 'Photos', review_on: '2026-10-21', ledger_id: 'A9' },
+    { party: 'Ava Kendall, landlord', purpose: 'Reply', review_on: '2026-10-22', ledger_id: 'A1' },
+  ],
+  unknowns: ['Whether the leak predates the tenancy; the previous agent may know.'],
+};
+
+describe('ANSWER.md harness v2 sections (R1, R2)', () => {
+  const a = renderAnswer(c, v2, v2Ledger);
+
+  it('renders escalation packets joined to the ledger, follow-ups and unknowns', () => {
+    expect(between(a, '## Escalations', '## What this does not establish')).toMatchInlineSnapshot(`
+      "## Escalations
+      ### 1. Approve the £420 quote → property manager
+      - Escalation: A2 ✅ verified · urgent → property manager: Quote above the spend limit
+      - Options: Approve; Decline
+      - Recommendation: Approve
+      - Deadline: 2026-10-12
+      - Evidence: doc:inputs/quote.md; crm:property.spend_limit
+      - Done before handover:
+        - Told the landlord about the quote (A1 ✅)
+        - not done (A3 failed): Scheduled a review (A3)
+        - Checked the CRM _(no ledger entry cited)_
+
+      ### 2. Pay the invoice? → accounts
+      - Escalation: not done (A7 failed, record_and_escalate: timeout) · routine → accounts: Invoice mismatch
+      - Options: Pay; Hold
+      - Recommendation: Hold
+      - Deadline: 2026-10-15
+      - Evidence: _none given_
+      - Done before handover: _nothing stated_
+
+      ### 3. Tenant compensation request → property manager
+      - Escalation: not done (no ledger entry cited)
+      - Options: _none given_
+      - Recommendation: Decline
+      - Deadline: 2026-10-16
+      - Evidence: ev:4
+      - Done before handover: _nothing stated_
+
+      **Logged without a packet:**
+      - A8 routine → compliance (verified): Gas certificate expiring
+
+      ## Follow-ups
+      | Party | Purpose | Review date | Performed |
+      |---|---|---|---|
+      | Ava Kendall, landlord | Chase \\| quote decision | 2026-10-13 | A6 ✅ verified |
+      | Plumber | Visit date | 2026-10-14 | not done (A3 failed: Follow-up not found after write.) |
+      | Sam, tenant | Access | 2026-10-20 | not done (A5 could not be read back: Hold store has no read endpoint.) |
+      | Sam, tenant | Photos | 2026-10-21 | not done (A9 is not in the ledger) |
+      | Ava Kendall, landlord | Reply | 2026-10-22 | not done (A1 is \`send_message\`, not \`schedule_follow_up\` or \`put_on_hold\`) |
+
+      "
+    `);
+    expect(between(a, '## Missing or unavailable information', '## Conflicts between sources')).toMatchInlineSnapshot(`
+      "## Missing or unavailable information
+      - The landlord spend limit for 2026.
+
+      ## Unknowns
+      - Whether the leak predates the tenancy; the previous agent may know.
+
+      "
+    `);
+  });
+
+  it('never shows a failed, unverifiable, missing or wrong-tool entry as done', () => {
+    const rows = between(a, '## Follow-ups', '## What this').split('\n').filter((l) => l.startsWith('| ') && !l.startsWith('| Party'));
+    expect(rows.map((r) => r.split(' | ').at(-1))).toEqual([
+      'A6 ✅ verified |',
+      'not done (A3 failed: Follow-up not found after write.) |',
+      'not done (A5 could not be read back: Hold store has no read endpoint.) |',
+      'not done (A9 is not in the ledger) |',
+      'not done (A1 is `send_message`, not `schedule_follow_up` or `put_on_hold`) |',
+    ]);
+    expect(a).toContain('- Escalation: not done (A7 failed, record_and_escalate: timeout) · routine → accounts: Invoice mismatch');
+    expect(a).toContain('- Escalation: not done (no ledger entry cited)');
+    expect(a).toContain('  - not done (A3 failed): Scheduled a review (A3)');
+    expect(a).not.toMatch(/A[3579] ✅/);
+  });
+
+  it('lists ledger escalations no packet cites, and says when there are none', () => {
+    expect(a).toContain('**Logged without a packet:**\n- A8 routine → compliance (verified): Gas certificate expiring');
+    const none = renderAnswer(c, { ...full, escalations: [], follow_ups: [], unknowns: [] }, []);
+    expect(none).toContain('## Escalations\n_None: no decision here needs a human._\n\n## Follow-ups\n_None._\n\n## What this');
+    expect(none).toContain('## Unknowns\n_None._\n\n## Conflicts');
+  });
+});
+
+const harness = {
+  flags: 'brief,skills,guardsV2,completionV2',
+  tags: ['gas', 'identity_privacy'],
+  skills: ['gas-emergency'],
+  errors: ['skills: front matter missing in closure.md'],
+  log: {
+    guardBlocks: [
+      { tool: 'send_message', rule: 'message.unknown_person', reason: 'Names "Bob", who is not a party.' },
+      { tool: 'send_message', rule: 'message.unknown_person', reason: 'Names "Bob", who is not a party.' },
+      { tool: 'approve_quote', rule: 'tier3.justification', reason: 'No justification citing a source.' },
+    ],
+    completion: [
+      { check: 'escalation_packet', message: 'Packet 3 has no ledger_id.', capped: false },
+      ...Array.from({ length: 12 }, (_, i) => ({ check: 'review_dates_valid', message: `Review date ${i + 1} is in the past.`, capped: true })),
+    ],
+    skillsLoaded: ['gas-emergency', 'closure', 'gas-emergency'],
+  },
+};
+const brief = {
+  conflicts: [{ kind: 'spend_limit' as const, detail: 'Quote £420 is above the £300 limit', sources: ['doc:inputs/quote.md', 'crm:property.spend_limit'], severity: 'block' as const }],
+  deadlines: [{ what: 'Landlord to answer', due: '2026-10-12', basis: 'promised' as const, sources: ['ev:3'] }],
+  tags: [],
+};
+const dynamicCritic: CriticResult = { ...base, status: 'ok', kept: [finding, { ...finding, id: 'R1', finding: 'Message names a person not in the case.', evidence_quote: 'Hi Bob, the plumber', source: 'ledger A1' }], dropped: [], unaddressed: [] };
+
+describe('REASONING.md harness v2 sections (R3)', () => {
+  const r = renderReasoning(c, v2, v2Ledger, [], usage, undefined, { harness, brief, critic: dynamicCritic });
+
+  it('renders brief, skills, guard blocks, completion, critic hits, failure classes and layer errors', () => {
+    expect(between(r, '## Case brief', '## Conflicts between sources')).toMatchInlineSnapshot(`
+      "## Case brief: conflicts and deadlines
+      **Conflicts found in the inputs:**
+      - block · spend_limit: Quote £420 is above the £300 limit (doc:inputs/quote.md, crm:property.spend_limit)
+
+      **Deadlines:**
+      - 2026-10-12 · Landlord to answer (promised; ev:3)
+
+      ## Situation tags and skills
+      - Situation tags: gas, identity_privacy
+      - Skills given up front: gas-emergency
+      - Loaded by the agent with \`load_skill\`: gas-emergency ×2, closure
+
+      ## Actions blocked by harness guards
+      - \`message.unknown_person\` ×2
+        - \`send_message\`: Names "Bob", who is not a party. ×2
+      - \`tier3.justification\`
+        - \`approve_quote\`: No justification citing a source.
+
+      ## Pre-submit completion checks
+      - Returned to the agent to fix:
+        - \`escalation_packet\`: Packet 3 has no ledger_id.
+      - Unresolved when the decision was filed (bounce limit reached):
+        - \`review_dates_valid\`: Review date 1 is in the past.
+        - \`review_dates_valid\`: Review date 2 is in the past.
+        - \`review_dates_valid\`: Review date 3 is in the past.
+        - \`review_dates_valid\`: Review date 4 is in the past.
+        - \`review_dates_valid\`: Review date 5 is in the past.
+        - \`review_dates_valid\`: Review date 6 is in the past.
+        - \`review_dates_valid\`: Review date 7 is in the past.
+        - \`review_dates_valid\`: Review date 8 is in the past.
+        - \`review_dates_valid\`: Review date 9 is in the past.
+        - \`review_dates_valid\`: Review date 10 is in the past.
+        - … and 2 more
+
+      ## Critic case-specific checklist hits
+      - [R1] Message names a person not in the case. (evidence: "Hi Bob, the plumber", ledger A1)
+
+      ## Tool failures by class
+      - retry: A6 \`schedule_follow_up\` (verified after 2 attempts)
+      - record_and_escalate: A7 \`escalate_to_human\` (failed)
+      - unclassified: A3 \`schedule_follow_up\` (failed after 2 attempts); A4 \`request_landlord_approval\` (unverifiable); A5 \`put_on_hold\` (unverifiable)
+
+      ## Harness layer errors
+      - skills: front matter missing in closure.md
+
+      "
+    `);
+  });
+
+  it('takes the tags from the brief when the harness object has none', () => {
+    expect(renderReasoning(c, d, [], [], usage, undefined, { brief: { tags: ['water'] } })).toContain('- Situation tags: water\n- Skills given up front: none\n- Loaded by the agent with `load_skill`: none');
+  });
+
+  it('shows no failure-class section until the ledger carries classes', () => {
+    expect(renderReasoning(c, d, ledger, [], usage)).not.toContain('Tool failures by class');
+  });
+});

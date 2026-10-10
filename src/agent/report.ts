@@ -1,10 +1,20 @@
 import type { Decision } from './caseAgent.js';
 import type { LoadedCase } from './cases.js';
 import type { CriticResult } from './critic/critic.js';
+import type { CaseBrief, CompletionProblem, FailureClass } from './harness/contracts.js';
 import type { GateResult, Screen } from './jev.js';
 import type { LedgerEntry } from './ledger.js';
 
 export type Usage = { input: number; output: number; cost: number; turns: number; durationMs: number };
+
+/** The `harness` object run.ts writes to result.json. Every field optional so older runs still render. */
+export type HarnessReport = {
+  flags?: string;
+  tags?: string[];
+  skills?: string[];
+  errors?: string[];
+  log?: { guardBlocks?: { tool: string; rule: string; reason: string }[]; completion?: (CompletionProblem & { capped?: boolean })[]; skillsLoaded?: string[] };
+};
 
 const cell = (s: unknown) => String(s ?? '').replace(/\|/g, '\\|').replace(/\n/g, ' ');
 const short = (v: unknown, n = 160) => {
@@ -23,6 +33,60 @@ function actionTable(ledger: LedgerEntry[]) {
         `| ${e.id} | \`${e.tool}\` | ${cell(short(e.args, 140))} | ${e.attempts} | ${e.status === 'verified' ? '✅ verified' : e.status === 'failed' ? '❌ failed' : '⚠️ unverified'} | ${cell(e.evidence.at(-1))} |`,
     ),
   ].join('\n');
+}
+
+/** Ledger entries may carry a failure class once the executor types its failures. */
+type Entry = LedgerEntry & { failureClass?: FailureClass | string };
+
+const ESCALATION_TOOLS = ['escalate_to_human'];
+const FOLLOW_UP_TOOLS = ['schedule_follow_up', 'put_on_hold'];
+
+/** "A3 ✅ verified" only for a verified entry of the right tool; anything else is "not done (why)". */
+function performed(ledger: Entry[], id: string | undefined, tools: string[]) {
+  if (!id) return 'not done (no ledger entry cited)';
+  const e = ledger.find((x) => x.id === id);
+  if (!e) return `not done (${id} is not in the ledger)`;
+  if (!tools.includes(e.tool)) return `not done (${id} is \`${e.tool}\`, not ${tools.map((t) => `\`${t}\``).join(' or ')})`;
+  if (e.status === 'verified') return `${id} ✅ verified`;
+  const why = e.apiError ?? e.evidence.at(-1);
+  return `not done (${id} ${e.status === 'failed' ? 'failed' : 'could not be read back'}${e.failureClass ? `, ${e.failureClass}` : ''}${why ? `: ${short(why, 120)}` : ''})`;
+}
+
+/** A line of the agent's own prose, marked by whether the ledger ids it cites verified. */
+function cited(ledger: Entry[], s: string) {
+  const ids = [...new Set(s.match(/\bA\d+\b/g) ?? [])];
+  if (!ids.length) return `${s} _(no ledger entry cited)_`;
+  const bad = ids.flatMap((id) => {
+    const e = ledger.find((x) => x.id === id);
+    return !e ? [`${id} is not in the ledger`] : e.status !== 'verified' ? [`${id} ${e.status}`] : [];
+  });
+  return bad.length ? `not done (${bad.join('; ')}): ${s}` : s.replace(/\bA\d+\b/g, (id) => `${id} ✅`);
+}
+
+function escalationPackets(packets: NonNullable<Decision['escalations']>, ledger: Entry[]) {
+  const ids = new Set(packets.map((p) => p.ledger_id));
+  const loose = ledger.filter((e) => ESCALATION_TOOLS.includes(e.tool) && !ids.has(e.id));
+  const out = packets.map((p, i) => {
+    const e = ledger.find((x) => x.id === p.ledger_id && ESCALATION_TOOLS.includes(x.tool));
+    const a = (e?.args ?? {}) as Record<string, any>;
+    return [
+      `### ${i + 1}. ${p.decision_needed} → ${p.to}`,
+      `- Escalation: ${performed(ledger, p.ledger_id, ESCALATION_TOOLS)}${e ? ` · ${a.priority} → ${a.team}: ${a.reason}` : ''}`,
+      `- Options: ${(p.options ?? []).join('; ') || '_none given_'}`,
+      `- Recommendation: ${p.recommendation}`,
+      `- Deadline: ${p.deadline}`,
+      `- Evidence: ${(p.evidence ?? []).join('; ') || '_none given_'}`,
+      `- Done before handover:${p.already_done?.length ? p.already_done.map((x) => `\n  - ${cited(ledger, x)}`).join('') : ' _nothing stated_'}`,
+    ].join('\n');
+  });
+  if (loose.length)
+    out.push(`**Logged without a packet:**\n${loose.map((e) => `- ${e.id} ${(e.args as any).priority} → ${(e.args as any).team} (${e.status}): ${(e.args as any).reason}`).join('\n')}`);
+  return out.join('\n\n') || '_None: no decision here needs a human._';
+}
+
+function followUpTable(fs: NonNullable<Decision['follow_ups']>, ledger: Entry[]) {
+  if (!fs.length) return '_None._';
+  return ['| Party | Purpose | Review date | Performed |', '|---|---|---|---|', ...fs.map((f) => `| ${cell(f.party)} | ${cell(f.purpose)} | ${cell(f.review_on)} | ${cell(performed(ledger, f.ledger_id, FOLLOW_UP_TOOLS))} |`)].join('\n');
 }
 
 export function renderAnswer(c: LoadedCase, d: Decision | undefined, ledger: LedgerEntry[], error?: string) {
@@ -60,18 +124,8 @@ ${d.next_actions.map((a, i) => `| ${i + 1} | ${a.type} | ${cell(a.action)} | ${c
 ## Messages sent (verbatim)
 ${messages(ledger)}
 
-## Escalation
-${
-  escalations.length
-    ? escalations
-        .map((e) => {
-          const a = e.args as Record<string, any>;
-          return `- **${a.priority} → ${a.team}** (${e.status}): ${a.reason}\n  - Known: ${a.known}\n  - Missing: ${a.missing}\n  - Options: ${(a.options ?? []).join('; ')}\n  - Recommendation: ${a.recommendation}${a.deadline ? `\n  - Deadline: ${a.deadline}` : ''}`;
-        })
-        .join('\n')
-    : '_None: no decision here needs a human._'
-}
-
+${d.escalations ? `## Escalations\n${escalationPackets(d.escalations, ledger)}` : `## Escalation\n${escalationLines(escalations)}`}
+${d.follow_ups ? `\n## Follow-ups\n${followUpTable(d.follow_ups, ledger)}\n` : ''}
 ## What this does not establish
 ${list(d.boundaries)}
 
@@ -80,7 +134,7 @@ ${list(d.remaining_work)}
 
 ## Missing or unavailable information
 ${list(d.missing_info)}
-
+${d.unknowns ? `\n## Unknowns\n${list(d.unknowns)}\n` : ''}
 ## Conflicts between sources
 ${list(d.conflicts, '_None identified._')}
 
@@ -94,6 +148,16 @@ ${actionTable(ledger)}
 ${d.failed_actions.map((f) => `- ${f.ledger_id}: ${f.handling}`).join('\n') || '_None._'}
 `;
 }
+
+const escalationLines = (escalations: LedgerEntry[]) =>
+  escalations.length
+    ? escalations
+        .map((e) => {
+          const a = e.args as Record<string, any>;
+          return `- **${a.priority} → ${a.team}** (${e.status}): ${a.reason}\n  - Known: ${a.known}\n  - Missing: ${a.missing}\n  - Options: ${(a.options ?? []).join('; ')}\n  - Recommendation: ${a.recommendation}${a.deadline ? `\n  - Deadline: ${a.deadline}` : ''}`;
+        })
+        .join('\n')
+    : '_None: no decision here needs a human._';
 
 /** The case title as the organisers wrote it, e.g. "Case 003: Checkout Cleaning Estimate and Invoice". */
 const title = (c: LoadedCase) => c.brief.match(/^#\s+(.+)$/m)?.[1]?.trim() ?? `Case ${c.id}`;
@@ -163,6 +227,109 @@ const PARSE_LABEL: Record<string, string> = {
   derived: 'built by the loader',
 };
 
+/** Mirrors the critic's fixed checklist; any other kept id came from the case-specific (dynamic) part. */
+const FIXED_CRITIC_ITEMS = new Set([...Array.from({ length: 13 }, (_, i) => String(i + 1)), 'M1', 'M2', 'M3']);
+const MAX_LINES = 10;
+const CLASS_ORDER: string[] = ['retry', 'alternative_route', 'record_and_escalate'] satisfies FailureClass[];
+
+const counted = (xs: string[]) => {
+  const n = new Map<string, number>();
+  for (const x of xs) n.set(x, (n.get(x) ?? 0) + 1);
+  return [...n].map(([x, k]) => (k > 1 ? `${x} ×${k}` : x));
+};
+const capped = (lines: string[], indent = '') =>
+  [...lines.slice(0, MAX_LINES), ...(lines.length > MAX_LINES ? [`… and ${lines.length - MAX_LINES} more`] : [])].map((l) => `${indent}- ${l}`).join('\n');
+const section = (title: string, body: string) => `## ${title}\n${body}\n\n`;
+const groupBy = <T>(xs: T[], key: (x: T) => string) => {
+  const m = new Map<string, T[]>();
+  for (const x of xs) m.set(key(x), [...(m.get(key(x)) ?? []), x]);
+  return m;
+};
+
+/** REASONING sections from the harness layers; each appears only when its layer produced something. */
+function harnessSections(ledger: Entry[], checks: { critic?: CriticResult; harness?: HarnessReport; brief?: Partial<Pick<CaseBrief, 'conflicts' | 'deadlines' | 'tags'>> }) {
+  const { harness = {}, brief = {} } = checks;
+  const log = harness.log ?? {};
+  const out: string[] = [];
+  const src = (s: string[]) => (s.length ? ` (${s.join(', ')})` : '');
+
+  const conflicts = brief.conflicts ?? [];
+  const deadlines = brief.deadlines ?? [];
+  if (conflicts.length || deadlines.length)
+    out.push(
+      section(
+        'Case brief: conflicts and deadlines',
+        [
+          conflicts.length ? `**Conflicts found in the inputs:**\n${conflicts.map((x) => `- ${x.severity} · ${x.kind}: ${x.detail}${src(x.sources)}`).join('\n')}` : '',
+          deadlines.length ? `**Deadlines:**\n${deadlines.map((x) => `- ${x.due} · ${x.what} (${x.basis}${x.sources.length ? `; ${x.sources.join(', ')}` : ''})`).join('\n')}` : '',
+        ]
+          .filter(Boolean)
+          .join('\n\n'),
+      ),
+    );
+
+  const tags = harness.tags?.length ? harness.tags : (brief.tags ?? []);
+  const loaded = log.skillsLoaded ?? [];
+  if (tags.length || harness.skills?.length || loaded.length)
+    out.push(
+      section(
+        'Situation tags and skills',
+        [
+          `- Situation tags: ${tags.join(', ') || 'none'}`,
+          `- Skills given up front: ${harness.skills?.join(', ') || 'none'}`,
+          `- Loaded by the agent with \`load_skill\`: ${counted(loaded).join(', ') || 'none'}`,
+        ].join('\n'),
+      ),
+    );
+
+  const blocks = log.guardBlocks ?? [];
+  if (blocks.length) {
+    const byRule = groupBy(blocks, (b) => b.rule);
+    out.push(
+      section(
+        'Actions blocked by harness guards',
+        [...byRule].map(([rule, bs]) => `- \`${rule}\`${bs.length > 1 ? ` ×${bs.length}` : ''}\n${capped(counted(bs.map((b) => `\`${b.tool}\`: ${short(b.reason, 300)}`)), '  ')}`).join('\n'),
+      ),
+    );
+  }
+
+  const problems = log.completion ?? [];
+  if (problems.length) {
+    const line = (p: CompletionProblem) => `\`${p.check}\`: ${short(p.message, 300)}`;
+    const bounced = counted(problems.filter((p) => !p.capped).map(line));
+    const open = counted(problems.filter((p) => p.capped).map(line));
+    out.push(
+      section(
+        'Pre-submit completion checks',
+        [bounced.length ? `- Returned to the agent to fix:\n${capped(bounced, '  ')}` : '', open.length ? `- Unresolved when the decision was filed (bounce limit reached):\n${capped(open, '  ')}` : '']
+          .filter(Boolean)
+          .join('\n'),
+      ),
+    );
+  }
+
+  const hits = (checks.critic?.kept ?? []).filter((f) => !FIXED_CRITIC_ITEMS.has(f.id));
+  if (hits.length) out.push(section('Critic case-specific checklist hits', hits.map((f) => `- [${f.id}] ${f.finding} (evidence: "${short(f.evidence_quote, 200)}", ${f.source})`).join('\n')));
+
+  if (ledger.some((e) => e.failureClass)) {
+    const failed = ledger.filter((e) => e.failureClass || e.status !== 'verified');
+    const byClass = groupBy(failed, (e) => e.failureClass ?? 'unclassified');
+    const rank = (k: string) => (k === 'unclassified' ? CLASS_ORDER.length + 1 : CLASS_ORDER.indexOf(k) + 1 || CLASS_ORDER.length);
+    out.push(
+      section(
+        'Tool failures by class',
+        [...byClass]
+          .sort(([a], [b]) => rank(a) - rank(b))
+          .map(([k, es]) => `- ${k}: ${es.map((e) => `${e.id} \`${e.tool}\` (${e.status}${e.attempts > 1 ? ` after ${e.attempts} attempts` : ''})`).join('; ')}`)
+          .join('\n'),
+      ),
+    );
+  }
+
+  if (harness.errors?.length) out.push(section('Harness layer errors', harness.errors.map((e) => `- ${e}`).join('\n')));
+  return out.join('');
+}
+
 export function renderReasoning(
   c: LoadedCase,
   d: Decision | undefined,
@@ -170,7 +337,15 @@ export function renderReasoning(
   messages: any[],
   usage: Usage,
   error?: string,
-  checks?: { screen?: Screen; gateLog?: (GateResult & { tool: string; attempt: number })[]; policyLog?: { tool: string; reason: string }[]; chaos?: Record<string, unknown>; critic?: CriticResult },
+  checks?: {
+    screen?: Screen;
+    gateLog?: (GateResult & { tool: string; attempt: number })[];
+    policyLog?: { tool: string; reason: string }[];
+    chaos?: Record<string, unknown>;
+    critic?: CriticResult;
+    harness?: HarnessReport;
+    brief?: Partial<Pick<CaseBrief, 'conflicts' | 'deadlines' | 'tags'>>;
+  },
 ) {
   // Parallel calls return in completion order, so results are placed by toolCallId, not by arrival.
   const callIds = new Set(messages.filter((m) => m.role === 'assistant').flatMap((m) => (m.content ?? []).filter((b: any) => b.type === 'toolCall').map((b: any) => b.id)));
@@ -211,7 +386,7 @@ ${
   checks?.policyLog?.length ? `## Actions blocked by hard policy rules\n${checks.policyLog.map((p) => `- \`${p.tool}\`: ${p.reason}`).join('\n')}\n\n` : ''
 }${
   checks?.chaos && Object.keys(checks.chaos).length ? `## Injected tool failures (robustness test, --chaos)\n\`\`\`json\n${JSON.stringify(checks.chaos)}\n\`\`\`\n\n` : ''
-}${checks?.critic ? `## Checks performed\n${criticLine(checks.critic)}\n\n` : ''}## Conflicts between sources
+}${checks?.critic ? `## Checks performed\n${criticLine(checks.critic)}\n\n` : ''}${harnessSections(ledger, checks ?? {})}## Conflicts between sources
 ${d?.conflicts.map((x) => `- ${x}`).join('\n') || '_None identified._'}
 
 ## Assumptions
