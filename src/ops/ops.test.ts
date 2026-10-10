@@ -270,3 +270,20 @@ describe('shared vocabulary', () => {
     }
   });
 });
+
+describe('live page', () => {
+  it('starts empty with an import button and lists a run’s cases by state', async () => {
+    const { liveData, livePage } = await import('./livePage.js');
+    const store = memoryOpsStore();
+    const empty = await liveData(store, undefined);
+    expect(empty.cards).toEqual([]);
+    const page = livePage({ d: empty, sets: [{ id: 'pm-public', name: 'Public cases', count: 50 }], openTasks: 0 });
+    expect(page).toContain('action="/ops/live/import"');
+    expect(page).toContain('Import cases');
+    const b = await store.addBatch({ id: 'eval-live1', name: 'Live import: x', case_set: 'pm-public', total: 1, answers_dir: '/tmp/x', cases_dir: '/tmp/y', grading: 'not_started' });
+    await store.upsertCase({ id: 'C1', title: 'Case 001: Leak', property: null, source: 'public', source_ref: '001@5', status: 'queued', index_md: '', history_md: '', batch_id: b.id });
+    const d = await liveData(store, b);
+    expect(d.cards).toMatchObject([{ id: 'C1', no: '001', title: 'Leak', state: 'queued' }]);
+    expect(d.totals).toMatchObject({ cases: 1, queued: 1 });
+  });
+});

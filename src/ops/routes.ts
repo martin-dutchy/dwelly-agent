@@ -4,7 +4,8 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { fetchAudio } from '../voice/finalize.js';
 import { parseHistory } from '../agent/publicCases.js';
 import { join } from 'node:path';
-import { CASE_SETS, gradeBatch, importRun, startBatch } from './batch.js';
+import { CASE_SETS, LIVE_LABEL, gradeBatch, importRun, startBatch } from './batch.js';
+import { liveData, livePage } from './livePage.js';
 import { batchView } from './batchView.js';
 import { evalRunPage, evalsPage } from './evalPages.js';
 import { DEMO_CASE, DEMO_TENANT, BEN_SCENARIO, contractorQuote, demoCase, isDemoCall, onDemoCall, recordedLandlordCall, resetDemo, seedDemo, tenantWhatsApp } from './demo.js';
@@ -259,6 +260,39 @@ export async function opsRoutes(path: string, req: IncomingMessage, res: ServerR
     if (text) await tenantWhatsApp(store, worker, text.slice(0, 1000));
     res.writeHead(200, { 'content-type': 'text/xml' }).end('<Response></Response>');
     return;
+  }
+
+  // Live: import every case in a folder, run the case worker on each, watch the cards finish.
+  const caseSets = () =>
+    Object.entries(CASE_SETS)
+      .map(([id, x]) => {
+        let count = 0;
+        try {
+          count = readdirSync(x.dir()).filter((f) => statSync(join(x.dir(), f)).isDirectory()).length;
+        } catch {}
+        return { id, name: x.name, count };
+      })
+      .filter((x) => x.count);
+  const liveBatch = async (id?: string | null) => {
+    const all = await store.listBatches();
+    return id ? all.find((x) => x.id === id) : all.find((x) => x.name.startsWith(`${LIVE_LABEL}:`));
+  };
+  if (path === '/ops/live' || path === '/ops/live/') {
+    const b = await liveBatch(new URL(req.url ?? '/', 'http://x').searchParams.get('b'));
+    return html(res, livePage({ d: await liveData(store, b), sets: caseSets(), openTasks: await openTasks() }));
+  }
+  if (path === '/ops/live/import' && req.method === 'POST') {
+    const f = await readForm(req);
+    const set = String(f.set ?? 'pm-public');
+    if (!CASE_SETS[set]) return html(res, textPage('Unknown case folder', set), 400);
+    const b = await startBatch(store, ops.evalWorker, set, undefined, undefined, LIVE_LABEL);
+    return redirect(res, `/ops/live?b=${encodeURIComponent(b.id)}`);
+  }
+  const liveId = path.match(/^\/ops\/api\/live\/([\w-]+)$/)?.[1];
+  if (liveId) {
+    const b = await store.getBatch(liveId);
+    if (!b) return json(res, { error: 'no such run' }, 404);
+    return json(res, await liveData(store, b));
   }
 
   // Eval runs
