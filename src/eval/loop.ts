@@ -171,9 +171,12 @@ type Summary = typeof summary;
 
 const tag = `${meta.profile}-${split}${meta.chaos > 0 ? '-chaos' : ''}${only ? '-partial' : ''}${k > 1 ? `-k${k}` : ''}`;
 const ownBaseline = values.baseline ?? join('evals', `baseline-${tag}.json`);
-// An --only run with no partial baseline of its own is compared with the full-split baseline, on the shared cases.
+// An --only run is compared, on the shared cases, with the full-split baseline when it has no partial
+// baseline of its own or the full one was measured more recently (the code under test has moved on).
 const fullBaseline = join('evals', `baseline-${tag.replace('-partial', '')}.json`);
-const baselinePath = !values.baseline && only && !existsSync(ownBaseline) && existsSync(fullBaseline) ? fullBaseline : ownBaseline;
+const measuredAt = (p: string) => String((readJson(p) as { at?: string } | undefined)?.at ?? '');
+const preferFull = !existsSync(ownBaseline) || measuredAt(fullBaseline) > measuredAt(ownBaseline);
+const baselinePath = !values.baseline && only && existsSync(fullBaseline) && preferFull ? fullBaseline : ownBaseline;
 const baseline = readJson(baselinePath) as (Partial<Summary> & Pick<Summary, 'at' | 'mean' | 'decided' | 'criticalCases' | 'rows'>) | undefined;
 writeFileSync(join(root, 'summary.json'), JSON.stringify(summary, null, 2));
 if (!values.rescore) {
