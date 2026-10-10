@@ -75,7 +75,7 @@ export const BEN_SCENARIO: Scenario = {
     who: 'Ben Hartley, owns Flat 9, 3 Amhurst Road; busy, friendly, trusts HeatRight.',
     situation: 'The agency is calling about a boiler quote for your tenant Priya.',
     facts: [
-      ['Name', 'Ben Hartley'],
+      ['Your name', 'Ben Hartley'],
       ['Property', PROPERTY],
     ],
     goal: 'Get the boiler fixed quickly without overspending.',
