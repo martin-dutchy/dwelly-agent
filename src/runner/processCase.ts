@@ -117,7 +117,16 @@ export async function processCase(dir: string, timeoutMs: number, env: CaseEnv):
         critic: env.criticModel && { model: env.criticModel, streamFn: env.streamFn, attachments: c.inputs.map((i) => i.name) },
         harness: { flags, bundle, brief, skills, briefText: flags.brief ? hints.text : undefined },
       });
-      const harness = { flags: flagsLine(flags), enabled: flags, tags, skills: skills.map((s) => s.id), errors: harnessErrors, log: run.harnessLog };
+      const harness = {
+        flags: flagsLine(flags),
+        enabled: flags,
+        tags,
+        skills: skills.map((s) => s.id),
+        conflicts: brief?.conflicts.map((x) => ({ kind: x.kind, severity: x.severity })),
+        manifest: bundle.manifest.map((m) => ({ path: m.path, included: m.included, parse: m.parse })),
+        errors: harnessErrors,
+        log: run.harnessLog,
+      };
       return { c, hints, screen, chaos, run, harness, brief, systemPrompt, toolsetReport: adapter.report(), inputProblems: loaded.problems };
     };
     const guarded = work();

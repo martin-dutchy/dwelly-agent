@@ -47,7 +47,7 @@ export interface ManifestEntry {
   path: string;
   kind: DocKind;
   parse: string;
-  /** False when the file was withheld or could not be shown. */
+  /** True only when shown as an input document; false when withheld, unreadable, or shown as the case brief. */
   included: boolean;
   note?: string;
 }

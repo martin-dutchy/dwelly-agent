@@ -50,15 +50,29 @@ describe('ingest over every non-holdout case folder', () => {
 describe('ingest v2 against loadCase (flags-off path)', () => {
   // Expected differences with ingestV2 on, all additive: decoded MIME email text, flagged unreadable files with a
   // placeholder instead of garbage, extra files next to an organiser index.md, grading files there withheld,
-  // dotfiles skipped, and a synthesised brief for folders without one. None occurs in the golden folders except
-  // the withheld grading files (expected.json in public cuts and walks).
-  it.each(goldenFolders())('%s: same LoadedCase apart from withheld grading files', (dir) => {
+  // dotfiles skipped, and a synthesised brief for folders without one. Outside DIVERGENT, none occurs in the golden
+  // folders except the withheld grading files (expected.json in public cuts and walks).
+  const DIVERGENT = new Map([
+    ['cases/practice/99', 'no case brief'],
+    ['cases/practice/100', 'MIME email with a PDF attachment'],
+  ]);
+  it.each(goldenFolders().filter((d) => !DIVERGENT.has(d)))('%s: same LoadedCase apart from withheld grading files', (dir) => {
     const legacy = loadCase(dir);
     const v2 = toLoadedCase(bundles.get(dir)!);
     expect({ ...v2, withheld: [] }).toEqual({ ...legacy, withheld: [] });
     const extra = v2.withheld!.filter((w) => !legacy.withheld!.some((l) => l.name === w.name && l.reason === w.reason));
     expect(v2.withheld!.slice(0, legacy.withheld!.length)).toEqual(legacy.withheld);
     for (const w of extra) expect(w.name).toMatch(/^(expected|rubric|checks|answers?|reference|solution|grades?)\.(json|md|txt)$/);
+  });
+
+  it('differs only where expected on the divergent coverage cases', () => {
+    const generic = toLoadedCase(bundles.get('cases/practice/99')!);
+    expect(loadCase('cases/practice/99').brief).toBe('(no case brief provided)');
+    expect(generic.brief).toContain('without a case brief');
+    const mime = toLoadedCase(bundles.get('cases/practice/100')!);
+    const legacyNames = loadCase('cases/practice/100').inputs.map((i) => i.name);
+    expect(mime.inputs.map((i) => i.name).filter((n) => !legacyNames.includes(n)).every((n) => n.includes('#'))).toBe(true);
+    expect(mime.inputs.some((i) => i.name.includes('#'))).toBe(true);
   });
 
   it('lists the expected differences on the generic fixture', () => {

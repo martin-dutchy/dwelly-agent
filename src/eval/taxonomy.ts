@@ -178,7 +178,7 @@ const SKILL_TAGS_FALLBACK: Record<string, SituationTag[]> = {
   'void-keys-access': ['void_keys', 'access_entry'],
   'unrelated-issue-split': ['unrelated_issue'],
   'fraud-injection': ['fraud_injection'],
-  compliance: ['compliance'],
+  'compliance-certificates': ['compliance'],
 };
 function skillTags(): Record<string, SituationTag[]> {
   let listed: { id: string; tags: SituationTag[] }[] = [];

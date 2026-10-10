@@ -412,7 +412,7 @@ evidence; contract change requests; discoveries (unexpected behaviour with evide
 
 1. Merge into `h2/base` in this order, running `pnpm verify` after each merge: B, A, C, E, F, R, G, D, T. Swap each stub for the real entry point as it lands.
 2. Apply the contract change requests from the Wave 1 reports. Each is a small commit with its tests.
-3. Add `cases/practice/61..70` to the `expansion` group in `cases/splits.json` (additive only).
+3. Add `cases/practice/91..100` to the `expansion` group in `cases/splits.json` (additive only).
 4. `/code-review` on the combined diff for `caseAgent.ts`, `run.ts` and the schema.
 5. Smoke test with every flag on: `HARNESS=all pnpm cases --in cases/practice --only 05,25,40,61,69 --out runs/h2-smoke --profile quick`. All decide, and `REASONING.md` shows the brief, skills, guard and completion sections.
 
@@ -449,7 +449,7 @@ Each layer in `taxonomy.json` with misses becomes a fix ticket for the workstrea
 - [ ] **H8 Skills.** At least 14 skills pass the lint test. The classifier tests in D2 pass, and the always-on prompt is at most 130 lines.
 - [ ] **H9 Taxonomy.** `pnpm loop` prints a table of misses per layer, and `taxonomy.json` exists for every run.
 - [ ] **H10 Gate.** Each flag whose default is flipped meets every condition in Wave 3 step 5, with numbers recorded in the Decision log. Flags that miss stay off.
-- [ ] **H11 Coverage cases.** Ten new practice cases (61-70) exist with rubric and checks, and sit in the `expansion` group.
+- [ ] **H11 Coverage cases.** Ten new practice cases (91-100) exist with rubric and checks, and sit in the `expansion` group.
 
 ## Verification
 
@@ -502,7 +502,20 @@ Run from the repo root (or from the workstream's worktree in Wave 1). Show the o
   - `result.json` `harness.tags` records the classifier tags whenever they are computed, even with `brief` off.
 
   Smoke run with every flag on, practice 05 and 23: 2/2 decided, 0 unverified actions, $0.18. Tags and skills recorded (05: landlord-approval and quote-invoice; 23: gas-emergency, vulnerable-occupant and identity-privacy). No guard blocks, completion bounces or `load_skill` calls.
-- [ ] Wave 1: B · C · E · T
+- [x] (15:58) WS B and WS T merged into `h2/base` (`pnpm verify` 47 files and 1,284 tests green).
+  - B: MIME email decoding, timelines and parties for every format, `now` taken from the case's Today line, unreadable binaries replaced by a placeholder, and folders with no brief handled as generic. The `loadCase` hash snapshot over every non-holdout folder is unchanged.
+  - T: miss taxonomy and the `pnpm loop` changes (taxonomy table, `--harness` passthrough, baseline names keyed by flag set), plus practice cases 91-100.
+
+  Integration after the merge:
+  - the ingest golden test now treats practice 99 (no brief) and 100 (MIME email with a PDF) as named exceptions, each with its own test of the expected difference;
+  - the `loadCase` snapshot gained the 10 new folders, and no existing hash changed;
+  - `result.json` `harness` now records `conflicts` (kind and severity) and `manifest` for the taxonomy;
+  - the taxonomy's fallback skill id is now `compliance-certificates`;
+  - the `ManifestEntry.included` doc says brief files are `false`;
+  - `cases/splits.json` gained an `expansion` group with practice 91-100, an additive edit.
+
+  Smoke run with every flag on, practice 99 and 100: 2/2 decided, 0 unverified actions, $0.12. Case 100 read the £522 total from the PDF inside the email and asked the landlord to approve it because it is over the £300 limit.
+- [ ] Wave 1: C · E
 - [ ] Wave 2
 - [ ] Wave 3
 - [ ] Wave 4
@@ -526,6 +539,8 @@ Run from the repo root (or from the workstream's worktree in Wave 1). Show the o
 - Observation (WS F): with today's checks, a verified `escalate_to_human` with an empty `decision.escalations` (case 06 in the smoke run) is never checked for packet completeness. Requiring a packet for each verified escalation is a candidate extra check, to be decided on Wave 3 data. Not added yet.
 - Observation (15:35): the main checkout's `.env` changed twice after the worktrees were created, so worktrees had different, stale copies. WS F got 404 "workspace not found" until it blanked `ANTHROPIC_WORKSPACE_ID`. All worktrees were re-synced from the current `dwelly-agent/.env` at 15:36. Before Wave 3, re-copy it again.
 - Observation (15:39): the `dwelly-agent/.env` saved at 15:30 sets `ANTHROPIC_WORKSPACE_ID` to a 36-character UUID. `src/agent/models.ts` sends it as the `anthropic-workspace-id` header, and the API rejects it ("must be a valid workspace ID"). Every LLM call fails in 1 s, in the main checkout as well as in the worktrees. Evidence: `pnpm cases --in cases/practice --only 01` in `dwelly-agent` returned 400 at 15:39. Raised with Marc. At his choice, `ANTHROPIC_WORKSPACE_ID` was blanked in `dwelly-agent/.env` and all worktrees (backup at `/tmp/dwelly-env-backup-1539`). The re-test of practice 01 in `dwelly-agent` decided (escalated, 6 verified actions, 32 s).
+- Observation (WS B): the organiser loader reads only `index.md`, `history.md` and `attachments/`, so `expected.json` in public cuts and walks was missing from the manifest without a note. Ingest now lists grading-named files as withheld. Practice 23 has two clocks: transcript offsets don't line up with the action log's times, so ingest keeps both as separate events, which WS C can use. Candidate contract change: `ManifestEntry.role?: 'brief' | 'input' | 'attachment'`. The new parse methods `mime` and `unparsed` render as raw names in `report.ts`.
+- Observation (WS T): practice 91 (recurring mould, toddler with asthma) did not escalate in its smoke run, against `research/uk-lettings-rules.md`. That is a real gap the damp skill should close, and it is to be checked in Wave 3. Once WS E adds its tools, cases 92 and 96 can get stricter checks.
 - Observation (WS D): the out-of-hours rule counts Saturday daytime as staffed. Out of hours means before 08:00, after 18:00 or on Sunday, and it applies only to emergencies and lockouts. Keyword tagging over whole JSON records gave false positives, so the classifier reads only the free-text values (`classify.ts` skips names, trades and ids). Evidence: `src/agent/skills/classify.ts` L6 and L273. Wave 2 to-do: add `verify_identity` and `share_tenant_contact` to `identity-privacy.md` once WS E merges.
 
 ## Decision log
