@@ -65,7 +65,10 @@ try {
   process.exit(1);
 }
 const budgetMs = deadline ? deadline.getTime() - t0 : undefined;
-const runFlags = process.argv.slice(2).join(' ');
+const runFlags = process.argv
+  .slice(2)
+  .map((a) => (/[\s'"$`\\]/.test(a) ? JSON.stringify(a) : a))
+  .join(' ');
 
 const model = claude(values.model!);
 const organiser = readOrganiserEnv(process.env);
@@ -227,7 +230,7 @@ console.log(doneLine);
 console.log(retrySummary);
 if (skipped) console.log(`Skipped cases can be re-run with the same command plus --resume (and a new --deadline).`);
 try {
-  const value = valueLine(operationalValue(rows));
+  const value = valueLine(operationalValue(rows), organiser ? 'organiser API, local mock after any failure' : 'local mock environment');
   console.log(value);
   mkdirSync(values.out!, { recursive: true });
   writeFileSync(join(values.out!, 'RUN_SUMMARY.md'), runSummaryMarkdown({ command: `pnpm cases ${runFlags}`, startLines, rows, doneLine, retryLine: retrySummary, valueLine: value }));

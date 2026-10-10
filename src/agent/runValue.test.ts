@@ -43,22 +43,27 @@ describe('operationalValue', () => {
     const v = operationalValue([]);
     expect(v).toMatchObject({ cases: 0, autonomous: 0, escalated: 0, verifiedActions: 0, humanMinutesSaved: 0 });
     expect(v.meanCost).toBeUndefined();
-    expect(valueLine(v)).not.toMatch(/NaN|Infinity/);
+    expect(valueLine(v, 'local mock environment')).not.toMatch(/NaN|Infinity/);
   });
 });
 
 describe('valueLine', () => {
   it('says it is an estimate and prints both assumptions', () => {
-    const line = valueLine(operationalValue([row({ cost: 0.07, secs: 22, actions: 12 }), row({ outcome: 'escalated', cost: 0.07, secs: 22, actions: 2 })]));
+    const line = valueLine(operationalValue([row({ cost: 0.07, secs: 22, actions: 12 }), row({ outcome: 'escalated', cost: 0.07, secs: 22, actions: 2 })]), 'local mock environment');
     expect(line).toBe(
-      "Value (estimate): 1 autonomous · 1 escalated · 14 verified actions · $0.070 and 22 s per case · ~1.5 human hours of routine actions done by the agent (6.5 min per verified action, less 3 min of human review per escalation, Dwelly's published figures)",
+      "Value (estimate): 1 autonomous · 1 escalated · 14 verified write actions (local mock environment) · $0.070 and 22 s per case · ~1.5 human hours if a person did the same actions (6.5 min per verified write action, less 3 min of human review per escalation, Dwelly's published figures)",
     );
   });
 
   it('shows minutes under an hour and mentions cases without a decision', () => {
-    const line = valueLine(operationalValue([row({ actions: 2 }), row({ outcome: 'CRASH' })]));
+    const line = valueLine(operationalValue([row({ actions: 2 }), row({ outcome: 'CRASH' })]), 'local mock environment');
     expect(line).toContain('1 without a decision');
     expect(line).toContain('~13 human minutes');
+  });
+
+  it('rounds before choosing minutes or hours', () => {
+    const v = { ...operationalValue([]), humanMinutesSaved: 59.6 };
+    expect(valueLine(v, 'local mock environment')).toContain('~1.0 human hours');
   });
 });
 
