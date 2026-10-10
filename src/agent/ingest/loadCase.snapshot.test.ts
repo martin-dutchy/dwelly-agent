@@ -7,9 +7,9 @@ import { goldenFolders } from './golden.js';
 
 const hash = (v: unknown) => createHash('sha256').update(JSON.stringify(v)).digest('hex').slice(0, 16);
 
-describe('loadCase on every golden folder', () => {
-  it('is byte-identical to the recorded snapshot', () => {
-    const hashes = Object.fromEntries(goldenFolders().map((d) => [d, hash(loadCase(d))]));
-    expect(hashes).toMatchSnapshot();
+// One snapshot per folder, so a clone without the git-ignored case text skips those folders instead of failing.
+describe('loadCase on every golden folder is byte-identical to the recorded snapshot', () => {
+  it.each(goldenFolders())('%s', (dir) => {
+    expect(hash(loadCase(dir))).toMatchSnapshot();
   });
 });

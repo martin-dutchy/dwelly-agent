@@ -1,6 +1,9 @@
 // Every case folder ingest must handle, minus the holdout split (never read, cut or tuned on).
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+
+/** Public cuts keep the organiser text (index.md, history.md, attachments/) local and git-ignored; a clone without it has only the grading files. */
+export const hasCaseText = (dir: string) => !dir.startsWith('cases/public-cuts/') || existsSync(join(dir, 'index.md'));
 
 const ROOTS = ['cases/practice', 'cases/public-cuts', 'cases/walks', 'HackatonPublicCases/Property Management'];
 
@@ -20,6 +23,7 @@ export function goldenFolders(): string[] {
     readdirSync(root)
       .filter((f) => statSync(join(root, f)).isDirectory() && !isHoldout(root, f, splits))
       .sort()
-      .map((f) => join(root, f)),
+      .map((f) => join(root, f))
+      .filter(hasCaseText),
   );
 }
