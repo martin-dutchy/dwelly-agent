@@ -34,7 +34,8 @@ export function seedFromCase(c: LoadedCase): OpsSeed {
     if (address) properties.push({ address, tenanted: voidProperty ? false : undefined });
     tickets.push(publicJob(c, history, address));
   }
-  return { tickets, properties, today };
+  const evidence = [c.brief, ...c.inputs.map((i) => i.content)].join('\n\n');
+  return { tickets, properties, today, evidence, mediaNames: c.media.map((m) => m.name) };
 }
 
 /** The job's state as the workflow engine would show it after the last visible event. */
