@@ -47,7 +47,7 @@ function sections(md: string) {
 }
 
 /** Default cut mode: replay public examples, take anything else (the Reality Test) as it comes. */
-export const defaultAt = (dir: string) => (dir.includes('HackatonPublicCases') ? 'auto' : 'none');
+export const defaultAt = (dir: string) => (/HackatonPublicCases|public-cuts/.test(dir) ? 'auto' : 'none');
 
 /** Events visible at the decision point: all of them for `none`, else the recorded "next action" marker if the case has one, else `at`. */
 function resolveCutoff(index: string, total: number, at: string): number {

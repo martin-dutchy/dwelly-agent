@@ -35,6 +35,8 @@ describe.each(dirs)('%s', (dir) => {
     expect(index).toMatch(/## Next action at escalation\n\n- \*\*Recorded action:\*\* \[History event \d{3}\]/);
     const c = loadCase(dir, 'auto');
     expect(c.cutoff).toBe(expected.cut_after);
+    // The default mode must replay too: cases/public-cuts is a replay corpus, not a Reality Test folder.
+    expect(loadCase(dir).cutoff).toBe(expected.cut_after);
     expect(c.cutoff).toBeLessThanOrEqual(c.totalEvents!);
     if (expected.truncated) expect(c.cutoff).toBe(c.totalEvents);
     else expect(c.cutoff).toBeLessThan(c.totalEvents!);
