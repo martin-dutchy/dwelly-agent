@@ -44,14 +44,18 @@ Each runs in its own worktree and branch off `marc/m5-residual-misses`, edits `s
 
 ## Acceptance criteria
 
-- [ ] Each workstream: required-met on its cases at k = 3 rises with 0 critical, 0 prohibited and 0 red-flag hits; evidence run folder named.
-- [ ] Merged: the union of failing cases at k = 3 has required-met not lower than baseline on any case group, 0 critical/prohibited/red flags.
-- [ ] `pnpm verify` exits 0.
-- [ ] Master plan Progress, Discoveries and Decision log updated in the same commit.
+- [x] Each workstream: required-met on its cases at k = 3 rises with 0 critical, 0 prohibited and 0 red-flag hits; evidence run folder named (Progress).
+- [x] Merged: the union of failing cases at k = 3 has required-met not lower than baseline on any case group, 0 critical/prohibited/red flags (78.7 % → 91.1 %; public cuts and practice both up).
+- [x] `pnpm verify` exits 0 (30 files, 497 tests).
+- [x] Master plan Progress, Discoveries and Decision log updated in the same commit.
 
 ## Progress
 
 - [x] (2026-10-10 14:50 BST) Plan written; three workstreams launched.
+- [x] (2026-10-10 14:58 BST) C, practice (`cd4c461`): rules for callers who are not the tenant, statutory checks booked before expiry with notice, a tenant's notice to leave starting the move-out, in `src/core/policy.md`. k = 3: 11, 13, 18 at 100 % in every run; 02 left to `marc/gas-co-safety-questions`, which already adds the CO triage questions. Runs `runs/loop/dev-cursor-k3-2026-10-10T13-48-49-107Z` (baseline), `…13-55-18-505Z` (kept). On merge, the statutory-check spend clause was tightened to rely on a spend limit the record gives, otherwise ask the landlord (`3e60d70`).
+- [x] (2026-10-10 14:58 BST) B, case reading (`cc843cf`): open points and contradictions listed and answered or asked, own-contractor route read from notes, ambiguous other-property remarks checked back, message-date conflicts, key questions, security severity. k = 3 on its six cases: required 14.0/18 → 16.75/18, 0 red flags. Run `runs/loop/dev-cursor-k3-2026-10-10T13-49-22-017Z` (kept); a second iteration was reverted.
+- [x] (2026-10-10 14:58 BST) A, party updates (`4e2ef9d`): everyone waiting on the job updated (each reporter, the landlord whose request or money is affected, the colleague who raised it), a closing who-is-waiting check, claims passed on as the other party's. k = 3 on its seven cases: 16.2/21 → 18.0/21, 0 red flags. Run `runs/loop/dev-cursor-k3-2026-10-10T13-49-11-448Z` (kept); the second iteration hit a red flag on 025 (told the landlord work was chargeable on the provider's word) and was reverted.
+- [x] (2026-10-10 15:03 BST) Merged A, B, C; conflicts in the own-contractor and writing-messages rules combined, and "whether a charge applies" added to the claims passed on as the other party's. Union of the 14 failing cases at k = 3: `Coverage 14/14 decided · 14 judged · mean 85.6 · critical in 0` / `pass^3 0.71 · checks 114/114`; required-met 78.7 % → 91.1 %, 0 red flags. Fixed in 3/3 runs: 010, 014, 019, 020, 026, 042, 047, practice 11, 13, 18. Still missing: 001 R4 (second reporting flat has no contact on file), 008 R1/R3 (no second contractor named), 025 R2/R3 (landlord update and date conflict, 2/3), practice 02 R1 (gas/CO branch). Run `runs/loop/dev-cursor-k3-2026-10-10T13-58-46-969Z`. Only failing cases were run, at the user's request; the full dev split was not re-run.
 
 ## Decision log
 
