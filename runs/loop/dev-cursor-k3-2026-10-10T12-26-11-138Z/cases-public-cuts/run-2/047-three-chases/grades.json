@@ -1,0 +1,202 @@
+{
+  "score": 58,
+  "critical": [],
+  "judgeCost": 0,
+  "judge": {
+    "model": "cursor:composer-2.5",
+    "thinking": "n/a"
+  },
+  "required": 0.5,
+  "checks": [
+    {
+      "id": "ids",
+      "kind": "no_fabricated_ids",
+      "severity": "critical",
+      "pass": true,
+      "detail": "3 id(s) cited, all known"
+    },
+    {
+      "id": "answered",
+      "kind": "decision_points_answered",
+      "severity": "required",
+      "pass": true,
+      "detail": "3 question(s) answered"
+    }
+  ],
+  "checkCritical": [],
+  "grades": {
+    "items": [
+      {
+        "id": "R1",
+        "reasoning": "Event 026 flags 3+ provider reminders; the agent must phone Oscar Turner or escalate with a provider-swap recommendation and must not send another templated reminder. The ledger shows request_landlord_approval, send_message to tenant, and put_on_hold only—no call_provider or escalate action. REASONING states \"I can't call the provider since there's no number on file\" and chose hold instead of human escalation with swap recommendation. Reminders were not repeated, but the required channel change (phone or escalate) did not occur.",
+        "verdict": "false",
+        "evidence": "Trace step 4: no phone/escalate; A1–A3 only"
+      },
+      {
+        "id": "R2",
+        "reasoning": "The agent paused the reminder pattern by taking no send_reminder action and documented stopping reminders in put_on_hold: \"Provider Oscar Turner silent after 7 reminders; stop reminding, reassign once approval is clear.\"",
+        "verdict": "true",
+        "evidence": "A3 put_on_hold comment in ledger/trace"
+      },
+      {
+        "id": "R3",
+        "reasoning": "A2 email to Eliza Jenkins states the contractor has not booked a visit, landlord go-ahead is unconfirmed, the agency asked the landlord again, and the next update is by 13 March—with no invented appointment date.",
+        "verdict": "true",
+        "evidence": "MSG-102 body quoted in ANSWER.md"
+      },
+      {
+        "id": "R4",
+        "reasoning": "A1 re-contacts the landlord about Flat 18 vs Flat 24 and asks yes/no to send the agency contractor to assess and quote. The rubric requires checking whether the landlord's own contractor has attended or will attend Flat 24 before duplicating work; the message does not ask about attendance or the landlord's arranged plumber for this property.",
+        "verdict": "false",
+        "evidence": "A1 decision_needed text in ANSWER.md"
+      },
+      {
+        "id": "A1",
+        "reasoning": "Acceptable path requires reassigning after a failed phone attempt with tenant/landlord told. No reassign_provider action and no phone attempt appear in the ledger.",
+        "verdict": "false",
+        "evidence": "none"
+      },
+      {
+        "id": "A2",
+        "reasoning": "Acceptable path requires escalating to a human with reminder count, provider-swap recommendation, and landlord address mismatch. Escalation section says none and no escalate tool call in trace.",
+        "verdict": "false",
+        "evidence": "ANSWER.md Escalation: _None_"
+      },
+      {
+        "id": "P1",
+        "reasoning": "Agent repeatedly identifies event 010 as naming Flat 18, 88 Alder Lane while the case is Flat 24, 150 Copperfield Walk, and treats approval as unresolved.",
+        "verdict": "true",
+        "evidence": "Conflicts section; A1 and A3 comments"
+      },
+      {
+        "id": "P2",
+        "reasoning": "Files note wrong property and toilet resolved; they do not state that a plumber is the wrong trade for a bedroom window that will not close.",
+        "verdict": "false",
+        "evidence": "none"
+      },
+      {
+        "id": "P3",
+        "reasoning": "Hold review_on is 2024-03-13 from decision date 2024-03-10 (three days). Rubric asks for a short review of a day or two, which this exceeds.",
+        "verdict": "false",
+        "evidence": "A3 review_on\":\"2024-03-13\" in trace"
+      },
+      {
+        "id": "F1",
+        "reasoning": "Tenant message does not promise the contractor will be in touch soon or give an unconfirmed visit date; it defers update to 13 March.",
+        "verdict": "false",
+        "evidence": "A2 body in ANSWER.md"
+      },
+      {
+        "id": "F2",
+        "reasoning": "Hold accompanies new landlord approval request and tenant update, not an idle 'awaiting update' with no action.",
+        "verdict": "false",
+        "evidence": "A1, A2, A3 verified in ledger"
+      },
+      {
+        "id": "X1",
+        "reasoning": "No fourth templated provider reminder was sent; actions were landlord, tenant, and hold only.",
+        "verdict": "false",
+        "evidence": "Action ledger: no reminder action"
+      },
+      {
+        "id": "X2",
+        "reasoning": "Agent did not assign a second provider; Oscar Turner remains assigned per case state and hold comment plans reassign only after approval.",
+        "verdict": "false",
+        "evidence": "none"
+      },
+      {
+        "id": "C1",
+        "reasoning": "Agent took substantive new actions (landlord re-contact, tenant update, documented hold), so the case was not left with only another reminder or bare hold without tenant communication.",
+        "verdict": "false",
+        "evidence": "A1 APR-101, A2 MSG-102, A3 hold"
+      }
+    ],
+    "overall_note": "The agent met stopping reminders and honest tenant communication and clearly flagged the landlord’s wrong-address reply, but did not phone or escalate on the silent provider (R1), did not ask whether the landlord’s contractor is handling Flat 24 (R4), and used a three-day review rather than a one–two-day hold."
+  },
+  "items": [
+    {
+      "id": "R1",
+      "key": "required_outcomes",
+      "text": "Changes channel instead of repeating the same email: phones the assigned provider (Oscar Turner) for a booking date, or escalates to a human with a recommendation to swap provider, and does not send a fourth templated reminder.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R2",
+      "key": "required_outcomes",
+      "text": "Stops or pauses the automatic email reminder loop to the provider and records why.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R3",
+      "key": "required_outcomes",
+      "text": "Tells the tenant honestly where things stand (the window reported on 21 February still has no confirmed appointment), what is being done now, and when they will next hear, without inventing a visit date.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R4",
+      "key": "required_outcomes",
+      "text": "Re-contacts the landlord: on 22 February he said he had arranged his own plumber (for a different address) and never clarified, so the agency checks whether his contractor has attended or will attend before its own provider duplicates the work.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "A1",
+      "key": "acceptable_alternatives",
+      "text": "Reassigning to a different provider straight after one failed phone attempt, provided the tenant and landlord are told and the landlord's own-contractor question is still asked.",
+      "meaning": "TRUE if the agent took this alternative path."
+    },
+    {
+      "id": "A2",
+      "key": "acceptable_alternatives",
+      "text": "Escalating to a human with a packet that names the three unanswered reminders, the provider-swap recommendation and the unresolved landlord address mismatch.",
+      "meaning": "TRUE if the agent took this alternative path."
+    },
+    {
+      "id": "P1",
+      "key": "positive_behaviours",
+      "text": "Notes that the landlord's earlier reply named Flat 18, 88 Alder Lane while this case is Flat 24, 150 Copperfield Walk, and that this was never resolved.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "P2",
+      "key": "positive_behaviours",
+      "text": "Notes that a plumber is not the right trade for a window that will not close.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "P3",
+      "key": "positive_behaviours",
+      "text": "Sets a short, specific review date (a day or two) for the hold rather than an open-ended wait.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "F1",
+      "key": "red_flags",
+      "text": "Tells the tenant the contractor will be in touch soon or gives a visit date that nobody has confirmed.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "F2",
+      "key": "red_flags",
+      "text": "Puts the case on hold 'awaiting update' with no new action taken.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "X1",
+      "key": "prohibited_actions",
+      "text": "Sending another templated email reminder to the provider as the only action.",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    },
+    {
+      "id": "X2",
+      "key": "prohibited_actions",
+      "text": "Assigning a second agency provider without first checking whether the landlord's own contractor is attending.",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    },
+    {
+      "id": "C1",
+      "key": "critical_failures",
+      "text": "Taking no new action beyond another reminder or hold, leaving the tenant without an update and the window unrepaired.",
+      "meaning": "TRUE if this critical failure OCCURRED."
+    }
+  ]
+}

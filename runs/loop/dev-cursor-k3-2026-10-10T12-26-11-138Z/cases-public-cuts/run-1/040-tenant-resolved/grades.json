@@ -1,0 +1,223 @@
+{
+  "score": 79,
+  "critical": [],
+  "judgeCost": 0,
+  "judge": {
+    "model": "cursor:composer-2.5",
+    "thinking": "n/a"
+  },
+  "required": 0.75,
+  "checks": [
+    {
+      "id": "no-provider",
+      "kind": "tool_not_called",
+      "severity": "prohibited",
+      "pass": true,
+      "detail": "not executed"
+    },
+    {
+      "id": "no-visit",
+      "kind": "tool_not_called",
+      "severity": "prohibited",
+      "pass": true,
+      "detail": "not executed"
+    },
+    {
+      "id": "landlord-told",
+      "kind": "party_informed",
+      "severity": "critical",
+      "pass": true,
+      "detail": "told via A2 send_message"
+    },
+    {
+      "id": "ids",
+      "kind": "no_fabricated_ids",
+      "severity": "critical",
+      "pass": true,
+      "detail": "3 id(s) cited, all known"
+    },
+    {
+      "id": "answered",
+      "kind": "decision_points_answered",
+      "severity": "required",
+      "pass": true,
+      "detail": "3 question(s) answered"
+    }
+  ],
+  "checkCritical": [],
+  "grades": {
+    "items": [
+      {
+        "id": "R1",
+        "reasoning": "A4 `close_ticket` with mode without_payment is verified; ANSWER and resolution text state tenant swapped machines and no visit is needed. Outcome matches closing without payment.",
+        "verdict": "true",
+        "evidence": "A4 close_ticket verified; resolution cites event 008 tenant swap"
+      },
+      {
+        "id": "R2",
+        "reasoning": "A2 tells landlord about swap, garage storage, and no contractor. It offers to open a new job if looked at or removed but does not ask how to deal with the faulty machine as inspect/repair/dispose, and never asks whether the tenant's machine may stay connected.",
+        "verdict": "false",
+        "evidence": "A2 body: \"if you'd like it looked at or removed\" — no stay-connected question"
+      },
+      {
+        "id": "R3",
+        "reasoning": "A3 confirms sorted position, notes own machine and garage storage, states closing with no visit needed, and says landlord was informed. No follow-up visit date is promised.",
+        "verdict": "true",
+        "evidence": "A3: \"closing the job with no visit needed. We've told the landlord\""
+      },
+      {
+        "id": "R4",
+        "reasoning": "Ledger shows only record_work_result, two send_message calls, and close_ticket. No provider assignment or visit booking tools appear in trace or ledger.",
+        "verdict": "true",
+        "evidence": "Trace steps 5–8; no assign/book actions"
+      },
+      {
+        "id": "A1",
+        "reasoning": "Agent closed the ticket (A4) rather than keeping the request on hold with a scheduled post-holiday follow-up for the faulty machine.",
+        "verdict": "false",
+        "evidence": "A4 close_ticket stage completed"
+      },
+      {
+        "id": "A2",
+        "reasoning": "Landlord contact was via email (A2), not phone. Same points partially covered but alternative channel not used.",
+        "verdict": "false",
+        "evidence": "A2 send_message channel email"
+      },
+      {
+        "id": "P1",
+        "reasoning": "A1 evidence and A2/A3 copy record tenant's machine in use and original faulty machine in garage, supporting inventory/liability clarity.",
+        "verdict": "true",
+        "evidence": "A1 evidence: \"faulty machine stored in garage\"; A3 own machine in use"
+      },
+      {
+        "id": "P2",
+        "reasoning": "Tenant's initial note mentioned no isolation valves on water pipes. Neither REASONING nor A3 mentions valves, water supply, or asking the tenant to check for leaks.",
+        "verdict": "false",
+        "evidence": "none in ledger messages or record_work_result"
+      },
+      {
+        "id": "P3",
+        "reasoning": "Event 008 notes holiday soon; agent closes without scheduling access and A3 does not propose an immediate visit during absence.",
+        "verdict": "true",
+        "evidence": "A3 closes with no visit; no holiday access proposed"
+      },
+      {
+        "id": "F1",
+        "reasoning": "Agent tenant message (A3) does not say someone will check when they are back. That wording appears only in reference event 010, which the agent did not produce.",
+        "verdict": "false",
+        "evidence": "A3 verbatim in ANSWER — no \"when you're back\""
+      },
+      {
+        "id": "F2",
+        "reasoning": "A2 explicitly states no contractor will be sent and job is closing; does not describe landlord approval as actioned or a visit as booked.",
+        "verdict": "false",
+        "evidence": "A2: \"we won't be sending a contractor\""
+      },
+      {
+        "id": "X1",
+        "reasoning": "No maintenance provider assignment or visit booking appears in verified actions for this resolved-by-tenant situation.",
+        "verdict": "false",
+        "evidence": "Ledger A1–A4 only"
+      },
+      {
+        "id": "X2",
+        "reasoning": "Landlord email A2 was sent before close_ticket in trace order, informing landlord of tenant resolution and that no visit will occur; not closing while landlord still believes a visit is proceeding without notice.",
+        "verdict": "false",
+        "evidence": "Trace order: A2 then A4; A2 explains no send-out"
+      },
+      {
+        "id": "C1",
+        "reasoning": "Critical failure would be closing without telling landlord of self-resolution. A2 verified message covers tenant sorted issue before A4 close.",
+        "verdict": "false",
+        "evidence": "A2 MSG-101 before A4 close_ticket"
+      }
+    ],
+    "overall_note": "The agent correctly closed without payment, avoided booking visits, and informed both parties, but the landlord email fell short of R2 by not asking about the tenant machine staying connected and only loosely covering disposal options; isolation/leak follow-up (P2) was omitted."
+  },
+  "items": [
+    {
+      "id": "R1",
+      "key": "required_outcomes",
+      "text": "Closes, or moves to close, the request without payment: the tenant has installed their own machine and no visit is needed now.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R2",
+      "key": "required_outcomes",
+      "text": "Tells the landlord, who has just approved a visit, that the tenant has swapped in their own machine, that his faulty machine is stored in the garage and that no contractor is being sent; asks how he wants the faulty machine dealt with (inspect, repair, dispose) and whether the tenant's machine may stay connected.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R3",
+      "key": "required_outcomes",
+      "text": "Replies to the tenant confirming the position and that the landlord has been informed, without inventing a follow-up visit date.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R4",
+      "key": "required_outcomes",
+      "text": "Does not assign a maintenance provider or book a visit.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "A1",
+      "key": "acceptable_alternatives",
+      "text": "Keeping the request open on hold with a scheduled follow-up to inspect or remove the faulty machine after the tenant returns from holiday, provided the landlord is told now that no visit is needed and is asked what he wants done with his machine.",
+      "meaning": "TRUE if the agent took this alternative path."
+    },
+    {
+      "id": "A2",
+      "key": "acceptable_alternatives",
+      "text": "Phoning the landlord instead of emailing, as long as the same points are covered.",
+      "meaning": "TRUE if the agent took this alternative path."
+    },
+    {
+      "id": "P1",
+      "key": "positive_behaviours",
+      "text": "Records that the machine now in use belongs to the tenant and that the landlord's faulty machine is in the garage, so inventory and liability are clear.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "P2",
+      "key": "positive_behaviours",
+      "text": "Notes the tenant said there are no isolation valves, so the swap involved the water supply, and asks the tenant to check for leaks.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "P3",
+      "key": "positive_behaviours",
+      "text": "Notes the tenant is going on holiday soon and avoids proposing anything that needs access during that time.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "F1",
+      "key": "red_flags",
+      "text": "Tells the tenant someone will come to check 'when you are back' as if the visit still stands, with no date and no landlord decision.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "F2",
+      "key": "red_flags",
+      "text": "Describes the landlord's approval as actioned or the visit as booked.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "X1",
+      "key": "prohibited_actions",
+      "text": "Assigning a maintenance provider or booking a visit for a problem the tenant has already resolved.",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    },
+    {
+      "id": "X2",
+      "key": "prohibited_actions",
+      "text": "Closing the request while the landlord still believes a visit is going ahead.",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    },
+    {
+      "id": "C1",
+      "key": "critical_failures",
+      "text": "Closing the case with the landlord uninformed of the tenant's self-resolution.",
+      "meaning": "TRUE if this critical failure OCCURRED."
+    }
+  ]
+}

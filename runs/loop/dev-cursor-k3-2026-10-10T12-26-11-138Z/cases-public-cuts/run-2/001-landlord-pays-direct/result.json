@@ -1,0 +1,242 @@
+{
+  "id": "001-landlord-pays-direct",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "cutoff": 42,
+  "totalEvents": 44,
+  "inputs": [
+    {
+      "name": "history.md",
+      "method": "derived",
+      "bytes": 11280,
+      "chars": 11190,
+      "note": "events 1–42 of 44 from history.md"
+    }
+  ],
+  "withheld": [
+    {
+      "name": "history.md",
+      "reason": "events 43–44 come after the decision point"
+    },
+    {
+      "name": "index.md",
+      "reason": "sections that reveal the ending: Overview, Outcome, Next action at escalation, History, Attachments"
+    },
+    {
+      "name": "checks.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    },
+    {
+      "name": "rubric.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    }
+  ],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Landlord's own contractor (Riverside Services, Freya) is doing the communal garden works; landlord approved on 05/11. Ticket at mp_time, on hold waiting for provider. A call on 11/12 mentioned tree removal, invoicing and completion, but the summary is vague and there is no written confirmation of completion.",
+    "next_actions": [
+      {
+        "type": "CHASE_PROVIDER",
+        "action": "Asked Freya to confirm completion in writing and whether she is invoicing the landlord directly",
+        "recipient": "Freya, Riverside Services (contractor)",
+        "channel": "email",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "WAIT",
+        "action": "Follow up on 2025-12-15 for the written confirmation, then confirm with the tenant and close without payment if the landlord pays direct",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A3"
+      }
+    ],
+    "boundaries": [
+      "Recording the landlord decision does not confirm the works are complete.",
+      "The call summary is not evidence of completion or of who pays.",
+      "Nothing has been closed."
+    ],
+    "remaining_work": [
+      "Written completion confirmation from Riverside Services",
+      "Confirm who pays (landlord direct is assumed from the ticket name only)",
+      "Tell the tenant and landlord the outcome",
+      "Close without payment"
+    ],
+    "missing_info": [
+      "Written completion confirmation",
+      "Invoice arrangements",
+      "Content of the 11/12 call and the unavailable attachments from event 004"
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "The landlord's own contractor has been working on the communal garden since about 20 November. I recorded the landlord's go-ahead as own_contractor and asked Freya for written confirmation of completion and invoicing. A follow-up is set for 15 December.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "The works were approved by the landlord and are done by their contractor, with completion reportedly discussed on the 11/12 call. Still needed: written confirmation of completion, who pays, telling the tenant and landlord, then closing."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "An email to Freya at Riverside Services asking for written confirmation of completion and the invoicing route (sent, A2). Follow-up is scheduled for 15 December (A3)."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "No. This is routine work and nothing exceeds my authority."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Recorded landlord decision as own_contractor"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Emailed Freya for written completion confirmation"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Scheduled follow-up for 2025-12-15"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Landlord emails name different people (Rowan, Felix, Leo, Harper), which looks like legacy or anonymisation noise. I relied on the ticket's landlord_approval 'confirmed' status and the event 026 wording.",
+      "Event 036 says no tenant contact is needed, but the tenant raised the issue and was promised updates."
+    ],
+    "assumptions": [
+      "The landlord pays the contractor directly, based on the case name only."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "record_landlord_decision",
+      "args": {
+        "ticket_ref": "NBL-001-landlord-pays-direct",
+        "decision": "own_contractor",
+        "evidence_quote": "I've asked Freya to let me know when she's starting/booked it in for & I'll then advise you accordingly. Could you please advise both T's, in the meantime, that works have been quoted & go ahead given.",
+        "source": "event 026, email 05/11/2025"
+      },
+      "key": "record_landlord_decision:{decision:\"own_contractor\",evidence_quote:\"I've asked Freya to let me know when she's starting/booked it in for & I'll then advise you accordingly. Could you please advise both T's, in the meantime, that works have been quoted & go ahead given.\",source:\"event 026, email 05/11/2025\",ticket_ref:\"NBL-001-landlord-pays-direct\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-001-landlord-pays-direct",
+      "evidence": [
+        "Ticket NBL-001-landlord-pays-direct read back after record_landlord_decision"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Freya, Riverside Services",
+        "recipient_role": "contractor",
+        "channel": "email",
+        "contact": "existing thread (event 042 call)",
+        "body": "Hi Freya, thanks for speaking to Leo today. Could you please confirm in writing that the communal garden, hedge and side-path works at 46 Copperfield Walk are fully complete (including the tree trim), and whether you are invoicing the landlord directly? A short email reply is fine. Thank you.",
+        "ticket_ref": "NBL-001-landlord-pays-direct"
+      },
+      "key": "send_message:{body:\"Hi Freya, thanks for speaking to Leo today. Could you please confirm in writing that the communal garden, hedge and side-path works at 46 Copperfield Walk are fully complete (including the tree trim), and whether you are invoicing the landlord directly? A short email reply is fine. Thank you.\",channel:\"email\",contact:\"existing thread (event 042 call)\",recipient_name:\"Freya, Riverside Services\",recipient_role:\"contractor\",ticket_ref:\"NBL-001-landlord-pays-direct\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-101",
+      "evidence": [
+        "MSG-101 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "schedule_follow_up",
+      "args": {
+        "ticket_ref": "NBL-001-landlord-pays-direct",
+        "due_on": "2025-12-15",
+        "party": "Riverside Services",
+        "purpose": "Chase written completion confirmation; then confirm with tenant and close without payment if landlord pays direct"
+      },
+      "key": "schedule_follow_up:{due_on:\"2025-12-15\",party:\"Riverside Services\",purpose:\"Chase written completion confirmation; then confirm with tenant and close without payment if landlord pays direct\",ticket_ref:\"NBL-001-landlord-pays-direct\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "FUP-102",
+      "evidence": [
+        "FUP-102 found in the schedule_follow_up log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-001-landlord-pays-direct",
+        "stage": "mp_time",
+        "property": "Flat 26, 46 Copperfield Walk, Kingshaven, ZZ5 7ZZ",
+        "description": "Communal  garden full of weeds, hedge along side path overgrown, peice of no man's land at side  of my property  was going to be cleared  last summer and wasn't thanks",
+        "landlord_approval": "confirmed",
+        "hold": {
+          "reason": "Waiting for Provider",
+          "comment": "Waiting for provider to confirm all done."
+        },
+        "landlord_decision": {
+          "decision": "own_contractor",
+          "evidence_quote": "I've asked Freya to let me know when she's starting/booked it in for & I'll then advise you accordingly. Could you please advise both T's, in the meantime, that works have been quoted & go ahead given.",
+          "source": "event 026, email 05/11/2025"
+        }
+      }
+    ],
+    "records": [
+      {
+        "id": "MSG-101",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Freya, Riverside Services",
+          "recipient_role": "contractor",
+          "channel": "email",
+          "contact": "existing thread (event 042 call)",
+          "body": "Hi Freya, thanks for speaking to Leo today. Could you please confirm in writing that the communal garden, hedge and side-path works at 46 Copperfield Walk are fully complete (including the tree trim), and whether you are invoicing the landlord directly? A short email reply is fine. Thank you.",
+          "ticket_ref": "NBL-001-landlord-pays-direct"
+        },
+        "at": 1791635300899
+      },
+      {
+        "id": "FUP-102",
+        "tool": "schedule_follow_up",
+        "args": {
+          "ticket_ref": "NBL-001-landlord-pays-direct",
+          "due_on": "2025-12-15",
+          "party": "Riverside Services",
+          "purpose": "Chase written completion confirmation; then confirm with tenant and close without payment if landlord pays direct"
+        },
+        "at": 1791635300900
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 26, 46 Copperfield Walk, Kingshaven, ZZ5 7ZZ",
+        "landlord": {
+          "contact": "agency landlord record",
+          "notes": [
+            "Contact details are held in the agency system and not shown in this case file; messages to the landlord go through it. Use contact \"agency landlord record\".",
+            "Landlord messages visible in this case: event 004 (email, to landlord); event 007 (email, from landlord); event 009 (email, to landlord); event 011 (email, from landlord); event 013 (email, to landlord); event 015 (email, from landlord); event 017 (email, to landlord); event 022 (email, from landlord); event 023 (email, to landlord); event 026 (email, from landlord); event 027 (email, to landlord); event 029 (email, from landlord)."
+          ]
+        }
+      }
+    ]
+  },
+  "usage": {
+    "input": 8,
+    "output": 2248,
+    "cost": 0.040426000000000004,
+    "turns": 3,
+    "durationMs": 16500,
+    "retries": 0,
+    "thinkingTokens": 209
+  }
+}

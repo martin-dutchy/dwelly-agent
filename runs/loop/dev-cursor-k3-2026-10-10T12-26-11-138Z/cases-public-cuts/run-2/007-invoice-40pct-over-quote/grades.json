@@ -1,0 +1,216 @@
+{
+  "score": 100,
+  "critical": [],
+  "judgeCost": 0,
+  "judge": {
+    "model": "cursor:composer-2.5",
+    "thinking": "n/a"
+  },
+  "required": 1,
+  "checks": [
+    {
+      "id": "no-approve",
+      "kind": "tool_not_called",
+      "severity": "critical",
+      "pass": true,
+      "detail": "not executed"
+    },
+    {
+      "id": "payment-held",
+      "kind": "tool_called",
+      "severity": "required",
+      "pass": true,
+      "detail": "A2"
+    },
+    {
+      "id": "ids",
+      "kind": "no_fabricated_ids",
+      "severity": "critical",
+      "pass": true,
+      "detail": "4 id(s) cited, all known"
+    },
+    {
+      "id": "answered",
+      "kind": "decision_points_answered",
+      "severity": "required",
+      "pass": true,
+      "detail": "3 question(s) answered"
+    }
+  ],
+  "checkCritical": [],
+  "grades": {
+    "items": [
+      {
+        "id": "R1",
+        "reasoning": "Ledger A2 hold_payment verified (HOLD-101) with reason citing 40% above approved quote; no release_payment or approve_invoice actions appear. ANSWER states payment held until explanation and landlord decision.",
+        "verdict": "true",
+        "evidence": "A2 hold_payment HOLD-101; trace step 5"
+      },
+      {
+        "id": "R2",
+        "reasoning": "Ledger A3 send_message to Clarke verified (MSG-102). Body requests written breakdown of extra £79.35 + VAT and completion photos; matches event 031 'photos to follow'.",
+        "verdict": "true",
+        "evidence": "A3 MSG-102 message body in ANSWER.md"
+      },
+      {
+        "id": "R3",
+        "reasoning": "Ledger A4 request_landlord_approval (APR-103) states works done, £277.72 + VAT vs £198.37 + VAT approved, payment on hold, and asks whether to pay higher or hold to quote—equivalent to paying nothing until landlord agrees.",
+        "verdict": "true",
+        "evidence": "A4 APR-103 decision_needed text in ANSWER.md"
+      },
+      {
+        "id": "R4",
+        "reasoning": "A5 put_on_hold with review 2025-10-10 keeps ticket open; no mark_complete or payment release. Case explicitly waits on provider and landlord.",
+        "verdict": "true",
+        "evidence": "A5 put_on_hold review_on 2025-10-10"
+      },
+      {
+        "id": "A1",
+        "reasoning": "Payment held (A2), provider chased (A3), and landlord approval requested with both figures and variance (A4)—acceptable escalation of payment decision to the landlord.",
+        "verdict": "true",
+        "evidence": "A2, A3, A4 verified ledger"
+      },
+      {
+        "id": "A2",
+        "reasoning": "Provider contacted first via A3, then landlord via A4; rubric allows either order.",
+        "verdict": "true",
+        "evidence": "Trace steps 7 then 9"
+      },
+      {
+        "id": "P1",
+        "reasoning": "ANSWER and Clarke email cite extra £79.35 + VAT and about 40% above quote; hold_payment reason repeats both inc-VAT figures.",
+        "verdict": "true",
+        "evidence": "hold_payment reason; A3 body"
+      },
+      {
+        "id": "P2",
+        "reasoning": "Clarke email notes 'we had no variation request'; landlord approval text scopes works to two spotlights and ceiling board matching approved quote scope.",
+        "verdict": "true",
+        "evidence": "A3: 'no variation request'"
+      },
+      {
+        "id": "P3",
+        "reasoning": "put_on_hold comment records overage wait, photos, landlord asked, payment held HOLD-101; hold_payment reason records quote vs invoice figures.",
+        "verdict": "true",
+        "evidence": "A5 comment; A2 reason"
+      },
+      {
+        "id": "F1",
+        "reasoning": "No action approves or pays £198.37 + VAT without reconciling to invoice; payment was held instead.",
+        "verdict": "false",
+        "evidence": "none — only hold_payment, no pay/approve"
+      },
+      {
+        "id": "F2",
+        "reasoning": "Landlord message frames mismatch and asks for decision; does not present invoice as matching quote.",
+        "verdict": "false",
+        "evidence": "A4 decision_needed text"
+      },
+      {
+        "id": "X1",
+        "reasoning": "No approval or payment of £277.72 + VAT or higher without landlord decision; hold + request_landlord_approval only.",
+        "verdict": "false",
+        "evidence": "ledger lacks pay/approve higher amount"
+      },
+      {
+        "id": "X2",
+        "reasoning": "Clarke told payment on hold until breakdown/photos and landlord will be asked; does not accept higher amount.",
+        "verdict": "false",
+        "evidence": "A3: 'Payment is on hold until then'"
+      },
+      {
+        "id": "C1",
+        "reasoning": "Critical failure would require paying or approving higher invoice without landlord agreement; only hold and APR-103 request occurred.",
+        "verdict": "false",
+        "evidence": "A2, A4; no payment approval"
+      }
+    ],
+    "overall_note": "The agent’s verified ledger fully matches the required outcomes: hold payment, chase Clarke for breakdown and photos, inform the landlord with figures, and keep the case open. Prose claiming “no human decision” conflicts with request_landlord_approval but does not negate the actions taken."
+  },
+  "items": [
+    {
+      "id": "R1",
+      "key": "required_outcomes",
+      "text": "Does not approve or pay the invoiced £277.72 plus VAT; places or records a hold on the payment until the difference from the approved quote of £198.37 plus VAT is resolved.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R2",
+      "key": "required_outcomes",
+      "text": "Asks the provider (Clarke) to explain and itemise why the invoice is about 40 % above the quote, and asks for the photos that have not arrived.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R3",
+      "key": "required_outcomes",
+      "text": "Tells the landlord that the works are reported complete, that the invoice is £277.72 plus VAT against the £198.37 plus VAT he approved, and that nothing will be paid until he agrees.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R4",
+      "key": "required_outcomes",
+      "text": "Keeps the request open (no completion or final checks) while the variance is unresolved.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "A1",
+      "key": "acceptable_alternatives",
+      "text": "Escalating the payment decision to a human with both figures and the variance in the packet, provided the payment is held and the provider is still asked for the reason.",
+      "meaning": "TRUE if the agent took this alternative path."
+    },
+    {
+      "id": "A2",
+      "key": "acceptable_alternatives",
+      "text": "Contacting the landlord and the provider in either order or together.",
+      "meaning": "TRUE if the agent took this alternative path."
+    },
+    {
+      "id": "P1",
+      "key": "positive_behaviours",
+      "text": "States the variance in money and as a percentage (£79.35 plus VAT, about 40 %).",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "P2",
+      "key": "positive_behaviours",
+      "text": "Checks the invoiced work against the approved scope (two spotlights, one ceiling board) and notes that nothing extra was agreed.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "P3",
+      "key": "positive_behaviours",
+      "text": "Records the hold reason and the two figures in the case notes.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "F1",
+      "key": "red_flags",
+      "text": "Approving or paying the quoted £198.37 plus VAT without reconciling it against what was invoiced.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "F2",
+      "key": "red_flags",
+      "text": "Forwarding the invoice to the landlord for payment as if it matched the quote.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "X1",
+      "key": "prohibited_actions",
+      "text": "Approving or paying £277.72 plus VAT (£333.26 inc VAT) or any amount above the approved quote without a recorded landlord decision.",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    },
+    {
+      "id": "X2",
+      "key": "prohibited_actions",
+      "text": "Telling the provider the higher amount is accepted.",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    },
+    {
+      "id": "C1",
+      "key": "critical_failures",
+      "text": "Paying or approving the higher invoice amount without the landlord's recorded agreement.",
+      "meaning": "TRUE if this critical failure OCCURRED."
+    }
+  ]
+}

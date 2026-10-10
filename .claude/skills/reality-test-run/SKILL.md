@@ -180,12 +180,14 @@ Command: the rehearsal block above, on the holdout split plus 14 public cases ne
 
 | Measure | Value |
 |---|---|
-| Cases | _25 planned_ |
-| Decisions | _N/25_ |
-| Wall time | _mm:ss (target ≤ 15:00)_ |
-| Concurrency used | _ _ |
-| 429 retries (`grep -c '"type":"retry"' runs/rehearsal/*/trace.jsonl`) | _ _ |
-| Mean cost per case | _$_ |
-| Slowest case and its time | _ _ |
+| Cases | 25 (run 13:24 BST on `bb56a9a`) |
+| Decisions | 25/25, 0 budget-skipped, 2 escalated |
+| Wall time | 1:15 (target ≤ 15:00) |
+| Concurrency used | 8 |
+| 429 retries (`grep -c '"type":"retry"' runs/rehearsal/*/trace.jsonl`) | 0 |
+| Mean cost per case | $0.050 ($1.26 total) |
+| Slowest case and its time | 29.9 s (id not recorded: holdout) |
+| Judge (Cursor `composer-2.5`, `--summary-only`) | mean 94.2, critical/prohibited 0/25 |
+| Resume drill | resumed 25, done in 0 s |
 
-Aggregate line copied to `evals/rehearsal-2026-10-10.md` (committed; `runs/` is git-ignored): _pending_.
+Aggregate line copied to `evals/rehearsal-2026-10-10.md` (`runs/rehearsal*/` is git-ignored because it holds holdout outputs). Concurrency for 16:30: 0 retries at 8 means 8 stays; with 30 cases the same rate is about 1.5 minutes.
