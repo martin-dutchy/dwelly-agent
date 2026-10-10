@@ -1,18 +1,22 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { CallRow, EventRow } from '../voice/store.js';
-import { readdirSync, statSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { fetchAudio } from '../voice/finalize.js';
 import { join } from 'node:path';
 import { CASE_SETS, gradeBatch, importRun, startBatch } from './batch.js';
 import { batchView } from './batchView.js';
 import { evalRunPage, evalsPage } from './evalPages.js';
 import { DEMO_CASE, DEMO_TENANT, BEN_SCENARIO, contractorQuote, demoCase, isDemoCall, onDemoCall, recordedLandlordCall, resetDemo, tenantWhatsApp } from './demo.js';
 import { demoPage } from './demoPage.js';
+import { showData } from './showData.js';
+import { showPage } from './showPage.js';
 import { decideTask, ingestCall, ingestPracticeCase, ingestPublicCase } from './ingest.js';
 import { bubbles, outgoingWhatsApp, sendWhatsApp } from './whatsapp.js';
 import { casePage, inboxPage, taskPage, textPage } from './pages.js';
+import { reallyDelivered, threadOf } from './waPhone.js';
 import { needsReason } from './status.js';
 import { type OpsStore, createOpsStore } from './store.js';
-import { type Worker, createWorker } from './worker.js';
+import { type Worker, appendHistoryEvent, createWorker } from './worker.js';
 
 /**
  * The operations portal, mounted by the voice server under /ops behind the admin password.
@@ -42,6 +46,16 @@ export async function createOps(store: OpsStore = createOpsStore()): Promise<Ops
   });
   // Eval runs get their own pool so a 50-case run never delays live follow-ups after calls.
   const evalWorker = createWorker(store, { concurrency: Number(process.env.OPS_EVAL_CONCURRENCY ?? 6) });
+  // Real calls saved for the demo (data/private/calls, git-ignored: real people's voices): ingest them, which runs the follow-ups.
+  if (!process.env.DATABASE_URL && process.env.OPS_IMPORT_CALLS !== '0') {
+    const dir = join(process.cwd(), 'data', 'private', 'calls');
+    try {
+      for (const f of readdirSync(dir).filter((x) => x.endsWith('.json'))) {
+        const { call, events } = JSON.parse(readFileSync(join(dir, f), 'utf8'));
+        void ingestCall(store, worker, call, events).catch((e) => console.error('[ops] import call', f, e));
+      }
+    } catch {}
+  }
   // Without a database, bring back earlier eval runs from disk so a restart loses nothing.
   if (!process.env.DATABASE_URL && process.env.OPS_IMPORT_RUNS !== '0') {
     const root = join(process.cwd(), 'runs', 'ops');
@@ -111,7 +125,7 @@ export async function opsRoutes(path: string, req: IncomingMessage, res: ServerR
     const t = await store.getTask(taskId);
     const c = t && (await store.getCase(t.case_id));
     if (!t || !c) return html(res, textPage('Not found', `No task ${taskId}`), 404);
-    return html(res, taskPage({ t, c, openTasks: await openTasks() }));
+    return html(res, taskPage({ t, c, openTasks: await openTasks(), from: new URL(req.url ?? '/', 'http://x').searchParams.get('from') ?? undefined }));
   }
   const decide = path.match(/^\/ops\/tasks\/([\w-]+)\/decide$/)?.[1];
   if (decide && req.method === 'POST') {
@@ -123,11 +137,46 @@ export async function opsRoutes(path: string, req: IncomingMessage, res: ServerR
     if (needsReason(choice) && String(f.note ?? '').trim().length < 10) {
       const t = await store.getTask(decide);
       const c = t && (await store.getCase(t.case_id));
-      if (t && c) return html(res, taskPage({ t, c, openTasks: await openTasks(), error: 'That option is hard to undo. Add a short reason before sending.' }), 400);
+      if (t && c) return html(res, taskPage({ t, c, openTasks: await openTasks(), error: 'That option is hard to undo. Add a short reason before sending.', from: new URL(req.url ?? '/', 'http://x').searchParams.get('from') ?? undefined }), 400);
     }
     const t = await decideTask(store, worker, decide, { choice: choice.slice(0, 500), note: String(f.note ?? '').slice(0, 4000), by });
     if (!t) return html(res, textPage('Already decided', 'This task was already decided or does not exist.'), 409);
     return (req.headers.accept ?? '').includes('application/json') ? json(res, t) : redirect(res, `/ops/cases/${encodeURIComponent(t.case_id)}`);
+  }
+  // A person answers the tenant directly on WhatsApp from the decision page: recorded, delivered, agent resumes.
+  const waReply = path.match(/^\/ops\/tasks\/([\w-]+)\/whatsapp$/)?.[1];
+  if (waReply && req.method === 'POST') {
+    const f = await readForm(req);
+    const text = String(f.text ?? '').trim().slice(0, 1000);
+    const by = String(f.by ?? '').trim().slice(0, 80);
+    const from = new URL(req.url ?? '/', 'http://x').searchParams.get('from') ?? '';
+    const wantsJson = (req.headers.accept ?? '').includes('application/json');
+    if (!text || !by) return wantsJson ? json(res, { ok: false, error: 'Write the message and give your name.' }, 400) : html(res, textPage('Missing details', 'Write the message and give your name.'), 400);
+    const t = await store.resolveTask(waReply, { choice: 'Answered the tenant on WhatsApp', note: text, by });
+    if (!t) return wantsJson ? json(res, { ok: false, error: 'This task was already decided.' }, 409) : html(res, textPage('Already decided', 'This task was already decided.'), 409);
+    const ts = new Date().toISOString();
+    const c = await store.getCase(t.case_id);
+    if (c) {
+      const event = { channel: 'WhatsApp', from: `Agency staff (${by})`, to: 'Tenant', body: text };
+      if (c.files?.['history.md']) await store.setFiles(c.id, { ...c.files, 'history.md': appendHistoryEvent(c.files['history.md'], event) });
+      else if (!c.files) await store.setHistory(c.id, appendHistoryEvent(c.history_md, event));
+      await store.addEvents([
+        { case_id: c.id, ts, kind: 'human_decision', actor: 'human', title: `${by} decided: Answered the tenant on WhatsApp`, detail: text, status: 'resolved', run_id: t.run_id, data: { task_id: t.id } },
+        { case_id: c.id, ts, kind: 'message', actor: 'human', title: `WhatsApp to the tenant from ${by}`, detail: text, status: 'sent', run_id: null, data: { channel: 'whatsapp', direction: 'outbound' } },
+      ]);
+      if (c.id === DEMO_CASE) void sendWhatsApp(DEMO_TENANT.phone, text).catch(() => {});
+      // Eval-run cases stay frozen as graded; live cases go back to the agent.
+      if (!c.batch_id) void worker.enqueue(c.id, `acting on ${by}'s WhatsApp reply`);
+    }
+    if (wantsJson) return json(res, { ok: true, message: { text, ts }, delivered: reallyDelivered(t.case_id), caseUrl: `/ops/cases/${encodeURIComponent(t.case_id)}` });
+    return redirect(res, `/ops/tasks/${encodeURIComponent(t.id)}${from ? `?from=${encodeURIComponent(from)}` : ''}`);
+  }
+  // The case's WhatsApp thread for the tenant's phone on the decision page: only messages that exist.
+  const thread = path.match(/^\/ops\/api\/tasks\/([\w-]+)\/thread$/)?.[1];
+  if (thread) {
+    const t = await store.getTask(thread);
+    if (!t) return json(res, { error: 'not found' }, 404);
+    return json(res, { thread: threadOf(await store.events(t.case_id)), delivered: reallyDelivered(t.case_id) });
   }
   const runFile = path.match(/^\/ops\/runs\/([\w-]+)\/(answer|reasoning)$/);
   if (runFile) {
@@ -137,6 +186,20 @@ export async function opsRoutes(path: string, req: IncomingMessage, res: ServerR
   }
 
   // Demo: the tenant's WhatsApp, the quote, the landlord call and the one human decision, on the real agents.
+  // The real recording of a call, proxied from ElevenLabs (the key stays on the server).
+  const audio = path.match(/^\/ops\/show\/audio\/(conv_[\w]+)$/)?.[1];
+  if (audio) {
+    const r = await fetchAudio(audio);
+    if (!r.ok || !r.body) return json(res, { error: 'no audio' }, 404);
+    res.writeHead(200, { 'content-type': r.headers.get('content-type') ?? 'audio/mpeg', 'cache-control': 'private, max-age=3600' });
+    for await (const chunk of r.body) res.write(chunk);
+    return void res.end();
+  }
+  if (path === '/ops/show') {
+    const d = await showData(store);
+    if (!d) return html(res, textPage('Nothing to show yet', 'Run or import an eval run first (Eval runs).'), 404);
+    return html(res, showPage(d, await openTasks()));
+  }
   if (path === '/ops/demo') {
     const c = await demoCase(store);
     const events = c ? await store.events(c.id) : [];
@@ -154,7 +217,7 @@ export async function opsRoutes(path: string, req: IncomingMessage, res: ServerR
         } catch (e) {
           return html(res, textPage('Call not placed', e instanceof Error ? e.message : String(e)), 400);
         }
-      } else await recordedLandlordCall(store, worker);
+      } else await recordedLandlordCall(store, worker, f.mode !== 'recorded-simple');
     }
     if (step === 'reset') {
       await resetDemo(store);

@@ -1,5 +1,6 @@
 import { PROVENANCE, STOP, type StopReason, lastRun, needsReason, provenanceOf, stopReason } from './status.js';
 import type { HumanTask, OpsCase, OpsEvent, OpsRun } from './store.js';
+import { type PhoneMsg, WA_PHONE_CSS, WA_PHONE_JS, reallyDelivered, waPhone } from './waPhone.js';
 
 /**
  * Server-rendered operations portal, built to `reports/Agent console UX patterns.md`:
@@ -355,7 +356,7 @@ function triggers(recent?: string) {
     });
 }
 
-export function taskPage(o: { t: HumanTask; c: OpsCase; openTasks: number; error?: string }) {
+export function taskPage(o: { t: HumanTask; c: OpsCase; openTasks: number; error?: string; from?: string }) {
   const { t, c } = o;
   const x = t.context;
   const reco = t.recommendation?.trim();
@@ -386,6 +387,43 @@ export function taskPage(o: { t: HumanTask; c: OpsCase; openTasks: number; error
           : needsReason(op)
             ? 'May move money, change records or affect someone’s tenancy. Hard to undo: give a reason.'
             : 'The case worker carries this out and tells the people involved.';
+  const show = o.from === 'show';
+  const simulated = !reallyDelivered(c.id);
+  const name = show ? ' value="Iona"' : '';
+  // The tenant's side of the thread as the page knows it; the phone's script replaces it with the case's real WhatsApp thread.
+  const tenantSaid = trigger && !task && (/tenant/i.test(trigger.from ?? '') || /whatsapp/i.test(trigger.channel ?? '')) ? trigger : undefined;
+  const phoneInitial: PhoneMsg[] = [
+    ...(tenantSaid?.text ? [{ side: 'me' as const, text: tenantSaid.text.replace(/^[^\n]*\(\+?\d[\d\s]*\):\n/, '').slice(0, 600), via: /whatsapp/i.test(tenantSaid.channel ?? '') || !tenantSaid.channel ? undefined : `Sent by ${tenantSaid.channel}` }] : []),
+    ...(t.decision?.choice === 'Answered the tenant on WhatsApp' ? [{ side: 'them' as const, text: t.decision.note, ts: t.resolved_at ?? undefined }] : []),
+  ];
+  const decideForm = `<form class="block" method="post" action="/ops/tasks/${esc(t.id)}/decide" id="decide">
+${o.error ? `<p class="tag danger" role="alert" style="margin-bottom:var(--s3)">${esc(o.error)}</p>` : ''}
+<fieldset><legend>Your decision</legend>
+${options
+  .map((op, i) => `<label class="option"><input type="radio" name="choice" value="${esc(op)}" data-hard="${needsReason(op) ? '1' : ''}" required><span>${esc(op)}${i === 0 && reco ? ' <span class="caption">(agent’s recommendation)</span>' : ''}<span class="conseq${needsReason(op) ? ' hard' : ''}">${esc(consequence(op))}</span></span></label>`)
+  .join('')}</fieldset>
+<div id="reason-wrap"><label class="field" for="note">Reason, and anything the agent should know</label><textarea id="note" name="note" placeholder="For example: approved up to £250; ask for photos when done."></textarea><p class="reason-hint">This option is hard to undo. Write at least a sentence on why.</p></div>
+<label class="field" for="by">Your name</label><input id="by" type="text" name="by" required autocomplete="name"${name} style="max-width:320px">
+<div class="actions-row"><button class="primary" type="submit" id="send" disabled>Choose an option</button><span class="small muted">The case worker carries it out, tells the people involved and records it on the case.</span></div></form>`;
+  const waForm = `<form class="block" id="wa-form" method="post" action="/ops/tasks/${esc(t.id)}/whatsapp${o.from ? `?from=${esc(encodeURIComponent(o.from))}` : ''}"><h2>${show ? 'Answer the tenant yourself on WhatsApp' : 'Or answer the tenant yourself on WhatsApp'}</h2>
+<p class="small muted" style="max-width:70ch">For a quick answer only you can give. ${simulated ? 'In this demo the phone on the right shows what the tenant would see; delivery is simulated and the reply is recorded on the case.' : 'It goes to the tenant in the same WhatsApp thread and is recorded on the case.'}${c.batch_id ? '' : ' The agent then picks the case back up.'}</p>
+<label class="field" for="wa">Message</label><textarea id="wa" name="text" required placeholder="Hi, …"></textarea>
+<label class="field" for="wa-by">Your name</label><input id="wa-by" type="text" name="by" required autocomplete="name"${name} style="max-width:320px">
+<div class="actions-row"><button class="secondary" type="submit">Send on WhatsApp</button></div></form>`;
+  const decideJs = `<script>
+(() => {
+  const f = document.getElementById('decide'), send = document.getElementById('send'), note = document.getElementById('note'), wrap = document.getElementById('reason-wrap');
+  const update = () => {
+    const c = f.querySelector('input[name=choice]:checked');
+    const hard = !!c && c.dataset.hard === '1';
+    wrap.classList.toggle('needs-reason', hard);
+    note.required = hard; note.minLength = hard ? 10 : 0;
+    send.disabled = !c || (hard && note.value.trim().length < 10);
+    send.textContent = !c ? 'Choose an option' : 'Send: ' + (c.value.length > 48 ? c.value.slice(0, 46) + '…' : c.value);
+  };
+  f.addEventListener('change', update); note.addEventListener('input', update); update();
+})();
+</script>`;
   return layout(
     `Decide: ${t.question}`,
     `<div class="crumbs"><a href="/ops">Decisions</a> / <a href="/ops/cases/${esc(c.id)}">${esc(c.title)}</a></div>
@@ -412,34 +450,12 @@ ${cannot.length ? `<div><h3>Could not check: your knowledge needed</h3><ul class
 
 ${reco ? `<div class="reco"><div class="caption">Agent recommends</div><p style="margin-top:var(--s1)">${esc(reco)}</p><p class="small muted" style="margin-top:var(--s2)">The agent can be wrong. Check it against the evidence above before you choose.</p></div>` : `<div class="reco"><div class="caption">Needs your judgement</div><p class="small muted" style="margin-top:var(--s1)">The agent did not have enough to recommend an option.</p></div>`}
 
-${
-  t.status === 'open'
-    ? `<form class="block" method="post" action="/ops/tasks/${esc(t.id)}/decide" id="decide">
-${o.error ? `<p class="tag danger" role="alert" style="margin-bottom:var(--s3)">${esc(o.error)}</p>` : ''}
-<fieldset><legend>Your decision</legend>
-${options
-  .map((op, i) => `<label class="option"><input type="radio" name="choice" value="${esc(op)}" data-hard="${needsReason(op) ? '1' : ''}" required><span>${esc(op)}${i === 0 && reco ? ' <span class="caption">(agent’s recommendation)</span>' : ''}<span class="conseq${needsReason(op) ? ' hard' : ''}">${esc(consequence(op))}</span></span></label>`)
-  .join('')}</fieldset>
-<div id="reason-wrap"><label class="field" for="note">Reason, and anything the agent should know</label><textarea id="note" name="note" placeholder="For example: approved up to £250; ask for photos when done."></textarea><p class="reason-hint">This option is hard to undo. Write at least a sentence on why.</p></div>
-<label class="field" for="by">Your name</label><input id="by" type="text" name="by" required autocomplete="name" style="max-width:320px">
-<div class="actions-row"><button class="primary" type="submit" id="send" disabled>Choose an option</button><span class="small muted">The case worker carries it out, tells the people involved and records it on the case.</span></div></form>
-<script>
-(() => {
-  const f = document.getElementById('decide'), send = document.getElementById('send'), note = document.getElementById('note'), wrap = document.getElementById('reason-wrap');
-  const update = () => {
-    const c = f.querySelector('input[name=choice]:checked');
-    const hard = !!c && c.dataset.hard === '1';
-    wrap.classList.toggle('needs-reason', hard);
-    note.required = hard; note.minLength = hard ? 10 : 0;
-    send.disabled = !c || (hard && note.value.trim().length < 10);
-    send.textContent = !c ? 'Choose an option' : 'Send: ' + (c.value.length > 48 ? c.value.slice(0, 46) + '…' : c.value);
-  };
-  f.addEventListener('change', update); note.addEventListener('input', update); update();
-})();
-</script>`
-    : `<div class="block"><h2>Decided</h2><div class="quote"><span class="caption">${esc(t.decision?.by)}, ${esc(t.resolved_at ? ago(t.resolved_at) : '')}</span>\n${esc(t.decision?.choice)}${t.decision?.note ? `\n\n${esc(t.decision.note)}` : ''}</div><p style="margin-top:var(--s3)"><a href="/ops/cases/${esc(c.id)}">See what the case worker did next</a></p></div>`
-}`,
-    { openTasks: o.openTasks, current: 'decisions' },
+${t.status === 'open' ? (show ? waForm + `<details class="block"><summary>Or make a different decision</summary>${decideForm}</details>` : decideForm + waForm) + decideJs : t.decision?.choice === 'Answered the tenant on WhatsApp'
+      ? `<div class="block"><h2>Answered on WhatsApp</h2><p class="muted">${esc(t.decision.by)} replied to the tenant ${esc(t.resolved_at ? ago(t.resolved_at) : '')}. ${c.batch_id ? 'Recorded on the case.' : 'Recorded on the case, and the agent has it again.'}</p>${show ? '<p style="margin-top:var(--s3)"><a class="primary" style="display:inline-block;text-decoration:none;padding:8px 16px;border-radius:6px;background:var(--accent);color:var(--surface);font-weight:600" href="/ops/show#fastforward">Back to the overview</a></p>' : `<p style="margin-top:var(--s3)"><a href="/ops/cases/${esc(c.id)}">See the case</a></p>`}</div>`
+      : `<div class="block"><h2>Decided</h2><div class="quote"><span class="caption">${esc(t.decision?.by)}, ${esc(t.resolved_at ? ago(t.resolved_at) : '')}</span>\n${esc(t.decision?.choice)}${t.decision?.note ? `\n\n${esc(t.decision.note)}` : ''}</div><p style="margin-top:var(--s3)"><a href="/ops/cases/${esc(c.id)}">See what the case worker did next</a></p></div>`}
+${waPhone({ taskId: t.id, initial: phoneInitial, simulated })}
+<script>${WA_PHONE_JS}</script>`,
+    { openTasks: o.openTasks, current: 'decisions', css: WA_PHONE_CSS },
   );
 }
 

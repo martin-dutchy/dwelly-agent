@@ -16,6 +16,9 @@ import { appendHistoryEvent, type Worker } from './worker.js';
  */
 
 export const DEMO_CASE = 'DEMO-flat9';
+/** Transcript of the recorded call, for the show page's call view. */
+export const recordedTranscript = (twist: boolean) => (twist ? RECORDED_LINES() : [...RECORDED_LINES().slice(0, 5), { role: 'user', message: 'That’s right. Thanks for sorting it.' }, { role: 'agent', message: 'You’re welcome, Ben. I’ll let Priya and HeatRight know now.' }]);
+const RECORDED_LINES = () => RECORDED;
 export const DEMO_TENANT = { name: 'Priya Shah', phone: '+447700900103' };
 const PROPERTY = 'Flat 9, 3 Amhurst Road, London E8 2AU';
 
@@ -145,7 +148,7 @@ const RECORDED: { role: string; message: string }[] = [
 ];
 
 /** Step 3 (offline): append the recorded landlord call as the voice agent would, then let the case worker follow up. */
-export async function recordedLandlordCall(store: OpsStore, worker: Worker) {
+export async function recordedLandlordCall(store: OpsStore, worker: Worker, twist = true) {
   const c = (await demoCase(store)) ?? (await resetDemo(store));
   const now = new Date();
   const call: CallRow = {
@@ -160,12 +163,16 @@ export async function recordedLandlordCall(store: OpsStore, worker: Worker) {
     passed: true,
     grade: [],
     flags: ['Recorded call for rehearsal (no live phone call was placed)'],
-    transcript: RECORDED,
-    analysis: { transcript_summary: 'Ben approved HeatRight’s £640 quote, capped at £700 inc VAT, for Monday morning. He then asked for his rent to be paid into a new account he will email; the agent declined to change bank details by phone and noted the request for the team.' },
+    transcript: twist ? RECORDED : [...RECORDED.slice(0, 5), { role: 'user', message: 'That’s right. Thanks for sorting it.' }, { role: 'agent', message: 'You’re welcome, Ben. I’ll let Priya and HeatRight know now.' }],
+    analysis: {
+      transcript_summary: twist
+        ? 'Ben approved HeatRight’s £640 quote, capped at £700 inc VAT, for Monday morning. He then asked for his rent to be paid into a new account he will email; the agent declined to change bank details by phone and noted the request for the team.'
+        : 'Ben approved HeatRight’s £640 quote, capped at £700 inc VAT, for Monday morning, after the agent read the decision back to him.',
+    },
   };
   const ledger: EventRow[] = [
     { ts: now.toISOString(), type: 'ledger', entry: { tool: 'record_landlord_decision', status: 'verified', args: { decision: 'approve', amount_gbp: 700, conditions: 'HeatRight, up to £700 inc VAT', notes: 'Approved on the phone after read-back' } } },
-    { ts: now.toISOString(), type: 'ledger', entry: { tool: 'add_case_note', status: 'verified', args: { kind: 'follow_up', note: 'Landlord asked to change his payout bank account by phone; refused on the call, team to verify through details on file.' } } },
+    ...(twist ? [{ ts: now.toISOString(), type: 'ledger', entry: { tool: 'add_case_note', status: 'verified', args: { kind: 'follow_up', note: 'Landlord asked to change his payout bank account by phone; refused on the call, team to verify through details on file.' } } }] : []),
   ];
   await onDemoCall(store, worker, call, ledger);
 }
