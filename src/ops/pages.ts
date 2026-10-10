@@ -186,7 +186,7 @@ export function layout(title: string, body: string, o: { openTasks?: number; ref
 <title>${esc(title)}</title>${o.refresh ? '<meta http-equiv="refresh" content="8">' : ''}${FONTS}<style>${BASE_CSS}${o.css ?? ''}</style></head>
 <body><nav class="top" aria-label="Main"><a class="brand" href="/ops">Dwelly operations</a>
 <a class="nav" href="/ops"${o.current === 'decisions' ? ' aria-current="page"' : ''}>Decisions${o.openTasks ? `<span class="count">${o.openTasks}</span>` : ''}</a>
-<a class="nav" href="/ops/demo">Demo</a><a class="nav" href="/ops/evals"${o.current === 'evals' ? ' aria-current="page"' : ''}>Eval runs</a><a class="nav" href="/admin">Voice calls</a></nav>
+<a class="nav" href="/ops/show">Demo</a><a class="nav" href="/ops/evals"${o.current === 'evals' ? ' aria-current="page"' : ''}>Eval runs</a><a class="nav" href="/admin">Voice calls</a></nav>
 <main${o.wide ? ' class="wide"' : ''}>${body}</main></body></html>`;
 }
 

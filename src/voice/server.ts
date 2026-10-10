@@ -381,7 +381,7 @@ export function createVoiceServer(env: Env = process.env, store: VoiceStore = cr
     const path = url.pathname;
     try {
       if (req.method === 'GET' && (path === '/voice/health' || path === '/health')) return send(res, 200, { ok: true });
-      if (path === '/' && ops) return void res.writeHead(302, { location: '/ops' }).end();
+      if (path === '/' && ops) return void res.writeHead(302, { location: '/ops/show' }).end();
       if (path === '/' || path === '/favicon.ico') return send(res, 404, { ok: false });
 
       const join = path.match(/^\/join\/([\w-]{4,64})(?:\/(.*))?$/);

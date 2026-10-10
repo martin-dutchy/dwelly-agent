@@ -1,3 +1,4 @@
+import { CURSOR_CSS, CURSOR_JS } from './cursor.js';
 import { DEMO_CASE } from './demo.js';
 import type { OpsEvent } from './store.js';
 import { whatsappConfigured } from './whatsapp.js';
@@ -63,7 +64,7 @@ export function waPhone(o: { taskId: string; initial: PhoneMsg[]; simulated: boo
 </div></aside>`;
 }
 
-export const WA_PHONE_CSS = `
+export const WA_PHONE_CSS = `${CURSOR_CSS}
 @media (min-width:860px){ main{ max-width:1180px; padding-right:calc(var(--s6) + 340px); } }
 .wa-device{position:fixed;right:40px;bottom:32px;z-index:20;width:300px;height:min(620px,calc(100vh - 64px));padding:11px;border-radius:52px;
   background:linear-gradient(145deg,#3a3d40,#16181a 40%,#2b2e31);box-shadow:0 0 0 1.5px #55595d inset,0 0 0 4px #0c0d0e inset,0 40px 80px -20px rgba(8,12,10,.55),0 18px 36px -18px rgba(8,12,10,.5);
@@ -119,7 +120,7 @@ export const WA_PHONE_CSS = `
  * `?draft=`, and sends the page's WhatsApp form with fetch so the reply lands on the phone without a reload.
  * Without JavaScript the form posts normally and the server redirects back.
  */
-export const WA_PHONE_JS = `
+export const WA_PHONE_JS = `${CURSOR_JS}
 (() => {
   const dev = document.getElementById('wa-device'); if (!dev) return;
   const chat = document.getElementById('wa-chat'), presence = document.getElementById('wa-presence'), clk = document.getElementById('wa-clock');
@@ -187,5 +188,31 @@ export const WA_PHONE_JS = `
       err.textContent = (e && e.message) || 'Not sent. Try again.';
     }
   });
+})();
+// Demo autoplay (?auto=1, reached from the show page): read the question, then the cursor sends the drafted
+// reply through the real form (same submit handler as a click) and returns to the overview.
+(() => {
+  const DC = window.DemoCursor; if (!DC || !DC.AUTO) return;
+  const back = '/ops/show?auto=1#fastforward';
+  const waitFor = async (fn, ms) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { const v = fn(); if (v) return v; await DC.sleep(100); } return null; };
+  (async () => {
+    await DC.sleep(1200);
+    const form = document.getElementById('wa-form');
+    DC.enter();
+    if (form) {
+      const ta = form.querySelector('textarea'), btn = form.querySelector('button[type=submit]');
+      if (ta) { await DC.moveTo(ta, 'start'); ta.focus({ preventScroll: true }); try { ta.setSelectionRange(ta.value.length, ta.value.length); } catch {} await DC.sleep(650); }
+      await DC.moveTo(btn); await DC.hover(btn); await DC.click(btn);
+      if (form.requestSubmit) form.requestSubmit(btn); else btn.click();
+      const link = await waitFor(() => document.querySelector('.wa-sent a'), 20000);
+      if (!link) return; // the error stays on screen; nothing is faked
+      await DC.sleep(1200);
+      await DC.moveTo(link); await DC.hover(link); await DC.click(link); DC.go(back);
+    } else {
+      // Already answered (demo not reset): the page shows its own way back.
+      const link = document.querySelector('a[href="/ops/show#fastforward"]'); if (!link) return;
+      await DC.moveTo(link); await DC.hover(link); await DC.click(link); DC.go(back);
+    }
+  })();
 })();
 `;

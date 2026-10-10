@@ -1,3 +1,4 @@
+import { CURSOR_CSS, CURSOR_JS } from './cursor.js';
 import { esc, layout } from './pages.js';
 
 /**
@@ -141,6 +142,7 @@ export function showPage(d: ShowData, openTasks: number) {
 ${d.call.real ? `<div class="realcall"><span class="dot" aria-hidden="true"></span><div><b>${esc(d.call.real.who)}</b>${esc(d.call.real.note)} ${esc(d.call.real.when)}.</div></div>` : ''}
 ${d.call.context ? `<div class="callctx">${esc(d.call.context)}</div>` : ''}<div class="wave" id="wave" aria-hidden="true">${'<i></i>'.repeat(40)}</div><div class="lines" id="lines" aria-live="polite"></div><div class="callfootrow"><div class="callfoot" id="callfoot">${esc(d.call.ask)}</div><button type="button" class="skipcall" id="skipcall">Skip call</button></div></div></div>${d.call.audioUrl ? `<audio id="callaudio" preload="auto" src="${esc(d.call.audioUrl)}"></audio>` : ''}
 <div class="controls"><form method="post" action="/ops/show/reset" style="display:contents"><button type="submit" title="Reopen the decision and start the show again">Reset demo</button></form><button type="button" id="prev">Back</button><button type="button" id="next">Next (→)</button><button type="button" id="auto">Auto-play</button><button type="button" id="ff">Fast-forward</button></div>
+<script>${CURSOR_JS}</script>
 <script>
 const D = ${JSON.stringify(d).replace(/</g, '\\u003c')};
 (() => {
@@ -307,15 +309,26 @@ const D = ${JSON.stringify(d).replace(/</g, '\\u003c')};
   }
 
   let i = 0, busy = false, autoplay = false;
-  const next = async () => { if (busy || i >= scenes.length) return; busy = true; try { await scenes[i++](); } finally { busy = false; } if (autoplay && i < scenes.length && !(scenes[i - 1] && personCard && i === 5)) { await sleep(450); next(); } };
-  $('next').onclick = next; $('auto').onclick = () => { autoplay = true; next(); };
+  const DC = window.DemoCursor;
+  const next = async () => { if (busy || i >= scenes.length) return; busy = true; try { await scenes[i++](); } finally { busy = false; } if (autoplay && i < scenes.length && !(scenes[i - 1] && personCard && i === 5)) { await sleep(450); next(); } else if (autoplay && DC && DC.AUTO && personCard && i === 5) openDecision(); };
+  // Full autoplay: the cursor opens the case that needs a person, carrying the autoplay flag to the decision page.
+  async function openDecision() {
+    const a = card(personCard).querySelector('a.go'); if (!a) return;
+    await sleep(900);
+    const b = $('auto').getBoundingClientRect(); DC.enter(b.left + b.width / 2, b.top + b.height / 2);
+    await DC.moveTo(a); await DC.hover(a); await DC.click(a);
+    DC.go(DC.withAuto(a.getAttribute('href')));
+  }
+  const startAuto = () => { if (autoplay) return; autoplay = true; if (DC) DC.enable(); $('auto').blur(); next(); };
+  $('next').onclick = next; $('auto').onclick = startAuto;
   $('prev').onclick = () => location.reload();
   $('ff').onclick = async () => { while (i < 2) await scenes[i++](); i = scenes.length; fastForward(); };
   addEventListener('keydown', (e) => { if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); } });
   // Returning from the decision page: replay the morning instantly, then fast-forward.
-  if (location.hash === '#fastforward') { (async () => { for (const c of D.cards) card(c).classList.add('in'); $('more').classList.add('in'); set('k-open', D.totals.cases); if (callCard) { card(callCard).querySelectorAll('li').forEach((li) => li.classList.add('on')); state(card(callCard), 'done', 'Done automatically. No staff time.'); auto++; } if (personCard) { const el = card(personCard); state(el, 'done', 'Decided by a person, tenant answered on WhatsApp'); people++; } counters(); tick(60); i = scenes.length; await sleep(600); fastForward(); })(); }
+  if (location.hash === '#fastforward') { (async () => { for (const c of D.cards) card(c).classList.add('in'); $('more').classList.add('in'); set('k-open', D.totals.cases); if (callCard) { card(callCard).querySelectorAll('li').forEach((li) => li.classList.add('on')); state(card(callCard), 'done', 'Done automatically. No staff time.'); auto++; } if (personCard) { const el = card(personCard); state(el, 'done', 'Decided by a person, tenant answered on WhatsApp'); people++; } counters(); tick(60); i = scenes.length; if (DC && DC.AUTO) DC.restore(); await sleep(600); await fastForward(); if (DC && DC.AUTO) { await sleep(900); DC.hide(); } })(); }
+  else if (DC && DC.AUTO) setTimeout(startAuto, 800);
 })();
 </script>`,
-    { openTasks, wide: true, css: CSS },
+    { openTasks, wide: true, css: CSS + CURSOR_CSS },
   );
 }
