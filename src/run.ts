@@ -7,6 +7,7 @@
 // Time budget: --deadline HH:MM (local) and/or --budget-min M; the earlier wins. Per-case timeouts shrink to fit,
 //   cases that can no longer start get an honest "not processed" escalation. --resume keeps finished cases.
 //   Ctrl-C once: in-flight cases get the fallback answer, unstarted ones are skipped; twice: exit at once.
+// Ends with an estimated operational-value line and writes <out>/RUN_SUMMARY.md (per-case table and the summary lines).
 import 'dotenv/config';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { chaosPlan } from './core/failures.js';
@@ -22,6 +23,7 @@ import { jevEnabled, prescreen, screenNote } from './agent/jev.js';
 import { seedFromCase } from './agent/opsSeed.js';
 import { createOpsToolset } from './agent/opsTools.js';
 import { type Usage, renderAnswer, renderReasoning } from './agent/report.js';
+import { operationalValue, runSummaryMarkdown, valueLine } from './agent/runValue.js';
 import { CASE_SYSTEM_PROMPT } from './agent/systemPrompt.js';
 import { baseTimeoutMs, caseTimeoutMs, hhmm, parseDeadline } from './runner/budget.js';
 import { budgetSkipFiles, crashFiles, writeFallback } from './runner/fallback.js';
@@ -204,10 +206,11 @@ const done = values.resume ? dirs.filter((d) => isComplete(outDirOf(d))) : [];
 const todo = dirs.filter((d) => !done.includes(d));
 const base = baseTimeoutMs(Number(values.timeout), budgetMs, concurrency, todo.length);
 
-console.log(
+const startLines = [
   `Running ${dirs.length} cases with ${values.model} (concurrency ${values.concurrency}, Jev ${jevEnabled() ? 'on' : 'off'}${criticModel ? `, critic ${criticModel.id}` : ''}${Number(values.chaos) > 0 ? `, chaos ${values.chaos} seed ${values.seed}` : ''}${deadline ? `, deadline ${hhmm(deadline)}, case timeout ${Math.round(base / 1000)}s` : ''}${values.resume ? `, resuming ${done.length} of ${dirs.length}` : ''})…`,
-);
-console.log(toolsetStartLine(organiser, createOpsToolset().tools.map((t) => t.name)));
+  toolsetStartLine(organiser, createOpsToolset().tools.map((t) => t.name)),
+];
+for (const l of startLines) console.log(l);
 const ran = await pool(todo, concurrency, async (dir) => {
   const t = caseTimeoutMs(base, deadline, Date.now());
   return t === 'skip' ? skipCase(dir) : processCase(dir, t);
@@ -218,11 +221,19 @@ console.table(rows.map((r) => ({ ...r, cost: `$${r.cost.toFixed(3)}`, secs: Math
 const total = rows.reduce((a, r) => a + r.cost, 0);
 const wallMs = Date.now() - t0;
 const skipped = rows.filter((r) => r.note === 'budget').length;
-console.log(
-  `Done in ${(wallMs / 1000).toFixed(0)}s · total cost $${total.toFixed(2)} · decisions ${rows.filter((r) => !NO_DECISION.has(r.outcome)).length}/${rows.length} · resumed ${done.length} · budget-skipped ${skipped}`,
-);
-console.log(retryLine(retryStats(ran), concurrency, ran.length - skipped, wallMs, budgetMs));
+const doneLine = `Done in ${(wallMs / 1000).toFixed(0)}s · total cost $${total.toFixed(2)} · decisions ${rows.filter((r) => !NO_DECISION.has(r.outcome)).length}/${rows.length} · resumed ${done.length} · budget-skipped ${skipped}`;
+const retrySummary = retryLine(retryStats(ran), concurrency, ran.length - skipped, wallMs, budgetMs);
+console.log(doneLine);
+console.log(retrySummary);
 if (skipped) console.log(`Skipped cases can be re-run with the same command plus --resume (and a new --deadline).`);
+try {
+  const value = valueLine(operationalValue(rows));
+  console.log(value);
+  mkdirSync(values.out!, { recursive: true });
+  writeFileSync(join(values.out!, 'RUN_SUMMARY.md'), runSummaryMarkdown({ command: `pnpm cases ${runFlags}`, startLines, rows, doneLine, retryLine: retrySummary, valueLine: value }));
+} catch (e) {
+  console.error(`Could not write RUN_SUMMARY.md: ${e instanceof Error ? e.message : String(e)}`);
+}
 
 // Abandoned agents (timed out past the guard, or interrupted) may still be running: flush the output and exit.
 const code = interrupt.signal.aborted ? 130 : 0;
