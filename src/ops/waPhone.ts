@@ -193,7 +193,8 @@ export const WA_PHONE_JS = `${CURSOR_JS}
   const back = '/ops/show?auto=1#fastforward';
   const waitFor = async (fn, ms) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { const v = fn(); if (v) return v; await DC.sleep(100); } return null; };
   (async () => {
-    await DC.sleep(1200);
+    DC.say('The person gets a five-second brief, with a reply already drafted.');
+    await DC.sleep(2200);
     const form = document.getElementById('wa-form');
     DC.enter();
     if (form) {
@@ -203,7 +204,8 @@ export const WA_PHONE_JS = `${CURSOR_JS}
       if (form.requestSubmit) form.requestSubmit(btn); else btn.click();
       const link = await waitFor(() => document.querySelector('.wa-sent a'), 20000);
       if (!link) return; // the error stays on screen; nothing is faked
-      await DC.sleep(1200);
+      DC.say('One click sends it on WhatsApp. The case is recorded and closed.');
+      await DC.sleep(2000);
       await DC.moveTo(link); await DC.hover(link); await DC.click(link); DC.go(back);
     } else {
       // Already answered (demo not reset): the page shows its own way back.

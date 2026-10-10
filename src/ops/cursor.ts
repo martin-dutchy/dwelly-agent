@@ -20,7 +20,11 @@ body.dc-out{opacity:0;transition:opacity .2s ease}
 body.dc-auto .controls{opacity:0}
 body.dc-auto .controls:hover{opacity:1}
 @keyframes dc-fade{from{opacity:0}to{opacity:1}}
-@media (prefers-reduced-motion:reduce){.dc-cursor,.dc-cursor svg,body.dc-out{transition:none}.dc-ripple,body.dc-in{animation:none}}
+.dc-sub{position:fixed;left:50%;bottom:28px;z-index:2147483640;width:max-content;max-width:min(900px,calc(100vw - 32px));padding:10px 20px 11px;border-radius:10px;background:rgba(8,10,12,.88);color:#fff;font-size:21px;line-height:29px;font-weight:500;text-align:center;letter-spacing:-.005em;pointer-events:none;opacity:0;transform:translate(-50%,6px);transition:opacity .25s ease,transform .25s ease;box-shadow:0 6px 24px rgba(0,0,0,.28)}
+.dc-sub.on{opacity:1;transform:translate(-50%,0)}
+.dc-sub small{display:block;margin-top:3px;font-size:15px;line-height:21px;font-weight:400;color:rgba(255,255,255,.78)}
+@media (max-width:700px){.dc-sub{font-size:16px;line-height:22px;bottom:16px}}
+@media (prefers-reduced-motion:reduce){.dc-cursor,.dc-cursor svg,body.dc-out{transition:none}.dc-ripple,body.dc-in{animation:none}.dc-sub{transition:none}}
 `;
 
 export const CURSOR_JS = `
@@ -70,6 +74,14 @@ export const CURSOR_JS = `
       await sleep(REDUCE ? 0 : 200); location.href = href;
     },
     hide() { if (el) el.classList.remove('on'); },
+    // Narration subtitle at the bottom of the screen: a main line and an optional smaller second line; '' hides it.
+    say(text, sub) {
+      let s = document.getElementById('dc-sub');
+      if (!s) { s = document.createElement('div'); s.id = 'dc-sub'; s.className = 'dc-sub'; s.setAttribute('role', 'status'); s.setAttribute('aria-live', 'polite'); document.body.appendChild(s); }
+      if (!text) { s.classList.remove('on'); return; }
+      const show = () => { s.textContent = text; if (sub) { const m = document.createElement('small'); m.textContent = sub; s.appendChild(m); } s.classList.add('on'); };
+      if (s.classList.contains('on') && !REDUCE) { s.classList.remove('on'); setTimeout(show, 180); } else show();
+    },
     withAuto(href) { const i = href.indexOf('#'); const base = i < 0 ? href : href.slice(0, i), hash = i < 0 ? '' : href.slice(i); return base + (base.includes('?') ? '&' : '?') + 'auto=1' + hash; },
   };
   window.DemoCursor = DC;

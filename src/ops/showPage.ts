@@ -166,12 +166,15 @@ const D = ${JSON.stringify(d).replace(/</g, '\\u003c')};
   const callCard = D.cards.find((c) => c.call);
   const personCard = D.cards.find((c) => c.person);
 
+  // Narration subtitles (also when stepping through by hand); in autoplay each scene holds long enough to read them.
+  const say = (t, sub) => { if (window.DemoCursor) window.DemoCursor.say(t, sub); };
+  const hold = (ms) => (autoplay || (window.DemoCursor && window.DemoCursor.AUTO) ? sleep(ms) : Promise.resolve());
   const scenes = [
-    async () => { head(D.totals.cases + ' open cases, each waiting on a person.'); set('k-open', D.totals.cases); for (const c of D.cards) { card(c).classList.add('in'); await sleep(45); } $('more').classList.add('in'); },
-    async () => { head('Agents pick up every case.'); for (const c of D.cards) { state(card(c), 'working', 'Agent working'); await sleep(35); } tick(4); if (callCard) { const el = card(callCard); el.classList.add('focus'); el.querySelector('.state').textContent = 'Calling ' + D.call.name + ' (' + D.call.role.toLowerCase() + ')'; } },
-    async () => { head('Case ' + (callCard?.no ?? '') + ': the landlord must choose a quote.'); await playCall(); },
-    async () => { const el = card(callCard); head('Follow-ups done, each one confirmed.'); const lis = el.querySelectorAll('li'); for (const li of lis) { li.classList.add('on'); await sleep(200); } state(el, 'done', 'Done automatically. No staff time.'); auto++; counters(); tick(12); },
-    async () => { const el = card(personCard); head('One case needs a person.'); state(el, 'person', 'Needs a person: ' + personCard.person.question); el.insertAdjacentHTML('beforeend', '<a class="go" href="' + personCard.person.href + '">Open in Decisions</a>'); people++; counters(); },
+    async () => { say('These are open lettings cases. Each one is stuck, waiting for a person.'); head(D.totals.cases + ' open cases, each waiting on a person.'); set('k-open', D.totals.cases); for (const c of D.cards) { card(c).classList.add('in'); await sleep(45); } $('more').classList.add('in'); await hold(1600); },
+    async () => { say('Our agents tag onto the cases you already have and start solving them.'); head('Agents pick up every case.'); for (const c of D.cards) { state(card(c), 'working', 'Agent working'); await sleep(35); } tick(4); if (callCard) { const el = card(callCard); el.classList.add('focus'); el.querySelector('.state').textContent = 'Calling ' + D.call.name + ' (' + D.call.role.toLowerCase() + ')'; } await hold(1400); say('This one needs the landlord’s go-ahead, so the agent phones him.'); await hold(1900); },
+    async () => { say(D.call.real ? 'This is a real person: a stranger who answered our LinkedIn post.' : 'The AI voice agent is on the call now. It explains the quote and asks for a decision.', D.call.real ? 'The AI voice agent is on the call with him now.' : ''); head('Case ' + (callCard?.no ?? '') + ': the landlord must choose a quote.'); await playCall(); },
+    async () => { say('His answer is read back and recorded. Every follow-up is confirmed.', 'No staff time spent.'); const el = card(callCard); head('Follow-ups done, each one confirmed.'); const lis = el.querySelectorAll('li'); for (const li of lis) { li.classList.add('on'); await sleep(200); } state(el, 'done', 'Done automatically. No staff time.'); auto++; counters(); tick(12); await hold(1500); },
+    async () => { say('This tenant asks about parking. The agent can’t see a policy, so it doesn’t guess.', 'It asks a person instead.'); const el = card(personCard); head('One case needs a person.'); state(el, 'person', 'Needs a person: ' + personCard.person.question); el.insertAdjacentHTML('beforeend', '<a class="go" href="' + personCard.person.href + '">Open in Decisions</a>'); people++; counters(); await hold(1400); },
     async () => fastForward(),
   ];
 
@@ -297,7 +300,7 @@ const D = ${JSON.stringify(d).replace(/</g, '\\u003c')};
 
   async function fastForward() {
     for (const c of D.cards) { const el = card(c); el.classList.add('in'); if (c.person) { if (c.person.answeredBy && !el.classList.contains('done')) { el.querySelectorAll('li').forEach((li) => li.classList.add('on')); state(el, 'done', 'Answered by ' + c.person.answeredBy + ' on WhatsApp'); people++; } else if (!el.classList.contains('person') && !el.classList.contains('done')) { state(el, 'person', 'Needs a person: ' + c.person.question); people++; } counters(); continue; } if (el.classList.contains('done')) continue; if (c.call) { el.querySelectorAll('li').forEach((li) => li.classList.add('on')); state(el, 'done', 'Done automatically. No staff time.'); auto++; counters(); continue; } }
-    head('The rest of the week, fast-forwarded.');
+    head('The rest of the week, fast-forwarded.'); say('The rest of the week, sped up. Agents do the routine work.', 'People only make the decisions that need them.');
     const rest = D.cards.filter((c) => !c.person && !card(c).classList.contains('done'));
     for (const c of rest) { const el = card(c); state(el, 'working', 'Agent working'); await sleep(90); el.querySelectorAll('li').forEach((li) => li.classList.add('on')); state(el, 'done', c.next ? 'Done: ' + c.next : 'Done automatically'); auto++; counters(); tick(37); await sleep(70); }
     // The cases beyond the grid, counted down.
@@ -307,6 +310,8 @@ const D = ${JSON.stringify(d).replace(/</g, '\\u003c')};
     set('k-open', 0);
     $('summary').innerHTML = '<b>Our eval run on ' + D.totals.cases + ' real public cases:</b> ' + D.totals.auto + ' handled with no staff time, ' + D.totals.people + ' needed a person.' + (D.totals.mean !== null ? ' Our grader’s score ' + D.totals.mean + '/100.' : '') + ' Model cost about ' + Math.max(1, Math.round((D.totals.cost / D.totals.cases) * 100 * 0.8)) + 'p a case.';
     $('summary').classList.add('in'); head('It plugs into the systems Dwelly already runs.');
+    await hold(2600);
+    say('We also tested it on real people. Strangers from a LinkedIn post phoned our agent.', 'Their real calls became 23 new test cases.');
   }
 
   let i = 0, busy = false, autoplay = false;
