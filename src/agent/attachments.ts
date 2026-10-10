@@ -18,7 +18,7 @@ const MAX_PDF_BYTES = 20 * 1024 * 1024;
 const MIN_PDF_TEXT = 200;
 
 /** How a file was turned into model input, recorded so a reader can audit the parsing. */
-export type ParseMethod = 'text' | 'pdftotext' | 'native-image' | 'native-pdf' | 'too-large';
+export type ParseMethod = 'text' | 'pdftotext' | 'native-image' | 'native-pdf' | 'too-large' | 'mime' | 'unparsed';
 export type Attachment = { content: string; media?: ImageContent; method: ParseMethod; bytes: number };
 
 export const isBinaryAttachment = (path: string) => extname(path).toLowerCase() in IMAGE_TYPES || extname(path).toLowerCase() === '.pdf';

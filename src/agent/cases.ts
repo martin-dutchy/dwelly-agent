@@ -29,10 +29,12 @@ export type LoadedCase = {
   withheld?: { name: string; reason: string }[];
 };
 
+/** Case brief files, in order of preference. */
+export const BRIEF_FILES = ['case.md', 'CASE.md', 'README.md', 'task.md'];
 // Never shown to the agent.
-const HIDDEN = new Set(['rubric.json', 'tool_failures.json', 'checks.json']);
+export const HIDDEN = new Set(['rubric.json', 'tool_failures.json', 'checks.json']);
 
-function walk(dir: string): string[] {
+export function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((f) => {
     const p = join(dir, f);
     return statSync(p).isDirectory() ? walk(p) : [p];
@@ -40,7 +42,7 @@ function walk(dir: string): string[] {
 }
 
 /** Pull ticket-like records out of whatever JSON shape the environment uses. */
-function extractTickets(json: unknown): Ticket[] {
+export function extractTickets(json: unknown): Ticket[] {
   const list = Array.isArray(json) ? json : ((json as any)?.tickets ?? (json && typeof json === 'object' ? [json] : []));
   return list
     .filter((t: any) => t && typeof t === 'object')
@@ -55,7 +57,7 @@ export function loadCase(dir: string, at?: string): LoadedCase {
     return { ...pc, dir, failures: {}, seedTickets: [], withheld: [...pc.withheld, ...harnessFiles(dir)] };
   }
   const files = walk(dir).filter((p) => !HIDDEN.has(basename(p)));
-  const briefPath = ['case.md', 'CASE.md', 'README.md', 'task.md'].map((f) => join(dir, f)).find(existsSync);
+  const briefPath = BRIEF_FILES.map((f) => join(dir, f)).find(existsSync);
   const media: CaseMedia[] = [];
   const inputs = files
     .filter((p) => p !== briefPath)
@@ -89,7 +91,7 @@ export function loadCase(dir: string, at?: string): LoadedCase {
 }
 
 /** Grading and test-harness files in the case folder, which the agent never sees. */
-const harnessFiles = (dir: string) =>
+export const harnessFiles = (dir: string) =>
   walk(dir)
     .filter((p) => HIDDEN.has(basename(p)))
     .map((p) => ({ name: relative(dir, p), reason: 'grading or test-harness file, never shown to the agent' }));
