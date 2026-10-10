@@ -32,10 +32,12 @@ Run `date` first and work out the time left until 16:30.
 
 1. **Evidence, not vibes.** Use the latest `evals/latest-*.json`. If it is stale, run:
    ```bash
-   pnpm loop                  # dev split vs baseline (exits 1 on regression)
-   pnpm loop --chaos 0.15     # same cases with injected tool failures
-   pnpm loop --split holdout  # aggregates only: our estimate for the unseen Reality Test
+   pnpm loop                                   # quick (Haiku agent): crashes, coverage, big regressions. ~1.5 min, ~$0.80
+   pnpm loop --chaos 0.15                      # same cases with injected tool failures
+   pnpm loop --profile final                   # the real score (Sonnet agent, Opus judge). ~2.5 min, ~$2.90
+   pnpm loop --profile final --split holdout   # aggregates only: our estimate for the unseen Reality Test
    ```
+   Quick scores run well below final (70.8 vs 91.4 on dev, 10 Oct), so compare a quick run only with the quick baseline. Judge prompt or policy changes with `--profile final`.
    Record: cases attempted, cases finished without error (coverage), required outcomes hit, red flags, prohibited actions and critical failures, average seconds and cost per case. Check whether the full set can finish inside about 20 minutes at the current concurrency, since the 16:30-17:00 window is 30 minutes.
 2. **Score each row** from 0 to 5, with one line of evidence per row. Also run the `submission-check` script and count its FAILs as risk.
 3. **Pick the next 1-3 tasks** by expected points gained per hour, applying these phase rules:

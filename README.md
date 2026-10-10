@@ -40,9 +40,11 @@ cp .env.example .env   # fill in keys
 ```bash
 # The test loop: run a frozen split (cases/splits.json), grade it, and diff against the saved baseline.
 # Exits 1 on a regression. Add --chaos 0.15 to inject random tool failures (error, silent drop, timeout).
-pnpm loop                        # dev split, per-case table
-pnpm loop --save-baseline        # accept the current scores as the new baseline
+pnpm loop                        # quick: Haiku agent + Sonnet judge, ~1.5 min, ~$0.80 for the dev split
+pnpm loop --profile final        # final: Sonnet agent + Opus judge, ~2.5 min, ~$2.90 (the real score)
+pnpm loop --save-baseline        # accept the current scores as the baseline (kept per profile and split)
 pnpm loop --split holdout        # held-out split: aggregate scores only, never tuned on
+# Override parts of a profile with --model, --judge-model, --thinking, --concurrency.
 
 # Process a folder of cases and write ANSWERS/<n>/ANSWER.md + REASONING.md
 pnpm cases --in cases/practice --out ANSWERS
