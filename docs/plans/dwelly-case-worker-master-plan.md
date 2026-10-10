@@ -218,7 +218,7 @@ Create each as a default plan (not ExecPlan) in a `plans/` folder next to the co
 - [x] (2026-10-10 10:45 BST) AirDojo planning guide and skills brought in (`docs/plans/README.md`, `.agents/skills/spec-and-plan-docs`, `.agents/skills/first-principles-review`), `AGENTS.md`, `CLAUDE.md`, `pnpm verify` script.
 - [ ] M0 Baseline
 - [ ] M1 Maintenance policy + state + vocabulary
-- [ ] M2 Edge-case corpus (15 cuts + 10 mutations)
+- [~] (2026-10-10 11:25 BST) M2 Edge-case corpus: scaffolding (`src/eval/newCut.ts`, `src/eval/publicCuts.test.ts`, `cases/public-cuts/README.md`) and the 047 exemplar committed on `marc/public-cuts`; 14 further real cuts and 10 mutations being authored. Inventory that drives it: `research/eval-inventory.md`.
 - [ ] M3 Critic pass + validators (A/B decided)
 - [ ] M4 Harness hardening (k=3, checks, baseline, summary.json)
 - [ ] M5 Reality Test readiness + 15:15 rehearsal
@@ -237,6 +237,9 @@ Create each as a default plan (not ExecPlan) in a `plans/` folder next to the co
 - Observation: `main` moved by three commits while this plan was being written (test loop with dev/holdout splits and chaos, policy hooks, native attachments, tool catalogue, three skills). Merged into this branch at 10:58 BST; conflicts in `package.json` (both scripts kept) and `CLAUDE.md` (merged). M4 and M5 were re-scoped to extend `pnpm loop` and the `reality-test-run` skill rather than duplicate them. Two M2 cut cases (036, 045) were swapped out because they are in the holdout split. Evidence: `git log 65fbb9e..origin/main`.
 - Observation: the GitHub repo is private and `SUBMISSION.md` pointed at a non-existent `dwelly-hackathon` repo name. Evidence: `gh repo view --json isPrivate` → `true`. Fixed the URL; visibility flips in M7.
 
+- Observation: the loader's `resolveCutoff` already honours the organiser's `- **Recorded action:** [History event NNN]` marker (present in all 50 Insurance/Delivery/Banking cases). Adding that marker under a `## Next action at escalation` section in a copied PM case cuts it at NNN-1 with `--at auto`, hides the section from the agent and shows it to the judge. No `cut.json` loader change is needed, so M2 no longer depends on Martin's 11:30 hook. Evidence: `src/agent/publicCases.ts` `resolveCutoff`; `src/eval/publicCuts.test.ts` passes on `047-wrong-address`.
+- Observation: `.env` is absent on Marc's machine, so the agent and judge cannot be run locally until `ANTHROPIC_API_KEY` is set. `pdftotext` is still missing too. Evidence: `ls .env` 11:22 BST.
+
 ## Decision log
 
 - Decision: build on Martin's pi loop, ledger and judge; extend the `Decision` schema additively rather than replace it.
@@ -253,6 +256,11 @@ Create each as a default plan (not ExecPlan) in a `plans/` folder next to the co
   Rationale: real patterns beat predicted ones; the holdout keeps the rehearsal honest. Date/Author: 2026-10-10 10:45, Marc.
 - Decision: open questions in section 8 are resolved by stated assumptions rather than blocking.
   Rationale: the clock; the 10:00 briefing notes override these the moment they are read. Date/Author: 2026-10-10 10:45, Marc.
+
+- Decision: three of the ten planned M2 mutations (landlord reply about another property, tenant withdraws, `Pets:` field) are replaced by landlord "👍" (IM-L05), provider "landlord told me to go ahead" (IM-P12) and tenant "the fix failed" (IM-T07).
+  Rationale: the first two are already exercised by the 047 real cut (events 006 and 010); the `Pets:` field sits in outgoing template emails and rarely changes a decision. The three replacements are high-frequency inbound-triage cells with no coverage anywhere (`research/eval-inventory.md` section 4). Date/Author: 2026-10-10 11:15, Marc via Claude.
+- Decision: public-cuts cases carry the organiser's `Recorded action` marker instead of a `cut.json`.
+  Rationale: zero loader change, identical to the format the organisers already use in three tracks, and the judge gets the real ending as reference for free. Date/Author: 2026-10-10 11:20, Marc via Claude.
 
 ## Final outcome
 
