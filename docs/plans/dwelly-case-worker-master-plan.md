@@ -233,6 +233,7 @@ Create each as a default plan (not ExecPlan) in `docs/plans/`, named with the mi
 | M6 | `M6-voice-landlord-approval-plan.md`: not written | Marc |
 | M7 | [M7-submission-package-plan.md](M7-submission-package-plan.md) | Marc |
 | M8 | the runbook `.claude/skills/reality-test-run/SKILL.md`, no sub-plan | Marc |
+| Harness v2 | [harness-v2-implementation-plan.md](harness-v2-implementation-plan.md): ExecPlan restructuring the agent into ingest, brief, skills, guards, completion checks, critic context, rendering and eval taxonomy, in nine parallel workstreams behind flags | Marc |
 
 ---
 
