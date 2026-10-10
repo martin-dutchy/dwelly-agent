@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { executeWith } from '../core/executor.js';
 import type { ToolContext, ToolDef, ToolResult } from '../core/tools.js';
 import { type LedgerEntry, canonical } from './ledger.js';
-import { addressKnown, foreignAddresses, hearsaySpeaker, invoiceFlags, mentionsDate, namesAttachment, quoteAppears, quoteSpeakers, quoteTotal, tooThinForApproval, visitProblems } from './opsChecks.js';
+import { addressKnown, foreignAddresses, hearsaySpeaker, invoiceFlags, mentionsDate, namesAttachment, quoteAppears, quoteEventDates, quoteSpeakers, quoteTotal, tooThinForApproval, visitProblems } from './opsChecks.js';
 import type { Verification } from './verify.js';
 
 /**
@@ -495,7 +495,9 @@ export function createOpsToolset(seed: OpsSeed | Ticket[] = []): Toolset {
     const quote = String(a.evidence_quote ?? '').trim();
     if (!quote) return `No confirmation of ${date} is quoted (evidence_quote).`;
     if (!quoteAppears(quote, evidence)) return `The evidence_quote "${quote.slice(0, 120)}" is not in the case.`;
-    if (!mentionsDate(quote, a.datetime, today)) return `The evidence_quote does not name ${date}; a weekday or "next week" alone does not confirm a date.`;
+    const said = quoteEventDates(quote, evidence);
+    if (!(said.length ? said : [today]).some((on) => mentionsDate(quote, a.datetime, on)))
+      return `The evidence_quote does not name ${date}; a weekday or "next week" alone does not confirm a date.`;
     const speakers = quoteSpeakers(quote, evidence);
     const role = a.confirmed_by === 'landlord' ? /landlord/i : /contractor|provider|maintenance|engineer|trades/i;
     if (speakers && !speakers.some((s) => role.test(s)))

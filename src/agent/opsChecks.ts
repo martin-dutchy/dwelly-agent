@@ -107,7 +107,13 @@ export function namesAttachment(source: string, mediaNames: string[]): boolean {
 
 const MONTHS = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
 
-/** True when `text` names the calendar date of `datetime` (e.g. "8 September", "Sept 8th", "08/09", "2025-09-08", or "tomorrow" relative to `today`). A weekday alone does not count. */
+/** Dates (YYYY-MM-DD) of the history events whose text contains `quote`: "tomorrow" in an event means the day after that event. */
+export function quoteEventDates(quote: string, evidence: string): string[] {
+  const blocks = evidence.split(/^(?=#{2,4} .*\bevent[- ]?\d+)/im).filter((b) => /^#{2,4} .*\bevent[- ]?\d+/i.test(b));
+  return blocks.filter((b) => quoteAppears(quote, b)).flatMap((b) => b.match(/^#{2,4}\s*(\d{4}-\d{2}-\d{2})/)?.[1] ?? []);
+}
+
+/** True when `text` names the calendar date of `datetime` (e.g. "8 September", "Sept 8th", "08/09", "2025-09-08", or "tomorrow" / "the next day" relative to `today`). A weekday alone does not count. */
 export function mentionsDate(text: string, datetime: string, today?: string): boolean {
   const when = parseWhen(datetime);
   if (!when) return false;
@@ -126,7 +132,7 @@ export function mentionsDate(text: string, datetime: string, today?: string): bo
   const now = today ? parseWhen(today) : undefined;
   if (!now) return false;
   const days = Math.round((Date.UTC(when.getUTCFullYear(), m, d) - Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())) / 86_400_000);
-  return (days === 0 && /\btoday\b/.test(t)) || (days === 1 && /\btomorrow\b/.test(t));
+  return (days === 0 && /\btoday\b/.test(t)) || (days === 1 && /\b(tomorrow|(the )?(next|following) day|the day after)\b/.test(t));
 }
 
 /** Approval text that is too thin to rely on (emoji, "ok", empty). */

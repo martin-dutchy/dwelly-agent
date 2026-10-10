@@ -1,6 +1,6 @@
 # M5 remaining misses
 
-Status: draft (awaiting answers to the open questions in the Decision log) · Shape: default plan · Owner: Marc (Claude sessions) · Written 2026-10-10 15:10 BST · Parent: [dwelly-case-worker-master-plan.md](dwelly-case-worker-master-plan.md) · Follows: [M5-residual-misses-plan.md](M5-residual-misses-plan.md)
+Status: active · Shape: default plan · Owner: Marc (Claude sessions) · Written 2026-10-10 15:10 BST · Parent: [dwelly-case-worker-master-plan.md](dwelly-case-worker-master-plan.md) · Follows: [M5-residual-misses-plan.md](M5-residual-misses-plan.md)
 
 ## Goal
 
@@ -109,10 +109,12 @@ Each re-runs only its own cases at k = 3. Merge, then one union run on the 14 ca
 ## Progress
 
 - [x] (2026-10-10 15:10 BST) Plan drafted from the missed-items analysis of `runs/loop/dev-cursor-k3-2026-10-10T13-58-46-969Z`.
+- [x] (2026-10-10 15:12 BST) Open questions answered; three workstreams launched.
 
 ## Decision log
 
 - Decision: fix 025 with an `update` field on the approval tool, not more prompt wording. Rationale: the tool has nowhere to put the visit status, and stronger wording was tried and reverted (16.75/18 → 16.0/18). Date/Author: 2026-10-10 15:10, Claude for Marc.
+- Decision (Marc, 15:12): make the `update` field change on `request_landlord_approval`; run the full dev split once after the merge as the regression check; implement all six parts (A–F) with three parallel subagents (tools A+B, people C+F, knowledge D+E). Resolves open questions 1 and 2; question 3 kept as stated. Date/Author: 2026-10-10 15:12, Claude for Marc.
 - Open question 1 (assumption taken): the tool change in `opsTools.ts` is acceptable this close to the freeze. It is not one of the files that require `/code-review`; one is run anyway.
 - Open question 2 (assumption taken): a full dev regression run (about 3 minutes) is allowed after the merge, unlike the "failing cases only" rule for the residual-misses plan, because D and E change behaviour on every case.
 - Open question 3 (assumption taken): a letter to a flat named only in the history is acceptable outreach to a reporter, since the record promised them updates. Contact details are never invented.
