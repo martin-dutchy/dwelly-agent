@@ -51,7 +51,11 @@ export async function finalizeCall(store: VoiceStore, id: string, { attempts = 1
       duration_secs: conv?.metadata?.call_duration_secs ?? null,
       passed: g.passed,
       grade: g.results,
-      flags: [...callFlags(log.ledger, conv?.analysis), ...(conv ? [] : ['ElevenLabs conversation not available yet: regrade later'])],
+      flags: [
+        ...(g.twistPlayed === false ? ["twist not played: the caller never raised the case's twist, so this call doesn't test the case (rerun it)"] : []),
+        ...callFlags(log.ledger, conv?.analysis),
+        ...(conv ? [] : ['ElevenLabs conversation not available yet: regrade later']),
+      ],
       transcript: conv?.transcript ?? null,
       analysis: conv?.analysis ?? null,
     });

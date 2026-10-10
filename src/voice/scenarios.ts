@@ -40,6 +40,8 @@ export type Scenario = {
   world?: { tenants?: Tenant[]; properties?: Property[]; tickets?: Ticket[] };
   /** The volunteer's card. */
   brief: { persona: string; situation: string; youKnow: string[]; twist?: string; tips: string[] };
+  /** Caller words that show the twist was actually played; if absent the call didn't test the case. */
+  twistSignal?: RegExp;
   /** What a good agent does on the call, in words. */
   expected: string[];
   checks: Check[];
@@ -95,6 +97,7 @@ export const scenarios: Scenario[] = [
       twist: 'You already told the engineer, Isaac, on the phone that Monday is no good, and you agreed Monday 8 September with him. He said he would text your partner. Mention it once they ask, or when they tell you Monday.',
       tips: ["Sound unsure whether he ever confirmed. Ask \"so who's actually coming, and when?\""],
     },
+    twistSignal: /\b(8|8th|eighth)\b|september|isaac|agreed/i,
     expected: [
       'Verifies identity, then finds the open oven job.',
       'Does not insist on the Monday slot in the system.',
@@ -103,7 +106,8 @@ export const scenarios: Scenario[] = [
     checks: [
       { label: 'Identity verified', pass: (l) => verifiedIdentity(l, 'T-026') },
       { label: 'Did not confirm the stale Monday 30 Aug slot', pass: (l) => !verified(l, 'record_appointment', (a) => String(a.date).includes('2025-08-30')) },
-      { label: 'Recorded the 8 Sept date or the date conflict', pass: (l) => verified(l, 'record_appointment', (a) => String(a.date).includes('09-08')) || noted(l, /8|sept|conflict|isaac|monday/, ['conflict', 'follow_up']) },
+      { label: 'Recorded the 8 Sept date or the date conflict', pass: (l) => verified(l, 'record_appointment', (a) => String(a.date).includes('09-08')) || noted(l, /\b8(th)?\b|eighth|8 sep|09-08|isaac|conflict|inconsistent/, ['conflict', 'follow_up']) },
+      { label: 'Did not pick a new slot for the tenant without the contractor', pass: (l) => !verified(l, 'record_appointment', (a) => a.confirmed_by === 'tenant' && !String(a.date).includes('09-08')) },
       { label: 'No new repair ticket', pass: (l) => !verified(l, 'create_repair_ticket') },
     ],
     followUp: {
@@ -137,6 +141,7 @@ export const scenarios: Scenario[] = [
       twist: "You had a spare machine, so you swapped it in yourself yesterday. The broken one is in the garage. You fly out on holiday on the 27th for two weeks. Say so once they talk about sending someone.",
       tips: ["Be in a rush: you're packing. Ask whether you still need anyone to come."],
     },
+    twistSignal: /swap|spare|garage|replaced|holiday/i,
     expected: [
       'Records that the tenant swapped the machine herself and the faulty one is in the garage.',
       'Asks who owns the replacement and what should happen to the old machine.',
@@ -175,6 +180,7 @@ export const scenarios: Scenario[] = [
       twist: "Once they explain the key trick: you actually did exactly that this morning and it worked. Also, the back door sticks the same way.",
       tips: ['Grumble about "having to do workarounds" before agreeing it works.'],
     },
+    twistSignal: /worked|tried (it|that)|key|back door/i,
     expected: [
       'Confirms it is speaking to the tenant before discussing the case.',
       "Explains the landlord's suggestion and checks whether she has tried it.",
@@ -215,6 +221,7 @@ export const scenarios: Scenario[] = [
       twist: "You assume Eliza's price will have VAT added on top. Before paying anything you want her old invoice re-sent. Halfway through, drift onto the roof leak at your other flat.",
       tips: ['Ask "so what\'s the real difference?" Be a bit distracted.'],
     },
+    twistSignal: /vat|roof|invoice/i,
     expected: [
       "States both totals correctly: Eliza £1,370 with no VAT, Kendall £2,040 including VAT.",
       'Gets an explicit choice and amount, and reads it back before recording it.',
@@ -251,6 +258,7 @@ export const scenarios: Scenario[] = [
       twist: "At first you think they mean Flat 18, 128 Meadow Row. Ask: \"if she leaves, am I left with no machine?\"",
       tips: ['Approve quickly, but haggle over the removal fee.'],
     },
+    twistSignal: /meadow|flat 18|128|no machine|left with/i,
     expected: [
       'Confirms the right property (Flat 9, 59 Alder Lane) when the landlord mixes it up.',
       'Explains the tenant owns the new machine and takes it when she leaves.',
@@ -288,6 +296,7 @@ export const scenarios: Scenario[] = [
       twist: "You told the plumber to go to Flat 18, 88 Alder Lane (that's your other flat, you've mixed them up). You don't know the toilet is already fixed.",
       tips: ['Be pleased with yourself: "all sorted!"'],
     },
+    twistSignal: /alder|flat 18|88/i,
     expected: [
       'Spots the address mismatch (Flat 18, 88 Alder Lane vs Flat 24, 150 Copperfield Walk) and confirms the property.',
       'Tells him the toilet is already fixed, so the plumber is not needed.',
@@ -325,6 +334,7 @@ export const scenarios: Scenario[] = [
       twist: "Her quote came in yesterday and you're happy to go ahead, paying her directly, but you have no start date yet. You'd like the agency to tell both tenants.",
       tips: ['Be vague about dates: "Sunday-ish".'],
     },
+    twistSignal: /freya|riverside|my own|direct|sunday/i,
     expected: [
       'Records that the landlord is using his own contractor and paying directly; no agency contractor instructed.',
       'Asks for the start date, or agrees how it will be sent; does not invent one.',
@@ -364,6 +374,7 @@ export const scenarios: Scenario[] = [
       twist: "If they ask about the manufacturer (or after a pause): the brand has a 2-year manufacturer's warranty, so the manufacturer's engineer can come out for free.",
       tips: ['At first, offer to "quote for a new element".'],
     },
+    twistSignal: /warrant|manufacturer|two.year|2.year/i,
     expected: [
       'Asks about the manufacturer warranty before accepting a paid repair.',
       'Records the warranty route and who books the tenant; pushes for a date.',
@@ -398,6 +409,7 @@ export const scenarios: Scenario[] = [
       twist: "You heard from the tenant's neighbour that the landlord's own window man is doing it. You'll book Thursday if the job is still yours.",
       tips: ['Sound defensive about the reminders.'],
     },
+    twistSignal: /own (window|man|guy)|landlord('s)? (own|man|guy)|thursday|heard/i,
     expected: [
       'Does not cancel on hearsay and does not book without checking with the landlord.',
       'Records the status and the possible duplicate, with the tentative Thursday slot.',
@@ -433,6 +445,7 @@ export const scenarios: Scenario[] = [
       twist: 'A control dial is missing. A new one costs £95 including VAT, and you want approval right now to order it.',
       tips: ['Push: "it\'s only 95 quid, can you just OK it?"'],
     },
+    twistSignal: /95|ninety.five|dial/i,
     expected: [
       'Records the fix (loose heater connection) and the needed dial at £95 inc VAT.',
       'Says the landlord must approve the £95 and that the agency will come back to him; does not approve it.',
@@ -549,7 +562,10 @@ export function grade(scenarioId: string, log: CallLog) {
   const s = scenarioById(scenarioId);
   if (!s) return { passed: false, results: [{ label: `unknown scenario ${scenarioId}`, pass: false }] };
   const results = s.checks.map((c) => ({ label: c.label, pass: c.pass(log) }));
-  return { passed: results.every((r) => r.pass), results };
+  // Only judge what the caller said, and only once there is a transcript.
+  const callerSaid = (log.transcript ?? []).filter((t) => t.role === 'user').map((t) => t.message ?? '').join(' ');
+  const twistPlayed = !s.twistSignal || !log.transcript ? undefined : s.twistSignal.test(callerSaid);
+  return { passed: results.every((r) => r.pass), results, twistPlayed };
 }
 
 /** What the admin console shows: everything except the check functions. */

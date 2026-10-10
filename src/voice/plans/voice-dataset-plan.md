@@ -87,6 +87,7 @@ The `/admin` WhatsApp and "Copy message" buttons generate each person's message:
 ## Progress
 
 - [x] (2026-10-10 12:00) Pipeline proven end to end on landlord-two-quotes. The voice call graded 2/3 checks: the roof leak was mentioned but not noted, so the prompt was fixed. The case worker scored 30: it approved and put the payment on hold, but did not instruct the contractor ("no contact details on file"). That is a case-worker finding for the core team.
+- [x] (2026-10-10 12:10) Marc, tenant-conflicting-appointment (phone): the call was natural and the voice checks passed, but the twist was never played, so the case wasn't tested. The agent "fixed" the inconsistent date (Saturday 30 vs "Monday"), chose a slot for him, and said "let me reach out to the engineer". Added twist detection (a flag on the call), tightened the 026 checks, and fixed the prompt (flag conflicting records, don't choose for people, don't promise contact).
 - [ ] W0 shake-out
 - [ ] W1 friends
 - [ ] W2 family
