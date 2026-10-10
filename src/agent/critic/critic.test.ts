@@ -1,7 +1,10 @@
+import { createHash } from 'node:crypto';
 import { createModels, fauxAssistantMessage, fauxProvider, fauxToolCall } from '@earendil-works/pi-ai';
 import { describe, expect, it } from 'vitest';
 import type { LedgerEntry } from '../ledger.js';
-import { CHECKLIST, CRITIC_PROMPT, type CriticInput, type ReviewItem, criticCorpus, evidenceFilter, revisionNote, runCritic } from './critic.js';
+import { CHECKLIST, CRITIC_PROMPT, type CriticInput, type ReviewItem, criticCorpus, criticMessage, evidenceFilter, revisionNote, runCritic } from './critic.js';
+
+const sha = (s: string) => createHash('sha256').update(s).digest('hex');
 
 const ledger: LedgerEntry[] = [
   { id: 'A1', tool: 'send_message', args: { recipient_name: 'Swift Plumbing', body: 'Please go ahead with the\nreplacement of the toilet.' }, key: 'k', attempts: 1, status: 'verified', evidence: ['MSG-1 stored'] },
@@ -85,5 +88,13 @@ describe('error paths', () => {
 describe('prompt', () => {
   it('lists all 16 items', () => {
     for (const [id] of CHECKLIST) expect(CRITIC_PROMPT).toContain(`\n${id}. `);
+  });
+
+  it('prompt, message and evidence corpus without context are byte-identical to the pre-context critic', () => {
+    expect([sha(CRITIC_PROMPT), sha(criticMessage(input)), sha(criticCorpus(input))]).toEqual([
+      'acf925b42359a66319ce4fb6cef57f91a38720569d3bc047db2cac497cfe7128',
+      '68dbf4a734d61f95bf9dc35f9115d8bbc6f9896a1a21effcb534496e63ec3fa0',
+      '431e18c8764f322dcd0c64204f95a940e165776ea825905691c34323110293ce',
+    ]);
   });
 });
