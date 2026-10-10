@@ -44,8 +44,15 @@ const { values } = parseArgs({
     'budget-min': { type: 'string' },
     deadline: { type: 'string' },
     resume: { type: 'boolean', default: false },
+    // Pre-submit critic. CRITIC=on in the environment also reaches the runs `pnpm loop` spawns.
+    critic: { type: 'string', default: process.env.CRITIC || 'off' },
   },
 });
+if (!['on', 'off'].includes(values.critic!)) {
+  console.error('--critic must be on or off');
+  process.exit(1);
+}
+const criticModel = values.critic === 'on' ? claude(process.env.CRITIC_MODEL || 'claude-opus-5-5') : undefined;
 
 const t0 = Date.now();
 let deadline: Date | undefined;
@@ -122,6 +129,7 @@ async function processCase(dir: string, timeoutMs: number): Promise<Row> {
         toolset,
         thinkingLevel: values.thinking as 'off' | 'low' | 'medium' | 'high',
         timeoutMs,
+        critic: criticModel && { model: criticModel, streamFn, attachments: c.inputs.map((i) => i.name) },
       });
       return { c, hints, screen, chaos, run, toolsetReport: adapter.report() };
     };
@@ -130,18 +138,18 @@ async function processCase(dir: string, timeoutMs: number): Promise<Row> {
     const usage: Usage = {
       input: assistants.reduce((a, m) => a + (m.usage?.input ?? 0), 0),
       output: assistants.reduce((a, m) => a + (m.usage?.output ?? 0), 0),
-      cost: assistants.reduce((a, m) => a + (m.usage?.cost?.total ?? 0), 0),
+      cost: assistants.reduce((a, m) => a + (m.usage?.cost?.total ?? 0), 0) + (run.critic?.cost ?? 0),
       turns: assistants.length,
       durationMs: Date.now() - started,
     };
     const retries = run.trace.filter((e: any) => e.type === 'retry').length;
     writeFileSync(join(outDir, 'ANSWER.md'), renderAnswer(lc, run.decision, run.ledger, run.error));
-    const reasoning = renderReasoning(lc, run.decision, run.ledger, run.messages, usage, run.error, { screen, gateLog: run.gateLog, policyLog: run.policyLog, chaos });
+    const reasoning = renderReasoning(lc, run.decision, run.ledger, run.messages, usage, run.error, { screen, gateLog: run.gateLog, policyLog: run.policyLog, chaos, critic: run.critic });
     writeFileSync(join(outDir, 'REASONING.md'), withToolsetLine(reasoning, toolsetLine(toolsetReport)));
     writeFileSync(join(outDir, 'trace.jsonl'), run.trace.map((e) => JSON.stringify(e)).join('\n') + '\n');
     writeFileSync(
       join(outDir, 'result.json'),
-      JSON.stringify({ id: lc.id, model: values.model, cutoff: lc.cutoff, timeoutMs, toolset: toolsetReport, chaos, screen, hintsError: hints.hintsError, gateLog: run.gateLog, policyLog: run.policyLog, decision: run.decision, ledger: run.ledger, state: run.state, usage: { ...usage, retries }, error: run.error }, null, 2),
+      JSON.stringify({ id: lc.id, model: values.model, cutoff: lc.cutoff, timeoutMs, toolset: toolsetReport, chaos, screen, hintsError: hints.hintsError, gateLog: run.gateLog, policyLog: run.policyLog, decision: run.decision, ledger: run.ledger, state: run.state, usage: { ...usage, retries }, error: run.error, critic: run.critic }, null, 2),
     );
     return {
       id: lc.id,
@@ -197,7 +205,7 @@ const todo = dirs.filter((d) => !done.includes(d));
 const base = baseTimeoutMs(Number(values.timeout), budgetMs, concurrency, todo.length);
 
 console.log(
-  `Running ${dirs.length} cases with ${values.model} (concurrency ${values.concurrency}, Jev ${jevEnabled() ? 'on' : 'off'}${Number(values.chaos) > 0 ? `, chaos ${values.chaos} seed ${values.seed}` : ''}${deadline ? `, deadline ${hhmm(deadline)}, case timeout ${Math.round(base / 1000)}s` : ''}${values.resume ? `, resuming ${done.length} of ${dirs.length}` : ''})…`,
+  `Running ${dirs.length} cases with ${values.model} (concurrency ${values.concurrency}, Jev ${jevEnabled() ? 'on' : 'off'}${criticModel ? `, critic ${criticModel.id}` : ''}${Number(values.chaos) > 0 ? `, chaos ${values.chaos} seed ${values.seed}` : ''}${deadline ? `, deadline ${hhmm(deadline)}, case timeout ${Math.round(base / 1000)}s` : ''}${values.resume ? `, resuming ${done.length} of ${dirs.length}` : ''})…`,
 );
 console.log(toolsetStartLine(organiser, createOpsToolset().tools.map((t) => t.name)));
 const ran = await pool(todo, concurrency, async (dir) => {

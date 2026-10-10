@@ -118,6 +118,7 @@ Images and scanned PDFs (no text layer) are sent to Claude natively. PDFs with a
 |---|---|
 | `ANTHROPIC_API_KEY` | Claude models |
 | `CASE_MODEL`, `JUDGE_MODEL` | Agent and judge models (defaults: Sonnet 5.5, Opus 5.5) |
+| `CRITIC`, `CRITIC_MODEL` | Optional pre-submit critic: `CRITIC=on` is the same as `pnpm cases --critic on` and also reaches `pnpm loop` runs (default `off`); model default Opus 5.5 |
 | `TYPESAFE_API_KEY` | Optional Jev classifier for pre-screen and pre-send checks |
 | `ORGANISER_API_URL` | Optional organiser-supplied tool API (only if one is provided at the Reality Test). Unset: the local mock toolset. Set: mapped tool calls go to `POST {url}/tools/<name>`, writes are mirrored on the mock for read-back, and the first failure switches the run back to the mock; each REASONING.md has a `Toolset:` line saying which was used |
 | `ORGANISER_API_KEY` | Optional bearer token for that API; never logged or written to outputs |
@@ -132,7 +133,7 @@ See `.env.example` for the full list.
 
 | Service | Used for | How it is configured | Required? |
 |---|---|---|---|
-| Anthropic API (Claude) | The case agent (`claude-sonnet-5-5` by default) and the rubric grader of our evaluation (`claude-opus-5-5` by default). The quick `pnpm loop` profile uses `claude-haiku-5-5` as the agent with `claude-sonnet-5-5` grading. Called through `@earendil-works/pi-ai`. | `ANTHROPIC_API_KEY`, `CASE_MODEL`, `JUDGE_MODEL`; optional `ANTHROPIC_WORKSPACE_ID`, `LLM_CONCURRENCY` | Yes |
+| Anthropic API (Claude) | The case agent (`claude-sonnet-5-5` by default) and the rubric grader of our evaluation (`claude-opus-5-5` by default). The quick `pnpm loop` profile uses `claude-haiku-5-5` as the agent with `claude-sonnet-5-5` grading. With `--critic on`, one extra `claude-opus-5-5` call per case reviews the draft decision before it is filed (`src/agent/critic/`). Called through `@earendil-works/pi-ai`. | `ANTHROPIC_API_KEY`, `CASE_MODEL`, `JUDGE_MODEL`; optional `ANTHROPIC_WORKSPACE_ID`, `LLM_CONCURRENCY`, `CRITIC`, `CRITIC_MODEL` | Yes |
 | TypeSafe Jev | Optional fast classifier that pre-screens each case for severity and checks outgoing messages before they are sent (`src/agent/jev.ts`), called through `@earendil-works/pi-ai`. Fails open: if it errors, the agent carries on and the error is logged. | `TYPESAFE_API_KEY`; `USE_JEV=0` to disable; `JEV_BLOCK_THRESHOLD`, `JEV_MODEL` | No |
 | poppler `pdftotext` (local binary, no network) | Extracts text from PDF attachments that have a text layer. Images and scanned PDFs go to Claude natively. | `brew install poppler` | No: without it every PDF is sent to Claude natively instead |
 | GitHub + Git LFS | Hosting; `demo/demo.mp4` is stored via LFS. | `brew install git-lfs && git lfs install` before cloning if you want the video | Only for the video |
