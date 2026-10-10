@@ -132,7 +132,7 @@ export async function showData(store: OpsStore): Promise<ShowData | undefined> {
       ...base,
       stuck: s0.text || base.stuck,
       stuckWhen: s0.when || base.stuckWhen,
-      done: answeredBy ? [`WhatsApp reply from ${answeredBy} (tenant)`] : base.done,
+      done: answeredBy ? [`Replied to the tenant on WhatsApp (${answeredBy})`] : base.done,
       person: { question: short(t.question, 90), href: `/ops/tasks/${t.id}?from=show&draft=${encodeURIComponent(DRAFT)}`, answeredBy },
     });
   }
