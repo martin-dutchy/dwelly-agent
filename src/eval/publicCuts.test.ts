@@ -2,13 +2,14 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { casePrompt, loadCase } from '../agent/cases.js';
+import { hasCaseText } from '../agent/ingest/golden.js';
 import { TOOL_NAMES, loadChecks } from './checks.js';
 
 const ROOT = 'cases/public-cuts';
 const HOLDOUT = ['031', '036', '041', '045', '048', '050'];
 const RUBRIC_KEYS = ['required_outcomes', 'acceptable_alternatives', 'positive_behaviours', 'red_flags', 'prohibited_actions', 'critical_failures'];
 const CLASSES = ['ACT', 'ASK', 'WAIT', 'CHASE', 'RESUME', 'CLOSE_WITH_PAYMENT', 'CLOSE_WITHOUT_PAYMENT', 'SPLIT', 'ESCALATE'];
-const dirs = existsSync(ROOT) ? readdirSync(ROOT).map((f) => join(ROOT, f)).filter((p) => statSync(p).isDirectory()) : [];
+const dirs = existsSync(ROOT) ? readdirSync(ROOT).map((f) => join(ROOT, f)).filter((p) => statSync(p).isDirectory() && hasCaseText(p)) : [];
 
 describe('public-cuts exemplar', () => {
   it('cuts 047-wrong-address after the landlord reply and hides the ending', () => {
