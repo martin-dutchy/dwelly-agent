@@ -88,6 +88,23 @@ export function quoteSpeakers(quote: string, evidence: string): string[] | undef
   return blocks.filter((b) => quoteAppears(quote, b)).map((b) => b.match(/^- \*\*From:\*\*\s*(.+)$/m)?.[1]?.trim() ?? 'unknown');
 }
 
+/**
+ * A `From:` that cannot speak for the landlord: the tenant or a contractor/provider. What they say the
+ * landlord decided is hearsay. The landlord, the agency and its system, a bare company name or
+ * "unknown" are not hearsay, since agency notes and system events are how landlord answers are recorded.
+ */
+export const hearsaySpeaker = (from: string) => /tenant|contractor|provider|engineer|trades/i.test(from) && !/landlord|agency|system|lettings/i.test(from);
+
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** True when `source` names one of the attachments by its exact file name (with or without folder), not a fragment of it. */
+export function namesAttachment(source: string, mediaNames: string[]): boolean {
+  return mediaNames.some((m) => {
+    const base = m.split('/').at(-1)!;
+    return !!base && new RegExp(`(?:^|[\\s/"'\`(\\[,:;])${escapeRe(base)}(?=$|[\\s"'\`)\\],;:]|\\.(?:\\s|$))`, 'i').test(source);
+  });
+}
+
 const MONTHS = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
 
 /** True when `text` names the calendar date of `datetime` (e.g. "8 September", "Sept 8th", "08/09", "2025-09-08", or "tomorrow" relative to `today`). A weekday alone does not count. */
