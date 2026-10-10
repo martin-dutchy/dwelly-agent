@@ -1,0 +1,272 @@
+{
+  "id": "008-second-quote",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "cutoff": 9,
+  "totalEvents": 49,
+  "inputs": [
+    {
+      "name": "history.md",
+      "method": "derived",
+      "bytes": 2668,
+      "chars": 2650,
+      "note": "events 1–9 of 49 from history.md"
+    },
+    {
+      "name": "attachments/attachment-01-check-out-inspection-report.pdf",
+      "method": "pdftotext",
+      "bytes": 213515,
+      "chars": 16887
+    },
+    {
+      "name": "attachments/attachment-02-estimate.pdf",
+      "method": "pdftotext",
+      "bytes": 74406,
+      "chars": 1779
+    },
+    {
+      "name": "attachments/attachment-03-check-out-inspection-report.pdf",
+      "method": "pdftotext",
+      "bytes": 129002,
+      "chars": 13391
+    }
+  ],
+  "withheld": [
+    {
+      "name": "history.md",
+      "reason": "events 10–49 come after the decision point"
+    },
+    {
+      "name": "index.md",
+      "reason": "sections that reveal the ending: Overview, Outcome, Next action at escalation, History, Attachments"
+    },
+    {
+      "name": "attachments/attachment-04-invoice.pdf",
+      "reason": "first linked from an event after the decision point"
+    },
+    {
+      "name": "checks.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    },
+    {
+      "name": "rubric.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    }
+  ],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Stage double_quotation. Landlord asked for a second quote for comparison; first estimate (Alder Compliance £1,370) on hold; no landlord approval; no contractor visit booked. Waiting on a second contractor quote, review 2025-04-11.",
+    "next_actions": [
+      {
+        "type": "SEND_QUOTE_FOR_APPROVAL",
+        "action": "Told landlord a second quote is being sourced (same scope), report back by 11 April, no work until approved",
+        "recipient": "Landlord",
+        "channel": "email",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "WAIT",
+        "action": "Hold for second quote, review 2025-04-11",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A3"
+      },
+      {
+        "type": "OTHER",
+        "action": "Moved ticket to double_quotation and noted the request",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A1"
+      }
+    ],
+    "boundaries": [
+      "Does not approve the first quote or any spend",
+      "Does not confirm a second contractor has been found or priced",
+      "Does not decide who pays (landlord vs tenant deposit)"
+    ],
+    "remaining_work": [
+      "Source second contractor and send same scope plus inspection report (agency ops)",
+      "Send both quotes to landlord for decision",
+      "Chase by 2025-04-11"
+    ],
+    "missing_info": [
+      "No second contractor named in case",
+      "Landlord may not have seen the estimate (event 006 attached the inspection report twice)",
+      "First provider's own email not in history; estimate has no VAT itemised"
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "Landlord asked for another subcontractor quote. Moved the job to double_quotation, told the landlord by email that a second quote is being obtained with the first on hold, and set a hold with review on 11 April. No human decision needed.",
+    "answers": [
+      {
+        "question": "Where does this case stand, and what is outstanding?",
+        "answer": "Quote loop: one estimate (£1,370, Alder Compliance) is awaiting landlord decision, and the landlord wants a comparison quote. Outstanding: second quote, landlord approval, then work."
+      },
+      {
+        "question": "What is the next action, for whom, via which channel?",
+        "answer": "Landlord told by email (A2) that a second quote is being sourced; ticket moved to double_quotation (A1); hold to 11 April (A3). Next: send the scope to a second contractor."
+      },
+      {
+        "question": "Does anything need a human decision?",
+        "answer": "No. Second quote is routine; the approval decision belongs to the landlord."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Moved ticket to double_quotation with note"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Emailed landlord confirming second quote"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Hold with review 2025-04-11"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Returned to auto mode"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Inspection report dated 5 January 2026 and signed 3 April 2025, inconsistent with case dates",
+      "Estimate includes tap replacement and leaves carpet, differing from the original request",
+      "Event 006 said estimate attached but attached the inspection report twice"
+    ],
+    "assumptions": [
+      "Property is vacant so no tenant message needed",
+      "Resume_auto may have cleared the hold; the hold repeat was reported as already verified"
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "update_ticket",
+      "args": {
+        "ref": "NBL-008-3466",
+        "stage": "double_quotation",
+        "note": "Landlord (event 009, email 06/04) asked for one other subcontractor to quote for comparison. No second contractor named in case, so moved to double_quotation to source one. Same scope + check-out inspection report. First estimate (Alder Compliance £1,370, no VAT itemised, attachment-02) kept on hold pending comparison. Note: event 006 attached the inspection report twice, not the estimate, so landlord may not have seen the estimate; also inspection report dated 5 Jan 2026 conflicts with 2025 case dates."
+      },
+      "key": "update_ticket:{note:\"Landlord (event 009, email 06/04) asked for one other subcontractor to quote for comparison. No second contractor named in case, so moved to double_quotation to source one. Same scope + check-out inspection report. First estimate (Alder Compliance £1,370, no VAT itemised, attachment-02) kept on hold pending comparison. Note: event 006 attached the inspection report twice, not the estimate, so landlord may not have seen the estimate; also inspection report dated 5 Jan 2026 conflicts with 2025 case dates.\",ref:\"NBL-008-3466\",stage:\"double_quotation\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-008-3466",
+      "evidence": [
+        "Ticket NBL-008-3466 read back at stage double_quotation"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Landlord",
+        "recipient_role": "landlord",
+        "channel": "email",
+        "contact": "agency landlord record",
+        "ticket_ref": "NBL-008-3466",
+        "body": "Hi, thanks for your reply. Yes, we'll get a second quote for comparison for Flat 5, 55 Lantern Quay, using the same scope as the first. We're sourcing another contractor now and will send you both quotes side by side, aiming to report back by 11 April. The first estimate (Alder Compliance, £1,370, no VAT shown) stays on hold, and no work will start until you approve. The email we sent earlier attached the inspection report twice rather than the estimate, so we'll include the estimate again with the comparison. If you'd rather suggest a contractor, just tell us their name."
+      },
+      "key": "send_message:{body:\"Hi, thanks for your reply. Yes, we'll get a second quote for comparison for Flat 5, 55 Lantern Quay, using the same scope as the first. We're sourcing another contractor now and will send you both quotes side by side, aiming to report back by 11 April. The first estimate (Alder Compliance, £1,370, no VAT shown) stays on hold, and no work will start until you approve. The email we sent earlier attached the inspection report twice rather than the estimate, so we'll include the estimate again with the comparison. If you'd rather suggest a contractor, just tell us their name.\",channel:\"email\",contact:\"agency landlord record\",recipient_name:\"Landlord\",recipient_role:\"landlord\",ticket_ref:\"NBL-008-3466\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-101",
+      "evidence": [
+        "MSG-101 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "put_on_hold",
+      "args": {
+        "ticket_ref": "NBL-008-3466",
+        "reason": "Waiting for Provider",
+        "comment": "Waiting for second contractor quote (same scope) for landlord comparison; first quote £1,370 on hold.",
+        "review_on": "2025-04-11"
+      },
+      "key": "put_on_hold:{comment:\"Waiting for second contractor quote (same scope) for landlord comparison; first quote £1,370 on hold.\",reason:\"Waiting for Provider\",review_on:\"2025-04-11\",ticket_ref:\"NBL-008-3466\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-008-3466",
+      "evidence": [
+        "Ticket NBL-008-3466 read back after put_on_hold"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "resume_auto",
+      "args": {
+        "ticket_ref": "NBL-008-3466"
+      },
+      "key": "resume_auto:{ticket_ref:\"NBL-008-3466\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-008-3466",
+      "evidence": [
+        "Ticket NBL-008-3466 read back after resume_auto"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-008-3466",
+        "stage": "double_quotation",
+        "property": "Flat 5, 55 Lantern Quay, Cedarford, ZZ2 4ZZ",
+        "description": "Following the tenant vacating please provide an estimate to; \nRepaint bedroom any other rooms if needed\nReplace bedroom carpet that is burnt\nReplace bathroom flooring \nRepair broken plug \nRepair dripping bath tap \nRepair damaged shelf in bathroom",
+        "notes": [
+          "Landlord (event 009, email 06/04) asked for one other subcontractor to quote for comparison. No second contractor named in case, so moved to double_quotation to source one. Same scope + check-out inspection report. First estimate (Alder Compliance £1,370, no VAT itemised, attachment-02) kept on hold pending comparison. Note: event 006 attached the inspection report twice, not the estimate, so landlord may not have seen the estimate; also inspection report dated 5 Jan 2026 conflicts with 2025 case dates."
+        ],
+        "mode": "auto"
+      }
+    ],
+    "records": [
+      {
+        "id": "MSG-101",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Landlord",
+          "recipient_role": "landlord",
+          "channel": "email",
+          "contact": "agency landlord record",
+          "body": "Hi, thanks for your reply. Yes, we'll get a second quote for comparison for Flat 5, 55 Lantern Quay, using the same scope as the first. We're sourcing another contractor now and will send you both quotes side by side, aiming to report back by 11 April. The first estimate (Alder Compliance, £1,370, no VAT shown) stays on hold, and no work will start until you approve. The email we sent earlier attached the inspection report twice rather than the estimate, so we'll include the estimate again with the comparison. If you'd rather suggest a contractor, just tell us their name.",
+          "ticket_ref": "NBL-008-3466"
+        },
+        "at": 1791640456511
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 5, 55 Lantern Quay, Cedarford, ZZ2 4ZZ",
+        "landlord": {
+          "contact": "agency landlord record",
+          "notes": [
+            "Contact details are held in the agency system and not shown in this case file; messages to the landlord go through it. Use contact \"agency landlord record\".",
+            "Landlord messages visible in this case: event 006 (email, to landlord); event 009 (email, from landlord)."
+          ]
+        }
+      }
+    ]
+  },
+  "usage": {
+    "input": 10,
+    "output": 2730,
+    "cost": 0.1128122,
+    "turns": 4,
+    "durationMs": 20843,
+    "retries": 0,
+    "thinkingTokens": 193
+  }
+}

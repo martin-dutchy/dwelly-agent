@@ -1,0 +1,316 @@
+{
+  "id": "02",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "inputs": [
+    {
+      "name": "inputs/call_transcript.txt",
+      "method": "text",
+      "bytes": 560,
+      "chars": 560
+    },
+    {
+      "name": "inputs/crm.json",
+      "method": "text",
+      "bytes": 1111,
+      "chars": 1111
+    },
+    {
+      "name": "inputs/tenancy_extract.md",
+      "method": "text",
+      "bytes": 382,
+      "chars": 382
+    }
+  ],
+  "withheld": [
+    {
+      "name": "checks.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    },
+    {
+      "name": "rubric.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    },
+    {
+      "name": "tool_failures.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    }
+  ],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "JOB-101 (urgent CO alarm replacement) open at intake, no contractor assigned yet; JOB-102 (routine fan) open. Awaiting tenant's symptom confirmation; follow-up 2026-10-11.",
+    "next_actions": [
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "SMS with safety advice, don't tamper with alarm, symptom check, 72h target, fan logged",
+        "recipient": "Priya Shah, tenant",
+        "channel": "sms",
+        "ledger_id": "A3"
+      },
+      {
+        "type": "OTHER",
+        "action": "Informed landlord alarm is end-of-life and replacement is arranged within limit",
+        "recipient": "Ben Hartley, landlord",
+        "channel": "email",
+        "ledger_id": "A4"
+      },
+      {
+        "type": "WAIT",
+        "action": "Follow up on symptoms and replacement booking next day",
+        "recipient": "Priya Shah, tenant",
+        "channel": "internal",
+        "ledger_id": "A5"
+      }
+    ],
+    "boundaries": [
+      "Tickets and messages do not book a visit or confirm the alarm is faulty; replacement not yet arranged.",
+      "No contractor assigned: none named on record for electrical/alarm work."
+    ],
+    "remaining_work": [
+      "Assign a contractor to replace the CO alarm (agency, within £300 limit) and book access with tenant",
+      "Confirm tenant has no symptoms; escalate P1 if she reports any or the alarm goes continuous",
+      "Progress fan job JOB-102"
+    ],
+    "missing_info": [
+      "Whether the tenant or anyone has CO symptoms (call dropped before asked)",
+      "No named contractor for alarm replacement"
+    ],
+    "outcome": "action_taken",
+    "severity": "urgent",
+    "summary": "Tenant reports a once-a-minute chirp on a sealed-battery CO alarm fitted April 2019 with a 7-year life, so it is most likely end-of-life, not an active CO emergency. I logged an urgent replacement job and a separate routine fan job, sent safety advice and a symptom check to the tenant, and told the landlord.",
+    "answers": [
+      {
+        "question": "Is this a CO emergency, a battery issue, or an end-of-life alarm? How did you decide?",
+        "answer": "Most likely end-of-life alarm. It is an intermittent chirp (not continuous), and the unit has a sealed battery and was fitted 2019-04-02 with a 7-year lifespan, so it is past its life. Not treated as an emergency unless symptoms or a continuous alarm are reported; symptoms not yet confirmed because the call dropped, so I asked by SMS with 0800 111 999 advice."
+      },
+      {
+        "question": "Who is responsible for fixing it, citing the tenancy clause?",
+        "answer": "The landlord. Clause 12.8 makes the tenant replace batteries only; the battery here is sealed, so replacing the whole unit is not a battery change. Clause 12.9 means the tenant should report faults promptly, which she did. Clause 12.17 (avoidable call-out charge) does not apply, as this is a genuine end-of-life fault and not out-of-hours at her request. The cost is expected within the landlord's £300 limit."
+      },
+      {
+        "question": "What actions did you take, and what did you tell the tenant?",
+        "answer": "Created JOB-101 (urgent) and JOB-102 (routine fan), SMSed the tenant not to remove or disable the alarm, gave CO safety steps and a 72h target for replacement, asked her to confirm no symptoms; emailed the landlord; scheduled follow-up for 2026-10-11."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Created JOB-101 urgent CO alarm"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Created JOB-102 routine extractor fan"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "SMS to tenant"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Email to landlord"
+      },
+      {
+        "ledger_id": "A5",
+        "description": "Follow-up scheduled 2026-10-11"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [],
+    "assumptions": [
+      "End-of-life inferred from the chirp pattern and the alarm age; the model's chirp code was not checked.",
+      "Alarm replacement cost is under the £300 limit."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "create_ticket",
+      "args": {
+        "property": "P-203",
+        "category": "electrical",
+        "severity": "urgent",
+        "description": "Hallway CO alarm (FireAngel CO-9X, fitted 2019-04-02, sealed battery, 7-year life ended approx April 2026) chirping about once a minute since last night. Likely end-of-life. Replace alarm. Tenant reports chirp only, not continuous; symptoms not yet confirmed (call dropped).",
+        "tenant": "T-1003"
+      },
+      "key": "create_ticket:{category:\"electrical\",description:\"Hallway CO alarm (FireAngel CO-9X, fitted 2019-04-02, sealed battery, 7-year life ended approx April 2026) chirping about once a minute since last night. Likely end-of-life. Replace alarm. Tenant reports chirp only, not continuous; symptoms not yet confirmed (call dropped).\",property:\"P-203\",severity:\"urgent\",tenant:\"T-1003\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "JOB-101",
+      "evidence": [
+        "Ticket JOB-101 read back at stage init"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "create_ticket",
+      "args": {
+        "property": "P-203",
+        "category": "appliance",
+        "severity": "routine",
+        "description": "Bathroom extractor fan noisy. Tenant says not urgent. Raised on same call as CO alarm issue.",
+        "tenant": "T-1003"
+      },
+      "key": "create_ticket:{category:\"appliance\",description:\"Bathroom extractor fan noisy. Tenant says not urgent. Raised on same call as CO alarm issue.\",property:\"P-203\",severity:\"routine\",tenant:\"T-1003\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "JOB-102",
+      "evidence": [
+        "Ticket JOB-102 read back at stage init"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Priya Shah",
+        "recipient_role": "tenant",
+        "channel": "sms",
+        "contact": "+447700900103",
+        "ticket_ref": "JOB-101",
+        "body": "Hi Priya, sorry our call dropped. Please don't try to remove or disable the CO alarm. Its battery is sealed, and from its age (fitted 2019) the chirp most likely means it has reached the end of its life, so it needs replacing. We've logged this as urgent and our target is to get it replaced within 72 hours. Safety first: if the alarm ever sounds continuously, or anyone has a headache, dizziness, nausea or drowsiness, leave the flat, open doors and windows if safe, and call 0800 111 999 (999 if anyone is unwell). Please reply to confirm nobody has had any of those symptoms. We've also logged the noisy bathroom fan as a separate routine job. We'll update you tomorrow."
+      },
+      "key": "send_message:{body:\"Hi Priya, sorry our call dropped. Please don't try to remove or disable the CO alarm. Its battery is sealed, and from its age (fitted 2019) the chirp most likely means it has reached the end of its life, so it needs replacing. We've logged this as urgent and our target is to get it replaced within 72 hours. Safety first: if the alarm ever sounds continuously, or anyone has a headache, dizziness, nausea or drowsiness, leave the flat, open doors and windows if safe, and call 0800 111 999 (999 if anyone is unwell). Please reply to confirm nobody has had any of those symptoms. We've also logged the noisy bathroom fan as a separate routine job. We'll update you tomorrow.\",channel:\"sms\",contact:\"+447700900103\",recipient_name:\"Priya Shah\",recipient_role:\"tenant\",ticket_ref:\"JOB-101\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-103",
+      "evidence": [
+        "MSG-103 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Ben Hartley",
+        "recipient_role": "landlord",
+        "channel": "email",
+        "contact": "ben.hartley@hartleyhomes.co.uk",
+        "ticket_ref": "JOB-101",
+        "body": "Hi Ben, the hallway CO alarm at Flat 9, 3 Amhurst Road is chirping. It's a sealed-battery FireAngel CO-9X fitted April 2019 with a 7-year life, so it looks to be past end of life. As the unit is sealed, the tenant can't replace a battery, so replacement is a landlord item. We're arranging a replacement as urgent; it should be well within your £300 limit. We'll tell you once it's booked. A noisy bathroom extractor fan is also logged as a routine job (JOB-102)."
+      },
+      "key": "send_message:{body:\"Hi Ben, the hallway CO alarm at Flat 9, 3 Amhurst Road is chirping. It's a sealed-battery FireAngel CO-9X fitted April 2019 with a 7-year life, so it looks to be past end of life. As the unit is sealed, the tenant can't replace a battery, so replacement is a landlord item. We're arranging a replacement as urgent; it should be well within your £300 limit. We'll tell you once it's booked. A noisy bathroom extractor fan is also logged as a routine job (JOB-102).\",channel:\"email\",contact:\"ben.hartley@hartleyhomes.co.uk\",recipient_name:\"Ben Hartley\",recipient_role:\"landlord\",ticket_ref:\"JOB-101\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-104",
+      "evidence": [
+        "MSG-104 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A5",
+      "tool": "schedule_follow_up",
+      "args": {
+        "due_on": "2026-10-11",
+        "purpose": "Confirm tenant has no CO symptoms; progress CO alarm replacement (assign electrician/contractor, no named firm on record); update tenant and landlord",
+        "ticket_ref": "JOB-101",
+        "party": "Priya Shah"
+      },
+      "key": "schedule_follow_up:{due_on:\"2026-10-11\",party:\"Priya Shah\",purpose:\"Confirm tenant has no CO symptoms; progress CO alarm replacement (assign electrician/contractor, no named firm on record); update tenant and landlord\",ticket_ref:\"JOB-101\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "FUP-105",
+      "evidence": [
+        "FUP-105 found in the schedule_follow_up log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "JOB-101",
+        "stage": "init",
+        "property": "P-203",
+        "tenant": "T-1003",
+        "category": "electrical",
+        "severity": "urgent",
+        "description": "Hallway CO alarm (FireAngel CO-9X, fitted 2019-04-02, sealed battery, 7-year life ended approx April 2026) chirping about once a minute since last night. Likely end-of-life. Replace alarm. Tenant reports chirp only, not continuous; symptoms not yet confirmed (call dropped)."
+      },
+      {
+        "ref": "JOB-102",
+        "stage": "init",
+        "property": "P-203",
+        "tenant": "T-1003",
+        "category": "appliance",
+        "severity": "routine",
+        "description": "Bathroom extractor fan noisy. Tenant says not urgent. Raised on same call as CO alarm issue."
+      }
+    ],
+    "records": [
+      {
+        "id": "MSG-103",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Priya Shah",
+          "recipient_role": "tenant",
+          "channel": "sms",
+          "contact": "+447700900103",
+          "body": "Hi Priya, sorry our call dropped. Please don't try to remove or disable the CO alarm. Its battery is sealed, and from its age (fitted 2019) the chirp most likely means it has reached the end of its life, so it needs replacing. We've logged this as urgent and our target is to get it replaced within 72 hours. Safety first: if the alarm ever sounds continuously, or anyone has a headache, dizziness, nausea or drowsiness, leave the flat, open doors and windows if safe, and call 0800 111 999 (999 if anyone is unwell). Please reply to confirm nobody has had any of those symptoms. We've also logged the noisy bathroom fan as a separate routine job. We'll update you tomorrow.",
+          "ticket_ref": "JOB-101"
+        },
+        "at": 1791641335139
+      },
+      {
+        "id": "MSG-104",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Ben Hartley",
+          "recipient_role": "landlord",
+          "channel": "email",
+          "contact": "ben.hartley@hartleyhomes.co.uk",
+          "body": "Hi Ben, the hallway CO alarm at Flat 9, 3 Amhurst Road is chirping. It's a sealed-battery FireAngel CO-9X fitted April 2019 with a 7-year life, so it looks to be past end of life. As the unit is sealed, the tenant can't replace a battery, so replacement is a landlord item. We're arranging a replacement as urgent; it should be well within your £300 limit. We'll tell you once it's booked. A noisy bathroom extractor fan is also logged as a routine job (JOB-102).",
+          "ticket_ref": "JOB-101"
+        },
+        "at": 1791641335140
+      },
+      {
+        "id": "FUP-105",
+        "tool": "schedule_follow_up",
+        "args": {
+          "ticket_ref": "JOB-101",
+          "due_on": "2026-10-11",
+          "party": "Priya Shah",
+          "purpose": "Confirm tenant has no CO symptoms; progress CO alarm replacement (assign electrician/contractor, no named firm on record); update tenant and landlord"
+        },
+        "at": 1791641336849
+      }
+    ],
+    "properties": [
+      {
+        "id": "P-203",
+        "address": "Flat 9, 3 Amhurst Road, London E8 2AU",
+        "tenanted": true,
+        "landlord": {
+          "name": "Benjamin Hartley",
+          "email": "ben.hartley@hartleyhomes.co.uk",
+          "phone": "+447700900201",
+          "spend_limit_gbp": 300,
+          "notes": [
+            "Prefers Ben (not Benjamin).",
+            "Call before anything over £300 (inc VAT).",
+            "Use HeatRight Ltd for boilers if possible."
+          ]
+        }
+      }
+    ]
+  },
+  "usage": {
+    "input": 12,
+    "output": 3478,
+    "cost": 0.0945556,
+    "turns": 5,
+    "durationMs": 27603,
+    "retries": 0,
+    "thinkingTokens": 387
+  }
+}

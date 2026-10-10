@@ -1,0 +1,275 @@
+{
+  "id": "116",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "cutoff": 7,
+  "totalEvents": 7,
+  "inputs": [
+    {
+      "name": "history.md",
+      "method": "derived",
+      "bytes": 8052,
+      "chars": 8023,
+      "note": "events 1–7 of 7 from history.md"
+    }
+  ],
+  "withheld": [
+    {
+      "name": "index.md",
+      "reason": "sections that summarise the case: Overview, Outcome"
+    },
+    {
+      "name": "rubric.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    }
+  ],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Landlord approval gate; ticket NBL-116 on hold awaiting landlord, review 26 Dec. No contractor assigned, no visit booked.",
+    "next_actions": [
+      {
+        "type": "REQUEST_LANDLORD_APPROVAL",
+        "action": "Asked landlord to choose repair route and say whether tenant's own machine may stay",
+        "recipient": "Oliver, landlord",
+        "channel": "email",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Told tenant nothing is booked, 25 Dec unconfirmed, next update by 26 Dec",
+        "recipient": "Rowan Price, tenant",
+        "channel": "email",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "WAIT",
+        "action": "Hold for landlord reply, review 26 Dec",
+        "recipient": "Oliver, landlord",
+        "channel": "internal",
+        "ledger_id": "A3"
+      }
+    ],
+    "boundaries": [
+      "Approval request does not authorise any spend or contractor",
+      "Tenant's preferred 25 Dec visit is a proposal only, not booked",
+      "Nothing decided about who pays or about the tenant's machine staying"
+    ],
+    "remaining_work": [
+      "Landlord decision (agency chases on a second channel if silent by review date)",
+      "Assign contractor and get provider-confirmed date once approved",
+      "Landlord decision on tenant's machine"
+    ],
+    "missing_info": [
+      "Landlord decision",
+      "Appliance model/age and warranty (photos of label not yet received)"
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "Tenant's washing machine fault awaits landlord approval; tenant has already swapped in their own machine and flies 27 Dec. Landlord approval requested including the tenant's machine question, tenant updated, job held to 26 Dec.",
+    "answers": [
+      {
+        "question": "Where does this case stand, and what is outstanding?",
+        "answer": "At the landlord gate: the landlord has not replied, no contractor or visit exists. Outstanding: landlord decision, provider assignment, confirmed visit, decision on tenant's own machine."
+      },
+      {
+        "question": "What is the next action, who, which channel?",
+        "answer": "Landlord approval request sent by email to the landlord (done); tenant updated by email; chase landlord on a second channel if silent by 26 Dec."
+      },
+      {
+        "question": "Does anything need a human decision?",
+        "answer": "No escalation now. The landlord's decision is the gate; escalate only if it stays silent past the chase and the tenant's departure presses."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Landlord approval request APR-101"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Tenant update MSG-102"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Ticket on hold to 26 Dec"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Note recording conflicts"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Event 001 says the tenant would swap machines only if needed; event 007 says the swap was already done on 23 Dec. Trusted the later call.",
+      "Dates 25/12 (tenant visit proposal) and 27/12 (tenant departure) are not a conflict but the visit is unconfirmed.",
+      "Call named landlord Oliver; the record names no landlord name."
+    ],
+    "assumptions": [
+      "Landlord email on the 'agency landlord record' is current"
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "request_landlord_approval",
+      "args": {
+        "landlord": "Oliver",
+        "ticket_ref": "NBL-116",
+        "decision_needed": "Do you want us to send our contractor to inspect/repair your washing machine (fills with water but won't start a cycle)? Please also say whether the tenant's own machine, which they have already connected, may stay in place.",
+        "options": [
+          "Yes, send our contractor to inspect and repair (please give a spend cap)",
+          "I will arrange my own contractor (please give name and date)",
+          "Do not repair; tenant's own machine may stay and yours is removed or stored (tell us which)"
+        ],
+        "deadline": "2026-12-24 (tenant flies out 27 Dec; a reply today lets us try for a visit before then)",
+        "update": "Tenant (Rowan Price) swapped in their own spare machine on 23 Dec; your machine is now in the garage. Tenant asked for a visit tomorrow 25 Dec (Christmas Day), not confirmed with any contractor; nothing is booked. Tenant is away 27 Dec for two weeks. Our earlier email of 24 Dec is unanswered."
+      },
+      "key": "request_landlord_approval:{deadline:\"2026-12-24 (tenant flies out 27 Dec; a reply today lets us try for a visit before then)\",decision_needed:\"Do you want us to send our contractor to inspect/repair your washing machine (fills with water but won't start a cycle)? Please also say whether the tenant's own machine, which they have already connected, may stay in place.\",landlord:\"Oliver\",options:[\"Yes, send our contractor to inspect and repair (please give a spend cap)\",\"I will arrange my own contractor (please give name and date)\",\"Do not repair; tenant's own machine may stay and yours is removed or stored (tell us which)\"],ticket_ref:\"NBL-116\",update:\"Tenant (Rowan Price) swapped in their own spare machine on 23 Dec; your machine is now in the garage. Tenant asked for a visit tomorrow 25 Dec (Christmas Day), not confirmed with any contractor; nothing is booked. Tenant is away 27 Dec for two weeks. Our earlier email of 24 Dec is unanswered.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "APR-101",
+      "evidence": [
+        "APR-101 found in the request_landlord_approval log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Rowan Price",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 005 email)",
+        "body": "Hello Rowan, thanks for your call. We've asked the landlord to approve a repair visit for their machine and also whether your own machine can stay connected. They haven't replied yet, so nothing is booked. Tomorrow (25 Dec) is Christmas Day, so we'll ask whether a contractor can attend, but please don't expect anyone until we confirm a date with you. We know you fly on 27 Dec and will chase the landlord; you'll hear from us again by 26 Dec at the latest. Please leave the landlord's machine in the garage as it is."
+      },
+      "key": "send_message:{body:\"Hello Rowan, thanks for your call. We've asked the landlord to approve a repair visit for their machine and also whether your own machine can stay connected. They haven't replied yet, so nothing is booked. Tomorrow (25 Dec) is Christmas Day, so we'll ask whether a contractor can attend, but please don't expect anyone until we confirm a date with you. We know you fly on 27 Dec and will chase the landlord; you'll hear from us again by 26 Dec at the latest. Please leave the landlord's machine in the garage as it is.\",channel:\"email\",contact:\"existing thread (event 005 email)\",recipient_name:\"Rowan Price\",recipient_role:\"tenant\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-102",
+      "evidence": [
+        "MSG-102 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "put_on_hold",
+      "args": {
+        "ticket_ref": "NBL-116",
+        "reason": "Waiting for Landlord",
+        "comment": "Awaiting landlord decision on repair route and whether tenant's own machine may stay. Tenant-proposed visit 25/12 is unconfirmed by any provider; tenant leaves 27/12.",
+        "review_on": "2026-12-26"
+      },
+      "key": "put_on_hold:{comment:\"Awaiting landlord decision on repair route and whether tenant's own machine may stay. Tenant-proposed visit 25/12 is unconfirmed by any provider; tenant leaves 27/12.\",reason:\"Waiting for Landlord\",review_on:\"2026-12-26\",ticket_ref:\"NBL-116\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-116",
+      "evidence": [
+        "Ticket NBL-116 read back after put_on_hold"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "add_note",
+      "args": {
+        "entity": "NBL-116",
+        "note": "Record conflict: event 001 says tenant would swap only if needed; event 007 call says tenant already swapped in own machine on 23 Dec, landlord's faulty machine in garage. Dates: 25/12 visit (tenant proposal only, unconfirmed), 27/12 tenant departure. Landlord not yet replied; approval requested 24/12. No contractor assigned."
+      },
+      "key": "add_note:{entity:\"NBL-116\",note:\"Record conflict: event 001 says tenant would swap only if needed; event 007 call says tenant already swapped in own machine on 23 Dec, landlord's faulty machine in garage. Dates: 25/12 visit (tenant proposal only, unconfirmed), 27/12 tenant departure. Landlord not yet replied; approval requested 24/12. No contractor assigned.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NOTE-103",
+      "evidence": [
+        "NOTE-103 found in the add_note log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-116",
+        "stage": "init",
+        "property": "Flat 15, 55 Alder Lane, Northbridge, ZZ1 6ZZ",
+        "description": "Request summary with context: The Juniper Services NBL-040-4451 washing machine fills with water but does not start the wash cycle.\n\nTenant's original query: The washing machine is no longer working.\n\nIt fills with water as normal, but the wash cycle never starts. There are no error codes displayed, and we've tried resetting the machine, and other settings, but unfortunately that hasn't resolved the issue.\n\nWe do have our own washing machine that could be installed as a replacement if necessary. However, I thought it would be best to have the existing machine checked first before making any changes.\n\nIf it does need replacing, could someone carry out the swap? There isn't any isolation valves on the water pipes.\n\nPlease let us know how you'd like to proceed.",
+        "landlord_approval": "required",
+        "hold": {
+          "reason": "Waiting for Landlord",
+          "comment": "Awaiting landlord decision on repair route and whether tenant's own machine may stay. Tenant-proposed visit 25/12 is unconfirmed by any provider; tenant leaves 27/12.",
+          "review_on": "2026-12-26"
+        },
+        "mode": "manual"
+      }
+    ],
+    "records": [
+      {
+        "id": "APR-101",
+        "tool": "request_landlord_approval",
+        "args": {
+          "landlord": "Oliver",
+          "decision_needed": "Do you want us to send our contractor to inspect/repair your washing machine (fills with water but won't start a cycle)? Please also say whether the tenant's own machine, which they have already connected, may stay in place.",
+          "ticket_ref": "NBL-116",
+          "options": [
+            "Yes, send our contractor to inspect and repair (please give a spend cap)",
+            "I will arrange my own contractor (please give name and date)",
+            "Do not repair; tenant's own machine may stay and yours is removed or stored (tell us which)"
+          ],
+          "deadline": "2026-12-24 (tenant flies out 27 Dec; a reply today lets us try for a visit before then)",
+          "update": "Tenant (Rowan Price) swapped in their own spare machine on 23 Dec; your machine is now in the garage. Tenant asked for a visit tomorrow 25 Dec (Christmas Day), not confirmed with any contractor; nothing is booked. Tenant is away 27 Dec for two weeks. Our earlier email of 24 Dec is unanswered."
+        },
+        "at": 1791642726255
+      },
+      {
+        "id": "MSG-102",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Rowan Price",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 005 email)",
+          "body": "Hello Rowan, thanks for your call. We've asked the landlord to approve a repair visit for their machine and also whether your own machine can stay connected. They haven't replied yet, so nothing is booked. Tomorrow (25 Dec) is Christmas Day, so we'll ask whether a contractor can attend, but please don't expect anyone until we confirm a date with you. We know you fly on 27 Dec and will chase the landlord; you'll hear from us again by 26 Dec at the latest. Please leave the landlord's machine in the garage as it is."
+        },
+        "at": 1791642726255
+      },
+      {
+        "id": "NOTE-103",
+        "tool": "add_note",
+        "args": {
+          "entity": "NBL-116",
+          "note": "Record conflict: event 001 says tenant would swap only if needed; event 007 call says tenant already swapped in own machine on 23 Dec, landlord's faulty machine in garage. Dates: 25/12 visit (tenant proposal only, unconfirmed), 27/12 tenant departure. Landlord not yet replied; approval requested 24/12. No contractor assigned."
+        },
+        "at": 1791642726255
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 15, 55 Alder Lane, Northbridge, ZZ1 6ZZ",
+        "landlord": {
+          "contact": "agency landlord record",
+          "notes": [
+            "Contact details are held in the agency system and not shown in this case file; messages to the landlord go through it. Use contact \"agency landlord record\".",
+            "Landlord messages visible in this case: event 004 (email, to landlord)."
+          ]
+        }
+      }
+    ]
+  },
+  "usage": {
+    "input": 8,
+    "output": 2798,
+    "cost": 0.0589454,
+    "turns": 3,
+    "durationMs": 19829,
+    "retries": 0,
+    "thinkingTokens": 144
+  }
+}

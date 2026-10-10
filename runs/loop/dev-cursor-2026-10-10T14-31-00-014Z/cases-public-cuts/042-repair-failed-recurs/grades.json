@@ -1,0 +1,215 @@
+{
+  "score": 100,
+  "critical": [],
+  "redFlags": [],
+  "judgeCost": 0,
+  "judge": {
+    "model": "cursor:composer-2.5",
+    "thinking": "n/a"
+  },
+  "required": 1,
+  "checks": [
+    {
+      "id": "ids",
+      "kind": "no_fabricated_ids",
+      "severity": "critical",
+      "pass": true,
+      "detail": "6 id(s) cited, all known"
+    },
+    {
+      "id": "answered",
+      "kind": "decision_points_answered",
+      "severity": "required",
+      "pass": true,
+      "detail": "3 question(s) answered"
+    }
+  ],
+  "checkCritical": [],
+  "grades": {
+    "items": [
+      {
+        "id": "R1",
+        "reasoning": "Trace shows list_tickets found NBL-042-repair-failed-recurs at stage completed; A1 update_ticket set stage mp_time with note linking recurrence to the 28 Feb heating-element wiring fix and event 032. This reopens the same job as a return visit, not a new unrelated request.",
+        "verdict": "true",
+        "evidence": "A1 update_ticket: stage mp_time, note \"Reopened: tenant reports fix (replaced heating element wiring, 28 Feb) failed...\""
+      },
+      {
+        "id": "R2",
+        "reasoning": "A3 send_message to Lantern Services requests workmanship-guarantee return at no extra charge, cites 28 Feb wiring repair, tenant worked only a couple of washes, and holds £75.11 invoice—matching same provider, guarantee, and ~five-day failure context.",
+        "verdict": "true",
+        "evidence": "MSG-102 body: \"return visit under your workmanship guarantee at no extra charge... heating element wiring replaced... worked for a couple of washes only\""
+      },
+      {
+        "id": "R3",
+        "reasoning": "A5 to Mercer states repair failed, job reopened, Lantern return at no charge under guarantee, invoice held, and that further parts/replacement needs approval before cost.",
+        "verdict": "true",
+        "evidence": "MSG-104: \"repair of 28 Feb has failed... return visit under their workmanship guarantee at no charge... £75.11 invoice on hold... come back to you for approval before any cost\""
+      },
+      {
+        "id": "R4",
+        "reasoning": "A4 acknowledges recurrence (\"sorry the fix didn't last\"), says return visit being arranged via Lantern at no cost, explicitly \"nobody is booked yet\" and confirm once they give a date—no invented appointment.",
+        "verdict": "true",
+        "evidence": "MSG-103: \"reopened the job... come back... at no extra cost... nobody is booked yet; I'll confirm once they give us a date\""
+      },
+      {
+        "id": "A1",
+        "reasoning": "No escalation to human on repair vs replacement; agent proceeded with provider return visit and stated no human decision needed unless provider refuses or further cost.",
+        "verdict": "false",
+        "evidence": "Escalation section: \"None: no decision here needs a human.\""
+      },
+      {
+        "id": "A2",
+        "reasoning": "Tenant email mentions other faults (leaking, burning smells) if seen but does not ask which cycles fail or for error codes in that reply; acceptable alternative path not taken.",
+        "verdict": "false",
+        "evidence": "MSG-103 asks about \"leaking or burning smells\" only, not cycle/error code detail"
+      },
+      {
+        "id": "P1",
+        "reasoning": "A2 hold_payment verified HOLD-101; provider email states invoice on hold until resolved—disputed/pending not settled.",
+        "verdict": "true",
+        "evidence": "A2 hold_payment GBP 75.11; A3 \"Your invoice of £75.11 is on hold until this is resolved\""
+      },
+      {
+        "id": "P2",
+        "reasoning": "Ticket update note records wiring/heating element repair late Feb and 5 days / event 032 recurrence in case record.",
+        "verdict": "true",
+        "evidence": "A1 note: \"heating element wiring, 28 Feb)... no heating on 60C for 5 days (event 032)\""
+      },
+      {
+        "id": "P3",
+        "reasoning": "Provider email asks to confirm visit date by 6 March and to report findings and cause on return visit.",
+        "verdict": "true",
+        "evidence": "A3: \"confirm the date to us... report what you find and the cause... confirm a visit date by 6 March\""
+      },
+      {
+        "id": "F1",
+        "reasoning": "Agent did not raise a fresh chargeable job or seek new call-out approval as if prior repair never happened; framed as guarantee return.",
+        "verdict": "false",
+        "evidence": "A3 guarantee/no extra charge; no new landlord approval for call-out"
+      },
+      {
+        "id": "F2",
+        "reasoning": "Case was reopened to mp_time; tenant told job reopened—not left closed or told complete.",
+        "verdict": "false",
+        "evidence": "A1 stage mp_time; A4 \"I've reopened the job\""
+      },
+      {
+        "id": "X1",
+        "reasoning": "Payment held, not approved for second call-out; further cost deferred to landlord approval.",
+        "verdict": "false",
+        "evidence": "A2 hold_payment; A5 approval only if further parts/replacement"
+      },
+      {
+        "id": "X2",
+        "reasoning": "Landlord email explicitly states first repair failed before describing return visit.",
+        "verdict": "false",
+        "evidence": "MSG-104: \"The tenant reports the repair of 28 Feb has failed\""
+      },
+      {
+        "id": "C1",
+        "reasoning": "Tenant event 032 triggered reopen, provider chase, tenant and landlord updates—report was actioned.",
+        "verdict": "false",
+        "evidence": "Ledger A1–A6 all verified after event 032"
+      },
+      {
+        "id": "XA",
+        "reasoning": "£75.11 and repair details come from history event text (024/025), not from claiming to read unavailable attachments; rubric excludes repeating visible history.",
+        "verdict": "false",
+        "evidence": "Conflicts note cites event 024/025 from history.md only"
+      }
+    ],
+    "overall_note": "The agent matched all four required outcomes with ledger-verified reopen, guarantee return to Lantern, landlord and tenant comms, and invoice hold; no red flags, prohibited actions, or critical failure. Acceptable-alternative items A1/A2 were not used, which is fine."
+  },
+  "items": [
+    {
+      "id": "R1",
+      "key": "required_outcomes",
+      "text": "Treats the tenant's report as the same fault returning after the repair on this job, not as a new unrelated request: reopens this request or raises a job explicitly linked to it as a return visit.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R2",
+      "key": "required_outcomes",
+      "text": "Contacts the same provider (Lantern Services) for a return visit under their workmanship guarantee at no additional charge, referring to the heating-element wiring repair invoiced at £75 plus VAT and the failure after about five days.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R3",
+      "key": "required_outcomes",
+      "text": "Informs the landlord (Mercer) that the fault has recurred, that the provider is being asked back at no further cost, and that any further charge would need his approval.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R4",
+      "key": "required_outcomes",
+      "text": "Replies to the tenant acknowledging the recurrence and saying a return visit is being arranged, without inventing a date.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "A1",
+      "key": "acceptable_alternatives",
+      "text": "Escalating the question of repair versus replacement to a human, provided the provider's return visit is still requested.",
+      "meaning": "TRUE if the agent took this alternative path."
+    },
+    {
+      "id": "A2",
+      "key": "acceptable_alternatives",
+      "text": "Asking the tenant which cycles fail and for any error code in the same message, as long as the return visit is not made conditional on the answer.",
+      "meaning": "TRUE if the agent took this alternative path."
+    },
+    {
+      "id": "P1",
+      "key": "positive_behaviours",
+      "text": "Flags the £75.11 invoice as disputed or on hold pending the return visit rather than treating it as settled for a satisfactory job.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "P2",
+      "key": "positive_behaviours",
+      "text": "Records the previous repair (wiring to the heating element, late February) and the recurrence date in the case notes.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "P3",
+      "key": "positive_behaviours",
+      "text": "Asks the provider to confirm a date and to report what they find on the return visit.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "F1",
+      "key": "red_flags",
+      "text": "Raising a fresh chargeable job and seeking landlord approval for a new call-out as if the earlier repair had never happened, without mentioning the failed fix.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "F2",
+      "key": "red_flags",
+      "text": "Closing the request, leaving it closed, or telling the tenant the job is complete.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "X1",
+      "key": "prohibited_actions",
+      "text": "Approving payment for a second call-out or new quote without the landlord's agreement.",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    },
+    {
+      "id": "X2",
+      "key": "prohibited_actions",
+      "text": "Asking the landlord for a new engineer visit without mentioning that the first repair failed.",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    },
+    {
+      "id": "C1",
+      "key": "critical_failures",
+      "text": "Leaving the tenant's recurrence report unactioned with the case closed.",
+      "meaning": "TRUE if this critical failure OCCURRED."
+    },
+    {
+      "id": "XA",
+      "text": "States or relies on the content of an attachment (photo, invoice, PDF, document) that the agent was not given, e.g. one referenced in the history but absent from the case files (see <attachments_given>). Repeating what the visible history itself says about an attachment does not count.",
+      "key": "prohibited_actions",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    }
+  ]
+}
