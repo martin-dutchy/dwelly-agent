@@ -1,5 +1,6 @@
 import type { Decision } from './caseAgent.js';
 import type { LoadedCase } from './cases.js';
+import type { CriticResult } from './critic/critic.js';
 import type { GateResult, Screen } from './jev.js';
 import type { LedgerEntry } from './ledger.js';
 
@@ -114,6 +115,15 @@ function messages(ledger: LedgerEntry[]) {
     .join('\n\n');
 }
 
+/** One factual line on the pre-submit review, plus any findings the revision left unchanged. */
+export function criticLine(r: CriticResult) {
+  if (r.status === 'skipped') return `- Pre-submit critic: skipped (${r.reason === 'low_time' ? 'less than 60 s of the case time left' : r.reason}).`;
+  if (r.status === 'error') return `- Pre-submit critic: unavailable (${r.reason}); decision submitted without it.`;
+  const kept = r.kept.length;
+  const revision = !kept ? '' : r.unaddressed === undefined ? ', no resubmission after revision' : ` (${kept - r.unaddressed.length} addressed in revision)`;
+  return `- Pre-submit critic (${r.model}, ${Math.round(r.ms / 1000)} s): ${r.items.length} items checked, ${kept} finding${kept === 1 ? '' : 's'} with evidence${revision}, ${r.dropped.length} dropped without evidence.${(r.unaddressed ?? []).map((u) => `\n  - Not changed after revision: ${u}`).join('')}`;
+}
+
 export function renderReasoning(
   c: LoadedCase,
   d: Decision | undefined,
@@ -121,7 +131,7 @@ export function renderReasoning(
   messages: any[],
   usage: Usage,
   error?: string,
-  checks?: { screen?: Screen; gateLog?: (GateResult & { tool: string; attempt: number })[]; policyLog?: { tool: string; reason: string }[]; chaos?: Record<string, unknown> },
+  checks?: { screen?: Screen; gateLog?: (GateResult & { tool: string; attempt: number })[]; policyLog?: { tool: string; reason: string }[]; chaos?: Record<string, unknown>; critic?: CriticResult },
 ) {
   const steps: string[] = [];
   let n = 0;
@@ -153,7 +163,7 @@ ${
   checks?.policyLog?.length ? `## Actions blocked by hard policy rules\n${checks.policyLog.map((p) => `- \`${p.tool}\`: ${p.reason}`).join('\n')}\n\n` : ''
 }${
   checks?.chaos && Object.keys(checks.chaos).length ? `## Injected tool failures (robustness test, --chaos)\n\`\`\`json\n${JSON.stringify(checks.chaos)}\n\`\`\`\n\n` : ''
-}## Conflicts between sources
+}${checks?.critic ? `## Checks performed\n${criticLine(checks.critic)}\n\n` : ''}## Conflicts between sources
 ${d?.conflicts.map((x) => `- ${x}`).join('\n') || '_None identified._'}
 
 ## Assumptions
