@@ -5,7 +5,7 @@ import { whatsappConfigured } from './whatsapp.js';
 
 /** Replies reach a real phone only for the demo case with Twilio configured; everywhere else the phone is a simulation. */
 export const reallyDelivered = (caseId: string) => caseId === DEMO_CASE && whatsappConfigured();
-export const SIMULATED = 'Demo: simulated delivery, recorded on the case';
+export const SIMULATED = 'Simulated delivery';
 
 /**
  * The tenant's own WhatsApp, drawn as a phone floating over the decision page. It only ever shows messages
@@ -132,7 +132,7 @@ export const WA_PHONE_JS = `${CURSOR_JS}
   const bubble = (m, animate) => {
     const b = document.createElement('div'); b.className = 'wa-b ' + (m.side === 'me' ? 'me' : 'them') + (animate && !reduce ? ' new' : '');
     const t = document.createElement('span'); t.className = 'wa-txt'; t.textContent = m.text; b.appendChild(t);
-    if (sim && m.side !== 'me') { const v = document.createElement('span'); v.className = 'wa-via'; v.textContent = 'Demo: simulated delivery, recorded on the case'; b.appendChild(v); }
+    if (sim && m.side !== 'me') { const v = document.createElement('span'); v.className = 'wa-via'; v.textContent = 'Simulated delivery'; b.appendChild(v); }
     const meta = document.createElement('span'); meta.className = 'wa-meta'; meta.textContent = fmt(m.ts); if (m.side === 'me') meta.appendChild(ticks()); b.appendChild(meta);
     return b;
   };
@@ -157,10 +157,7 @@ export const WA_PHONE_JS = `${CURSOR_JS}
   const fromShow = new URLSearchParams(location.search).get('from') === 'show';
   if (draft) {
     ta.value = draft;
-    const lab = document.createElement('p'); lab.className = 'small muted'; lab.style.margin = '0 0 4px'; lab.textContent = 'Draft — edit before sending'; ta.parentNode.insertBefore(lab, ta);
-    const chip = document.createElement('button'); chip.type = 'button'; chip.className = 'wa-chip'; chip.textContent = 'Use suggested reply';
-    chip.addEventListener('click', () => { ta.value = draft; ta.focus(); });
-    ta.parentNode.insertBefore(chip, ta);
+
   }
   const wait = (ms) => new Promise((r) => setTimeout(r, reduce ? 0 : ms));
   form.addEventListener('submit', async (ev) => {
@@ -177,7 +174,7 @@ export const WA_PHONE_JS = `${CURSOR_JS}
       chat.appendChild(bubble({ side: 'them', text: d.message.text, ts: d.message.ts }, true)); toBottom();
       await wait(350);
       const done = document.createElement('div'); done.className = 'block wa-sent'; done.setAttribute('role', 'status');
-      const p = document.createElement('span'); p.textContent = sim ? 'Recorded on the case (demo: delivery simulated).' : 'Sent on WhatsApp and recorded on the case.'; done.appendChild(p);
+      const p = document.createElement('span'); p.textContent = 'Sent. Recorded on the case.'; done.appendChild(p);
       const a = document.createElement('a'); const show = new URLSearchParams(location.search).get('from') === 'show';
       a.href = show ? '/ops/show#fastforward' : d.caseUrl; a.textContent = show ? 'Back to the overview' : 'See the case'; done.appendChild(a);
       const decide = document.getElementById('decide'); if (decide) (decide.closest('details') || decide).remove();

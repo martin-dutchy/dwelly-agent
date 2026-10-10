@@ -17,7 +17,8 @@ export type ShowCard = {
   stuckWhen: string;
   done: string[];
   next: string;
-  person?: { question: string; href: string };
+  /** answeredBy is set when a person has already decided (e.g. replied on WhatsApp). */
+  person?: { question: string; href: string; answeredBy?: string };
   call?: boolean;
 };
 export type ShowData = {
@@ -295,13 +296,13 @@ const D = ${JSON.stringify(d).replace(/</g, '\\u003c')};
   }
 
   async function fastForward() {
-    for (const c of D.cards) { const el = card(c); el.classList.add('in'); if (c.person) { if (!el.classList.contains('person')) { state(el, 'person', 'Needs a person: ' + c.person.question); people++; } continue; } if (el.classList.contains('done')) continue; if (c.call) { el.querySelectorAll('li').forEach((li) => li.classList.add('on')); state(el, 'done', 'Done automatically. No staff time.'); auto++; counters(); continue; } }
+    for (const c of D.cards) { const el = card(c); el.classList.add('in'); if (c.person) { if (c.person.answeredBy && !el.classList.contains('done')) { el.querySelectorAll('li').forEach((li) => li.classList.add('on')); state(el, 'done', 'Answered by ' + c.person.answeredBy + ' on WhatsApp'); people++; } else if (!el.classList.contains('person') && !el.classList.contains('done')) { state(el, 'person', 'Needs a person: ' + c.person.question); people++; } counters(); continue; } if (el.classList.contains('done')) continue; if (c.call) { el.querySelectorAll('li').forEach((li) => li.classList.add('on')); state(el, 'done', 'Done automatically. No staff time.'); auto++; counters(); continue; } }
     head('The rest of the week, fast-forwarded.');
     const rest = D.cards.filter((c) => !c.person && !card(c).classList.contains('done'));
     for (const c of rest) { const el = card(c); state(el, 'working', 'Agent working'); await sleep(90); el.querySelectorAll('li').forEach((li) => li.classList.add('on')); state(el, 'done', c.next ? 'Done: ' + c.next : 'Done automatically'); auto++; counters(); tick(37); await sleep(70); }
     // The cases beyond the grid, counted down.
     const left = D.totals.auto - auto, extraPeople = D.totals.people - people; let more = D.more;
-    for (let i = 0; i < left; i++) { auto++; more--; set('k-more', Math.max(0, more)); counters(); tick(23); await sleep(28); }
+    for (let i = 0; i < left; i++) { auto++; more--; set('k-more', Math.max(0, more)); if (more <= 0) $('more').style.visibility = 'hidden'; counters(); tick(23); await sleep(28); }
     for (let i = 0; i < extraPeople; i++) { people++; more--; set('k-more', Math.max(0, more)); counters(); await sleep(150); }
     set('k-open', 0);
     $('summary').innerHTML = '<b>Our eval run on ' + D.totals.cases + ' real public cases:</b> ' + D.totals.auto + ' handled with no staff time, ' + D.totals.people + ' needed a person.' + (D.totals.mean !== null ? ' Our grader’s score ' + D.totals.mean + '/100.' : '') + ' Model cost about ' + Math.max(1, Math.round((D.totals.cost / D.totals.cases) * 100 * 0.8)) + 'p a case.';
@@ -325,7 +326,7 @@ const D = ${JSON.stringify(d).replace(/</g, '\\u003c')};
   $('ff').onclick = async () => { while (i < 2) await scenes[i++](); i = scenes.length; fastForward(); };
   addEventListener('keydown', (e) => { if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); } });
   // Returning from the decision page: replay the morning instantly, then fast-forward.
-  if (location.hash === '#fastforward') { (async () => { for (const c of D.cards) card(c).classList.add('in'); $('more').classList.add('in'); set('k-open', D.totals.cases); if (callCard) { card(callCard).querySelectorAll('li').forEach((li) => li.classList.add('on')); state(card(callCard), 'done', 'Done automatically. No staff time.'); auto++; } if (personCard) { const el = card(personCard); state(el, 'done', 'Decided by a person, tenant answered on WhatsApp'); people++; } counters(); tick(60); i = scenes.length; if (DC && DC.AUTO) DC.restore(); await sleep(600); await fastForward(); if (DC && DC.AUTO) { await sleep(900); DC.hide(); } })(); }
+  if (location.hash === '#fastforward') { (async () => { for (const c of D.cards) card(c).classList.add('in'); $('more').classList.add('in'); set('k-open', D.totals.cases); if (callCard) { card(callCard).querySelectorAll('li').forEach((li) => li.classList.add('on')); state(card(callCard), 'done', 'Done automatically. No staff time.'); auto++; } if (personCard) { const el = card(personCard); el.querySelectorAll('li').forEach((li) => li.classList.add('on')); state(el, 'done', personCard.person.answeredBy ? 'Answered by ' + personCard.person.answeredBy + ' on WhatsApp' : 'Decided by a person'); people++; } counters(); tick(60); i = scenes.length; if (DC && DC.AUTO) DC.restore(); await sleep(600); await fastForward(); if (DC && DC.AUTO) { await sleep(900); DC.hide(); } })(); }
   else if (DC && DC.AUTO) setTimeout(startAuto, 800);
 })();
 </script>`,

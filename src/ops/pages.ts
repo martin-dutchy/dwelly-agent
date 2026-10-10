@@ -403,7 +403,7 @@ export function taskPage(o: { t: HumanTask; c: OpsCase; openTasks: number; error
   // The tenant's side of the thread as the page knows it; the phone's script replaces it with the case's real WhatsApp thread.
   const tenantSaid = trigger && !task && (/tenant/i.test(trigger.from ?? '') || /whatsapp/i.test(trigger.channel ?? '')) ? trigger : undefined;
   const phoneInitial: PhoneMsg[] = [
-    ...(tenantSaid?.text ? [{ side: 'me' as const, text: tenantSaid.text.replace(/^[^\n]*\(\+?\d[\d\s]*\):\n/, '').slice(0, 600), via: /whatsapp/i.test(tenantSaid.channel ?? '') || !tenantSaid.channel ? undefined : `Sent by ${tenantSaid.channel}` }] : []),
+    ...(tenantSaid?.text ? [{ side: 'me' as const, text: tenantSaid.text.replace(/^[^\n]*\(\+?\d[\d\s]*\):\n/, '').slice(0, 600), via: undefined }] : []),
     ...(t.decision?.choice === 'Answered the tenant on WhatsApp' ? [{ side: 'them' as const, text: t.decision.note, ts: t.resolved_at ?? undefined }] : []),
   ];
   const decideForm = `<form class="block" method="post" action="/ops/tasks/${esc(t.id)}/decide" id="decide">
@@ -416,10 +416,9 @@ ${options
 <label class="field" for="by">Your name</label><input id="by" type="text" name="by" required autocomplete="name"${name} style="max-width:320px">
 <div class="actions-row"><button class="primary" type="submit" id="send" disabled>Choose an option</button><span class="small muted">The case worker carries it out, tells the people involved and records it on the case.</span></div></form>`;
   const waForm = `<form class="block" id="wa-form" method="post" action="/ops/tasks/${esc(t.id)}/whatsapp${o.from ? `?from=${esc(encodeURIComponent(o.from))}` : ''}"><h2>Reply to the tenant on WhatsApp</h2>
-<p class="small muted" style="max-width:62ch">${B.reply ? 'Drafted by the agent from the case. Edit before sending. ' : ''}${simulated ? 'Delivery is simulated in this demo; the reply is recorded on the case.' : 'Goes to the tenant on WhatsApp and is recorded on the case.'}</p>
-<label class="field" for="wa">Message</label><textarea id="wa" name="text" required placeholder="Hi, …">${esc(B.reply ?? '')}</textarea>
-<label class="field" for="wa-by">Your name</label><input id="wa-by" type="text" name="by" required autocomplete="name"${name} style="max-width:320px">
-<div class="actions-row"><button class="secondary" type="submit">Send on WhatsApp</button></div></form>`;
+<textarea id="wa" name="text" required placeholder="Hi, …" aria-label="Message to the tenant" style="margin-top:var(--s2)">${esc(B.reply ?? '')}</textarea>
+${show ? `<input id="wa-by" type="hidden" name="by" value="Iona"><p class="small muted" style="margin-top:var(--s2)">Replying as Iona</p>` : `<label class="field" for="wa-by">Your name</label><input id="wa-by" type="text" name="by" required autocomplete="name"${name} style="max-width:320px">`}
+<div class="actions-row"><button class="primary" type="submit">Send on WhatsApp</button></div></form>`;
   const decideJs = `<script>
 (() => {
   const f = document.getElementById('decide'), send = document.getElementById('send'), note = document.getElementById('note'), wrap = document.getElementById('reason-wrap');
@@ -439,16 +438,15 @@ ${options
     `<div class="crumbs"><a href="/ops">Decisions</a> / <a href="/ops/cases/${esc(c.id)}">${esc(c.title)}</a></div>
 <div class="decide-col">
 <h1 class="hero">${esc(B.question)}</h1>
-<p class="sub meta">${esc(TEAM[t.team] ?? t.team)}, ${x.deadline ? `decide ${esc(until(x.deadline))}` : esc((PRIORITY[t.priority] ?? t.priority).toLowerCase())}. Until then the case stays on hold.</p>
-${B.said ? `<div class="quote" style="margin-top:var(--s4)"><span class="caption">${esc(B.said.source)}</span>
-${esc(B.said.text)}</div>` : ''}
-<ul class="keyfacts">${B.facts.map((f) => `<li>${esc(f.text)} <span class="src">${esc(f.source)}</span></li>`).join('')}</ul>
+<p class="sub meta">For ${esc(TEAM[t.team] ?? t.team)}, ${x.deadline ? `decide ${esc(until(x.deadline))}` : esc((PRIORITY[t.priority] ?? t.priority).toLowerCase())}.</p>
 <p class="unknown"><b>Not known yet:</b> ${esc(B.unknown)}</p>
 <p class="suggest"><b>Agent suggests:</b> ${esc(B.suggest)}</p>
 ${t.status === 'open' ? (B.reply || show ? waForm + `<details class="block"><summary>Other decisions</summary>${decideForm}</details>` : decideForm + `<details class="block"><summary>Reply to the tenant on WhatsApp instead</summary>${waForm}</details>`) + decideJs : t.decision?.choice === 'Answered the tenant on WhatsApp'
       ? `<div class="block"><h2>Answered on WhatsApp</h2><p class="muted">${esc(t.decision.by)} replied to the tenant ${esc(t.resolved_at ? ago(t.resolved_at) : '')}. ${c.batch_id ? 'Recorded on the case.' : 'Recorded on the case, and the agent has it again.'}</p>${show ? '<p style="margin-top:var(--s3)"><a class="primary" style="display:inline-block;text-decoration:none;padding:8px 16px;border-radius:6px;background:var(--accent);color:var(--surface);font-weight:600" href="/ops/show#fastforward">Back to the overview</a></p>' : `<p style="margin-top:var(--s3)"><a href="/ops/cases/${esc(c.id)}">See the case</a></p>`}</div>`
       : `<div class="block"><h2>Decided</h2><div class="quote"><span class="caption">${esc(t.decision?.by)}, ${esc(t.resolved_at ? ago(t.resolved_at) : '')}</span>\n${esc(t.decision?.choice)}${t.decision?.note ? `\n\n${esc(t.decision.note)}` : ''}</div><p style="margin-top:var(--s3)"><a href="/ops/cases/${esc(c.id)}">See what the case worker did next</a></p></div>`}
-<details class="block fullbrief"><summary>Full brief: evidence, what was done, the case history</summary>
+<details class="block fullbrief"><summary>Full brief</summary>
+${B.said ? `<div class="quote" style="margin-top:var(--s3)"><span class="caption">${esc(B.said.source)}</span>\n${esc(B.said.text)}</div>` : ''}
+<ul class="keyfacts">${B.facts.map((f) => `<li>${esc(f.text)} <span class="src">${esc(f.source)}</span></li>`).join('')}</ul>
 <div class="block"><h2>Why this came to you</h2>
 ${x.case_state ? `<p style="max-width:70ch">${esc(x.case_state)}</p>` : ''}
 ${trigger ? `<div class="quote"><span class="caption">${esc([trigger.from, trigger.channel, trigger.head].filter(Boolean).join(', '))}</span>\n${esc(trigger.text.slice(0, 1200))}</div>` : ''}

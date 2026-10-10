@@ -122,7 +122,20 @@ export async function showData(store: OpsStore): Promise<ShowData | undefined> {
   const person = v.rows.find((r) => r.task);
   const clean = v.rows.filter((r) => !r.task && ['waiting', 'resolved'].includes(r.reason) && r.confirmed >= 2).slice(0, 10);
   const cards = clean.map(asCard);
-  if (person) cards.splice(Math.min(5, cards.length), 0, { ...asCard(person), person: { question: short(person.task!.question, 90), href: `/ops/tasks/${person.task!.id}?from=show&draft=${encodeURIComponent(DRAFT)}` } });
+  if (person) {
+    const t = person.task!;
+    const base = asCard(person);
+    // What the case was stuck on before anyone acted: ignore what staff added afterwards (e.g. the WhatsApp reply).
+    const s0 = stuckOn(person.c.history_md.split(/<a id="event-\d+"><\/a>\n## [^\n]*\n\n- \*\*Channel:\*\* WhatsApp\n- \*\*From:\*\* Agency staff/)[0]);
+    const answeredBy = t.status === 'resolved' && t.decision?.choice === 'Answered the tenant on WhatsApp' ? t.decision.by : undefined;
+    cards.splice(Math.min(5, cards.length), 0, {
+      ...base,
+      stuck: s0.text || base.stuck,
+      stuckWhen: s0.when || base.stuckWhen,
+      done: answeredBy ? [`WhatsApp reply from ${answeredBy} (tenant)`] : base.done,
+      person: { question: short(t.question, 90), href: `/ops/tasks/${t.id}?from=show&draft=${encodeURIComponent(DRAFT)}`, answeredBy },
+    });
+  }
 
   // Preferred: a real call with a real person (a voice case), its real recording and the case worker's real follow-ups.
   // Which real call to feature, best first (OPS_SHOW_CALL overrides): the positive landlord approval, then the VAT one.
