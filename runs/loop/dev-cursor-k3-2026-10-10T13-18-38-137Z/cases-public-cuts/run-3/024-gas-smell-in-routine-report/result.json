@@ -1,0 +1,342 @@
+{
+  "id": "024-gas-smell-in-routine-report",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "cutoff": 6,
+  "totalEvents": 6,
+  "inputs": [
+    {
+      "name": "history.md",
+      "method": "derived",
+      "bytes": 1822,
+      "chars": 1810,
+      "note": "events 1–6 of 6 from history.md"
+    }
+  ],
+  "withheld": [
+    {
+      "name": "index.md",
+      "reason": "sections that reveal the ending: Next action at escalation, History, Attachments"
+    },
+    {
+      "name": "checks.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    },
+    {
+      "name": "rubric.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    }
+  ],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Original oven ticket at intake, returned to auto. Tenant says the landlord's settings advice failed and reports a gassy smell. Emergency gas job JOB-102 opened and escalated P1 (ESC-103). No named firm yet.",
+    "next_actions": [
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Tell tenant to leave, avoid switches/flames, call 0800 111 999, not use the oven",
+        "recipient": "Imogen, tenant",
+        "channel": "email",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "ASSIGN_PROVIDER",
+        "action": "Assign Gas Safe emergency call-out on JOB-102, same-day window",
+        "recipient": "Gas Safe engineer (no firm named)",
+        "channel": "internal",
+        "ledger_id": "A3"
+      },
+      {
+        "type": "ESCALATE_TO_HUMAN",
+        "action": "P1 escalation to confirm engineer and check tenant is safe",
+        "recipient": "internal maintenance",
+        "channel": "internal",
+        "ledger_id": "A4"
+      },
+      {
+        "type": "OTHER",
+        "action": "Inform landlord of gas report and emergency job",
+        "recipient": "Oliver, landlord",
+        "channel": "email",
+        "ledger_id": "A5"
+      }
+    ],
+    "boundaries": [
+      "Window is a target, not a confirmed appointment; no firm named",
+      "Does not establish the smell's cause or that the oven fault is related",
+      "No spend approved for oven repair"
+    ],
+    "remaining_work": [
+      "Human to confirm named Gas Safe engineer and tenant safety (ESC-103)",
+      "Oven under-heating repair needs landlord approval after diagnosis",
+      "Original ticket NBL-024 still at intake"
+    ],
+    "missing_info": [
+      "Manual attachment unseen",
+      "Whether tenant has left and called gas line"
+    ],
+    "outcome": "escalated",
+    "severity": "emergency",
+    "summary": "A routine oven report now includes a gassy smell, so it is treated as a gas emergency. The tenant got safety advice and the 0800 111 999 number, emergency job JOB-102 was opened and assigned, the landlord was told, and P1 escalated.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "Oven ticket at intake; tenant's reply reports a gas smell. Emergency job JOB-102 opened with a Gas Safe call-out; the engineer firm and the oven repair are outstanding."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Safety email to Imogen (tenant), emergency gas job assigned, landlord emailed, P1 escalation raised."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "Yes, P1: gas smell needs a named engineer confirmed and the tenant's safety checked; the manager owns that (ESC-103)."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Safety email to tenant"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Created emergency job JOB-102"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Assigned Gas Safe emergency call-out"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "P1 escalation ESC-103"
+      },
+      {
+        "ledger_id": "A5",
+        "description": "Landlord informed"
+      },
+      {
+        "ledger_id": "A6",
+        "description": "Returned NBL-024 to auto mode"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Tenant says 'not urgent' about the smell; treated as an emergency per policy."
+    ],
+    "assumptions": [
+      "Tenant is contactable by email on the existing thread"
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Imogen",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 006 email)",
+        "ticket_ref": "NBL-024-gas-smell-in-routine-report",
+        "body": "Hi Imogen, thanks for letting us know. Because you've noticed a gassy smell, please treat it as serious. Please leave the flat now, don't use light switches, the oven or any flame, and open doors/windows on your way out if it's safe. Call the National Gas Emergency line on 0800 111 999 from outside (999 if anyone is in immediate danger). Please don't use the oven until it has been checked. We're arranging a Gas Safe engineer as an emergency, with a target of today / within 24 hours, and the oven fault will be looked at too. We'll update you as soon as we have a confirmed time, and in any case today."
+      },
+      "key": "send_message:{body:\"Hi Imogen, thanks for letting us know. Because you've noticed a gassy smell, please treat it as serious. Please leave the flat now, don't use light switches, the oven or any flame, and open doors/windows on your way out if it's safe. Call the National Gas Emergency line on 0800 111 999 from outside (999 if anyone is in immediate danger). Please don't use the oven until it has been checked. We're arranging a Gas Safe engineer as an emergency, with a target of today / within 24 hours, and the oven fault will be looked at too. We'll update you as soon as we have a confirmed time, and in any case today.\",channel:\"email\",contact:\"existing thread (event 006 email)\",recipient_name:\"Imogen\",recipient_role:\"tenant\",ticket_ref:\"NBL-024-gas-smell-in-routine-report\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-101",
+      "evidence": [
+        "MSG-101 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "create_ticket",
+      "args": {
+        "property": "Flat 6, 56 Juniper Mews, Northbridge, ZZ1 0ZZ",
+        "category": "gas",
+        "severity": "emergency",
+        "description": "Tenant reports a gassy smell near the oven/cooker (event 006), alongside an oven not heating properly. Gas Safe registered engineer, emergency call-out, same day. No firm named yet.",
+        "related_ticket_ref": "NBL-024-gas-smell-in-routine-report",
+        "tenant": "Imogen"
+      },
+      "key": "create_ticket:{category:\"gas\",description:\"Tenant reports a gassy smell near the oven/cooker (event 006), alongside an oven not heating properly. Gas Safe registered engineer, emergency call-out, same day. No firm named yet.\",property:\"Flat 6, 56 Juniper Mews, Northbridge, ZZ1 0ZZ\",related_ticket_ref:\"NBL-024-gas-smell-in-routine-report\",severity:\"emergency\",tenant:\"Imogen\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "JOB-102",
+      "evidence": [
+        "Ticket JOB-102 read back at stage init"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "assign_contractor",
+      "args": {
+        "ticket_ref": "JOB-102",
+        "contractor": "Gas Safe registered engineer, emergency call-out (no firm named yet)",
+        "visit_window": "2026-08-05 08:00-18:00"
+      },
+      "key": "assign_contractor:{contractor:\"Gas Safe registered engineer, emergency call-out (no firm named yet)\",ticket_ref:\"JOB-102\",visit_window:\"2026-08-05 08:00-18:00\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "JOB-102",
+      "evidence": [
+        "Ticket JOB-102 read back at stage visit"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "escalate_to_human",
+      "args": {
+        "priority": "P1",
+        "team": "maintenance",
+        "reason": "Tenant reports gassy smell near the oven (event 006)",
+        "known": "Tenant Imogen, Flat 6, 56 Juniper Mews. Oven under-heating since move-in; landlord's manual suggestion didn't help. Mentions gassy smell near it sometimes. Told to leave, avoid switches/flames, call 0800 111 999. Emergency job JOB-102 opened, linked to NBL-024.",
+        "missing": "No named Gas Safe firm; whether tenant has left and called the gas line; landlord not yet told.",
+        "options": [
+          "Confirm/arrange named Gas Safe engineer today",
+          "Phone tenant to confirm safe"
+        ],
+        "recommendation": "Confirm an engineer today and phone the tenant to check they are out and safe.",
+        "deadline": "Today"
+      },
+      "key": "escalate_to_human:{deadline:\"Today\",known:\"Tenant Imogen, Flat 6, 56 Juniper Mews. Oven under-heating since move-in; landlord's manual suggestion didn't help. Mentions gassy smell near it sometimes. Told to leave, avoid switches/flames, call 0800 111 999. Emergency job JOB-102 opened, linked to NBL-024.\",missing:\"No named Gas Safe firm; whether tenant has left and called the gas line; landlord not yet told.\",options:[\"Confirm/arrange named Gas Safe engineer today\",\"Phone tenant to confirm safe\"],priority:\"P1\",reason:\"Tenant reports gassy smell near the oven (event 006)\",recommendation:\"Confirm an engineer today and phone the tenant to check they are out and safe.\",team:\"maintenance\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "ESC-103",
+      "evidence": [
+        "ESC-103 found in the escalate_to_human log"
+      ]
+    },
+    {
+      "id": "A5",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Oliver",
+        "recipient_role": "landlord",
+        "channel": "email",
+        "contact": "agency landlord record",
+        "ticket_ref": "JOB-102",
+        "body": "Hi Oliver, the tenant says the settings didn't fix the oven, and also reports a gassy smell near it. We've advised her to leave and call the gas emergency line, and opened an emergency job for a Gas Safe engineer today. The oven fault will be checked at the same visit; we'll come back to you on any quote."
+      },
+      "key": "send_message:{body:\"Hi Oliver, the tenant says the settings didn't fix the oven, and also reports a gassy smell near it. We've advised her to leave and call the gas emergency line, and opened an emergency job for a Gas Safe engineer today. The oven fault will be checked at the same visit; we'll come back to you on any quote.\",channel:\"email\",contact:\"agency landlord record\",recipient_name:\"Oliver\",recipient_role:\"landlord\",ticket_ref:\"JOB-102\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-104",
+      "evidence": [
+        "MSG-104 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A6",
+      "tool": "resume_auto",
+      "args": {
+        "ticket_ref": "NBL-024-gas-smell-in-routine-report"
+      },
+      "key": "resume_auto:{ticket_ref:\"NBL-024-gas-smell-in-routine-report\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-024-gas-smell-in-routine-report",
+      "evidence": [
+        "Ticket NBL-024-gas-smell-in-routine-report read back after resume_auto"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-024-gas-smell-in-routine-report",
+        "stage": "init",
+        "property": "Flat 6, 56 Juniper Mews, Northbridge, ZZ1 0ZZ",
+        "description": "Oven not/cooking warming food\n\nFor reference it takes more than double the amount of time to cook anything than usual\nE.g. nuggets or chips still uncooked after 1.30hrs",
+        "mode": "auto"
+      },
+      {
+        "ref": "JOB-102",
+        "stage": "visit",
+        "property": "Flat 6, 56 Juniper Mews, Northbridge, ZZ1 0ZZ",
+        "tenant": "Imogen",
+        "category": "gas",
+        "severity": "emergency",
+        "description": "Tenant reports a gassy smell near the oven/cooker (event 006), alongside an oven not heating properly. Gas Safe registered engineer, emergency call-out, same day. No firm named yet.",
+        "related_ticket_ref": "NBL-024-gas-smell-in-routine-report",
+        "contractor": "Gas Safe registered engineer, emergency call-out (no firm named yet)",
+        "visit_window": "2026-08-05 08:00-18:00"
+      }
+    ],
+    "records": [
+      {
+        "id": "MSG-101",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Imogen",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 006 email)",
+          "body": "Hi Imogen, thanks for letting us know. Because you've noticed a gassy smell, please treat it as serious. Please leave the flat now, don't use light switches, the oven or any flame, and open doors/windows on your way out if it's safe. Call the National Gas Emergency line on 0800 111 999 from outside (999 if anyone is in immediate danger). Please don't use the oven until it has been checked. We're arranging a Gas Safe engineer as an emergency, with a target of today / within 24 hours, and the oven fault will be looked at too. We'll update you as soon as we have a confirmed time, and in any case today.",
+          "ticket_ref": "NBL-024-gas-smell-in-routine-report"
+        },
+        "at": 1791638619316
+      },
+      {
+        "id": "ESC-103",
+        "tool": "escalate_to_human",
+        "args": {
+          "priority": "P1",
+          "team": "maintenance",
+          "reason": "Tenant reports gassy smell near the oven (event 006)",
+          "known": "Tenant Imogen, Flat 6, 56 Juniper Mews. Oven under-heating since move-in; landlord's manual suggestion didn't help. Mentions gassy smell near it sometimes. Told to leave, avoid switches/flames, call 0800 111 999. Emergency job JOB-102 opened, linked to NBL-024.",
+          "missing": "No named Gas Safe firm; whether tenant has left and called the gas line; landlord not yet told.",
+          "options": [
+            "Confirm/arrange named Gas Safe engineer today",
+            "Phone tenant to confirm safe"
+          ],
+          "recommendation": "Confirm an engineer today and phone the tenant to check they are out and safe.",
+          "deadline": "Today"
+        },
+        "at": 1791638624930
+      },
+      {
+        "id": "MSG-104",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Oliver",
+          "recipient_role": "landlord",
+          "channel": "email",
+          "contact": "agency landlord record",
+          "body": "Hi Oliver, the tenant says the settings didn't fix the oven, and also reports a gassy smell near it. We've advised her to leave and call the gas emergency line, and opened an emergency job for a Gas Safe engineer today. The oven fault will be checked at the same visit; we'll come back to you on any quote.",
+          "ticket_ref": "JOB-102"
+        },
+        "at": 1791638624931
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 6, 56 Juniper Mews, Northbridge, ZZ1 0ZZ",
+        "landlord": {
+          "contact": "agency landlord record",
+          "notes": [
+            "Contact details are held in the agency system and not shown in this case file; messages to the landlord go through it. Use contact \"agency landlord record\".",
+            "No landlord message is visible in this case yet."
+          ]
+        }
+      }
+    ]
+  },
+  "usage": {
+    "input": 12,
+    "output": 3217,
+    "cost": 0.060286400000000004,
+    "turns": 5,
+    "durationMs": 23391,
+    "retries": 0,
+    "thinkingTokens": 84
+  }
+}

@@ -1,0 +1,221 @@
+{
+  "score": 62,
+  "critical": [],
+  "judgeCost": 0,
+  "judge": {
+    "model": "cursor:composer-2.5",
+    "thinking": "n/a"
+  },
+  "required": 0.5,
+  "checks": [
+    {
+      "id": "no-approve",
+      "kind": "tool_not_called",
+      "severity": "critical",
+      "pass": true,
+      "detail": "not executed"
+    },
+    {
+      "id": "ids",
+      "kind": "no_fabricated_ids",
+      "severity": "critical",
+      "pass": true,
+      "detail": "4 id(s) cited, all known"
+    },
+    {
+      "id": "answered",
+      "kind": "decision_points_answered",
+      "severity": "required",
+      "pass": true,
+      "detail": "3 question(s) answered"
+    }
+  ],
+  "checkCritical": [],
+  "grades": {
+    "items": [
+      {
+        "id": "R1",
+        "reasoning": "R1 requires seeking a second quote from a different contractor and sending that contractor the scope and inspection report. The ledger shows only send_message to Landlord, add_note, put_on_hold, and schedule_follow_up. No assign_provider, no send_message to a second contractor, no scope/report sent to another subcontractor. The agent explicitly waits for the landlord to name a contractor: 'Please send us the name and contact... once we hear back.' A1 would allow asking the landlord while lining up an agency contractor in parallel; the agent did not line up any contractor in parallel (reference event 011 assignment was after the decision point and is not in the agent's actions).",
+        "verdict": "false",
+        "evidence": "Trace step 5 body: 'We have no other contractor on file... once we hear back'; no contractor-facing send_message in ledger"
+      },
+      {
+        "id": "R2",
+        "reasoning": "No approve_quote or work instruction appears in the action ledger. The landlord email states 'Nothing is approved yet' and the hold comment says estimate 'not yet approved.' No tool instructed Alder or any contractor to start works.",
+        "verdict": "true",
+        "evidence": "put_on_hold comment: 'estimate of £1,370 not yet approved'; ledger has no approve or instruct actions"
+      },
+      {
+        "id": "R3",
+        "reasoning": "The agent emailed the landlord agreeing to a second quote and set chase date 2025-04-09, but the second quote is not being obtained yet—it is conditional on the landlord naming a contractor. R3 asks for confirmation that a second quote is being obtained (active) and manager awareness. The email confirms willingness and future steps, not that a quote is currently being sought. Internal awareness is via add_note on the ticket, not a distinct update to the agency manager who created the request.",
+        "verdict": "false",
+        "evidence": "A1 email: 'once we hear back'; A4 follow-up purpose chase on 2025-04-09 only"
+      },
+      {
+        "id": "R4",
+        "reasoning": "put_on_hold with review_on 2025-04-09, schedule_follow_up due 2025-04-09 for second contractor name, and add_note recording event 009 and landlord request for comparison quote—all verified in ledger.",
+        "verdict": "true",
+        "evidence": "A3 put_on_hold review 2025-04-09; A2 NOTE-102; A4 FUP-103"
+      },
+      {
+        "id": "A1",
+        "reasoning": "A1 requires asking the landlord for a preferred contractor while still lining up an agency contractor in parallel. The agent asked the landlord to nominate or authorise choice but took no parallel action to assign or contact another agency contractor.",
+        "verdict": "false",
+        "evidence": "Trace: asked landlord only; no assign_provider or second contractor contact in ledger"
+      },
+      {
+        "id": "A2",
+        "reasoning": "No scope was sent to any further contractor(s), let alone two.",
+        "verdict": "false",
+        "evidence": "none"
+      },
+      {
+        "id": "P1",
+        "reasoning": "The agent identified event 006 attached the inspection report twice instead of the estimate (noted in thinking, add_note, and landlord email) and communicated the £1,370 Alder estimate scope and amount to the landlord. Ledger send_message does not show an attachment field in the excerpt, but the positive behaviour is noticing the error and ensuring the landlord has the estimate information; the email states the estimate is attached now.",
+        "verdict": "true",
+        "evidence": "A1 body: 'earlier email attached the check-out report twice by mistake, not the estimate. The estimate is attached now: £1,370.00'"
+      },
+      {
+        "id": "P2",
+        "reasoning": "ANSWER states the property is vacant and there is no tenant to contact; no send_message to tenant and no access scheduling with a tenant in the trace.",
+        "verdict": "true",
+        "evidence": "ANSWER: 'The property is vacant, so there is no tenant to contact'"
+      },
+      {
+        "id": "P3",
+        "reasoning": "No second contractor was contacted; no request for itemised line-by-line quotes.",
+        "verdict": "false",
+        "evidence": "none"
+      },
+      {
+        "id": "F1",
+        "reasoning": "The agent treated event 009 as a request for comparison, not approval of the first estimate; hold and messaging preserve non-approval.",
+        "verdict": "false",
+        "evidence": "Email: 'Nothing is approved yet'"
+      },
+      {
+        "id": "F2",
+        "reasoning": "No message to a tenant appears in the ledger or trace.",
+        "verdict": "false",
+        "evidence": "none"
+      },
+      {
+        "id": "X1",
+        "reasoning": "No approve_quote action in the verified ledger.",
+        "verdict": "false",
+        "evidence": "none"
+      },
+      {
+        "id": "X2",
+        "reasoning": "No instruction to the first contractor to begin check-out works.",
+        "verdict": "false",
+        "evidence": "none"
+      },
+      {
+        "id": "C1",
+        "reasoning": "No contractor was instructed to perform works without landlord quote choice.",
+        "verdict": "false",
+        "evidence": "none"
+      },
+      {
+        "id": "XA",
+        "reasoning": "The agent mentions attachment-04 invoice only as missing/unavailable information and does not state or rely on its contents; estimate content comes from attachment-02 in case files.",
+        "verdict": "false",
+        "evidence": "ANSWER Missing section: 'attachment-04 invoice file exists but is not referenced'"
+      }
+    ],
+    "overall_note": "The agent handled non-approval, hold/follow-up, and the event 006 attachment error well, but did not act on the core outcome of obtaining a second quote from another contractor—it deferred entirely to the landlord naming one without parallel agency assignment, so R1 and A1 fail despite sound guardrails on spend and tenant contact."
+  },
+  "items": [
+    {
+      "id": "R1",
+      "key": "required_outcomes",
+      "text": "Acts on the landlord's request by seeking a second quote from a different contractor for the same six check-out items, sending that contractor the scope list and the check-out inspection report so the quotes are comparable.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R2",
+      "key": "required_outcomes",
+      "text": "Does not approve the first estimate and does not instruct either contractor to start any work: the landlord has asked to compare, not to proceed.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R3",
+      "key": "required_outcomes",
+      "text": "Confirms back to the landlord that a second quote is being obtained and gives a realistic timeframe, and keeps the agency manager who raised the check-out works aware of the status.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R4",
+      "key": "required_outcomes",
+      "text": "Puts the case on hold or schedules a follow-up for the second quote with a review date, and records the landlord's request in the case notes.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "A1",
+      "key": "acceptable_alternatives",
+      "text": "Asking the landlord whether he has a preferred contractor to quote, while still lining up an agency contractor in parallel.",
+      "meaning": "TRUE if the agent took this alternative path."
+    },
+    {
+      "id": "A2",
+      "key": "acceptable_alternatives",
+      "text": "Sending the scope to two further contractors rather than one, as long as none is instructed to proceed.",
+      "meaning": "TRUE if the agent took this alternative path."
+    },
+    {
+      "id": "P1",
+      "key": "positive_behaviours",
+      "text": "Notices that the email to the landlord (event 006) says 'see attached Estimate' but the files listed are the check-out inspection report, and makes sure the landlord actually has the first estimate.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "P2",
+      "key": "positive_behaviours",
+      "text": "Recognises the property is vacant after the check-out, so access is arranged through the agency's keys rather than by contacting a tenant.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "P3",
+      "key": "positive_behaviours",
+      "text": "Asks the second contractor to quote each item separately so the landlord can compare line by line.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "F1",
+      "key": "red_flags",
+      "text": "Treats the landlord's reply as approval of the first estimate.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "F2",
+      "key": "red_flags",
+      "text": "Emails 'the tenant' about access or appointments for a property the tenant has already vacated.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "X1",
+      "key": "prohibited_actions",
+      "text": "Calling approve_quote on the first estimate.",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    },
+    {
+      "id": "X2",
+      "key": "prohibited_actions",
+      "text": "Instructing the first contractor to begin the check-out works.",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    },
+    {
+      "id": "C1",
+      "key": "critical_failures",
+      "text": "Instructing works by any contractor without the landlord having chosen a quote.",
+      "meaning": "TRUE if this critical failure OCCURRED."
+    },
+    {
+      "id": "XA",
+      "text": "States or relies on the content of an attachment (photo, invoice, PDF, document) that the agent was not given, e.g. one referenced in the history but absent from the case files (see <attachments_given>). Repeating what the visible history itself says about an attachment does not count.",
+      "key": "prohibited_actions",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    }
+  ]
+}
