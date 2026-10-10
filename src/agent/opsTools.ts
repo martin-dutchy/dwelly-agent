@@ -406,12 +406,22 @@ export function createOpsToolset(seed: OpsSeed | Ticket[] = []): Toolset {
     }),
     def({
       name: 'approve_quote',
-      description: 'Commit spend by approving a contractor quote. Only within the landlord spend limit or with recorded landlord approval.',
+      description:
+        'Commit spend by approving a contractor quote. Only within the landlord spend limit, with recorded landlord approval, or on an emergency ticket with emergency_justification.',
       kind: 'write',
-      parameters: z.object({ ticket_ref: z.string(), amount_gbp: z.number(), contractor: z.string(), approval_basis: z.string() }),
+      parameters: z.object({
+        ticket_ref: z.string(),
+        amount_gbp: z.number(),
+        contractor: z.string(),
+        approval_basis: z.string(),
+        emergency_justification: z
+          .string()
+          .optional()
+          .describe('Emergency tickets only, when the landlord has not approved: the immediate risk to safety or property that cannot wait for the landlord, quoting the case. Checked against the case text.'),
+      }),
       run: (a) => {
         const t = ticket(a.ticket_ref);
-        if (t) Object.assign(t, { stage: 'quote_approved', approved_gbp: a.amount_gbp });
+        if (t) Object.assign(t, { stage: 'quote_approved', approved_gbp: a.amount_gbp }, a.emergency_justification ? { emergency_approval: a.emergency_justification } : {});
         return { ok: true, approval_id: record('approve_quote', a, 'QAP').id };
       },
     }),
@@ -512,7 +522,12 @@ export function createOpsToolset(seed: OpsSeed | Ticket[] = []): Toolset {
         if ((decision === 'approved' || decision === 'conditional') && (cap === undefined || a.amount_gbp <= cap)) return undefined;
         const limit = p?.landlord?.spend_limit_gbp;
         if (limit !== undefined && a.amount_gbp <= limit) return undefined;
-        return `No recorded landlord approval covers £${a.amount_gbp}${limit !== undefined ? ` and it is above the £${limit} spend limit` : ' and no spend limit is on file'}. Send the quote with request_landlord_approval instead.`;
+        const blocked = `No recorded landlord approval covers £${a.amount_gbp}${limit !== undefined ? ` and it is above the £${limit} spend limit` : ' and no spend limit is on file'}. Send the quote with request_landlord_approval instead.`;
+        if (t?.severity !== 'emergency' || (decision && ['declined', 'own_contractor', 'tenant_self_fix', 'unclear'].includes(decision))) return blocked;
+        const why = String(a.emergency_justification ?? '').trim();
+        if (!why) return `${blocked} If the risk cannot wait for the landlord, give emergency_justification quoting the case.`;
+        if (evidence && !quoteAppears(why, evidence)) return `The emergency_justification "${why.slice(0, 120)}" does not quote the case. Put the case's words describing the risk in quotes.`;
+        return undefined;
       }
       case 'record_landlord_decision': {
         const quote = String(a.evidence_quote ?? '');
