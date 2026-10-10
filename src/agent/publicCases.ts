@@ -49,17 +49,35 @@ function sections(md: string) {
 /** Default cut mode: replay public examples, take anything else (the Reality Test) as it comes. */
 export const defaultAt = (dir: string) => (/HackatonPublicCases|public-cuts/.test(dir) ? 'auto' : 'none');
 
-/** Events visible at the decision point: all of them for `none`, else the recorded "next action" marker if the case has one, else `at`. */
-function resolveCutoff(index: string, total: number, at: string): number {
-  if (at === 'none') return total;
+/**
+ * Events visible at the decision point, and how that point was found:
+ * all of them for `none`; else N or N%; else (auto) the organisers' own marker (the "Recorded action" link,
+ * or the Overview's "escalation snapshot comprises history events 001–00N"); else, for cases without a
+ * marker (Property Management), just before an agency message or call in the second half of the history,
+ * so the recorded next event is a real decision rather than a system status update.
+ */
+function resolveCutoff(index: string, events: HistoryEvent[], at: string): { cutoff: number; marked: boolean } {
+  const total = events.length;
+  if (at === 'none') return { cutoff: total, marked: true };
   if (at !== 'auto') {
     const n = at.endsWith('%') ? Math.round((total * Number(at.slice(0, -1))) / 100) : Number(at);
-    return Math.max(1, Math.min(total, n));
+    return { cutoff: Math.max(1, Math.min(total, n)), marked: false };
   }
   const recorded = index.match(/Recorded action:\*\* \[History event (\d+)\]/)?.[1];
-  if (recorded) return Number(recorded) - 1;
-  // No marker (e.g. Property Management): stop halfway so there is a real next step to take.
-  return Math.max(1, Math.floor(total / 2));
+  if (recorded) return { cutoff: Number(recorded) - 1, marked: true };
+  const snapshot = index.match(/escalation snapshot comprises history events? \d+\s*[–-]\s*(\d+)/i)?.[1];
+  if (snapshot) return { cutoff: Math.max(1, Math.min(total, Number(snapshot))), marked: true };
+  const half = Math.max(1, Math.floor(total / 2));
+  const next = events.findIndex((e, i) => i >= half && agencyAction(e));
+  return { cutoff: next > 0 ? next : half, marked: false };
+}
+
+/** An email, SMS or call the agency sent to a tenant, landlord or contractor: a decision someone took. */
+export function agencyAction(e: HistoryEvent): boolean {
+  const channel = field(e.body, 'Channel') ?? '';
+  const from = field(e.body, 'From') ?? '';
+  const to = field(e.body, 'To') ?? '';
+  return /^(email|sms|call)$/i.test(channel) && /agency|lettings/i.test(from) && /tenant|landlord|contractor|provider/i.test(to);
 }
 
 /** Head clip for attachments and practice-case files, whose important part is at the start. */
@@ -205,14 +223,18 @@ export function loadPublicCase(dir: string, at: string = defaultAt(dir)) {
   const index = readFileSync(join(dir, 'index.md'), 'utf8');
   const { preamble, events } = parseHistory(readFileSync(join(dir, 'history.md'), 'utf8'));
   const asIs = at === 'none';
-  const cutoff = resolveCutoff(index, events.length, at);
+  const { cutoff, marked } = resolveCutoff(index, events, at);
   const visible = events.slice(0, cutoff);
   const hidden = events.slice(cutoff);
 
   const { title, parts } = sections(index);
   const spoilers = asIs ? SUMMARY_SECTIONS : SPOILER_SECTIONS;
   const kept = parts.filter((p) => !spoilers.includes(p.name)).map((p) => p.text);
-  const today = visible.at(-1)?.header.split(' — ')[0] ?? 'unknown';
+  // At a marked escalation point the case says when it was escalated; that is "now" for the agent.
+  const escalated = index.match(/^- \*\*Escalated:\*\* (.+)$/m)?.[1]?.trim();
+  const today = (marked && escalated) || (visible.at(-1)?.header.split(' — ')[0] ?? 'unknown');
+  // Use the case's own questions when it has them; ours are only a fallback.
+  const ownQuestions = parts.some((p) => !spoilers.includes(p.name) && /question|decision point|to decide/i.test(p.name));
   // The completion date and final status give the ending away too.
   const details = kept.map((t) => t.replace(/^- \*\*(Status|Updated|Completed):\*\*.*\n?/gm, ''));
 
@@ -232,7 +254,7 @@ export function loadPublicCase(dir: string, at: string = defaultAt(dir)) {
   const decisionPoint = asIs ? `the end of the recorded history (${cutoff} event${cutoff === 1 ? '' : 's'})` : `after event ${String(cutoff).padStart(3, '0')} of the history`;
   const brief = `${title}
 
-- **Today:** ${today} (time of the latest event you can see)
+- **Today:** ${today} (${marked && escalated ? 'when the case was escalated to you' : 'time of the latest event you can see'})
 - **Decision point:** ${decisionPoint}
 
 ${details.join('\n\n')}
@@ -241,11 +263,17 @@ ${details.join('\n\n')}
 
 You are the agency's operations agent at this point in the case. Read the history and attachments, work out where the case stands and what is still outstanding, then take the next action(s) the agency should take now with the tools available. Escalate only what genuinely needs a human decision.
 
-## Questions / decision points
+${
+  ownQuestions
+    ? 'Answer every question and decision point listed in the case above, in submit_decision `answers`, using its own wording.'
+    : `## Questions / decision points
 
 1. Where does this case stand right now, and what is outstanding?
 2. What is the next action, who is it for, and through which channel?
-3. Does anything need a human decision, and why?`;
+3. Does anything need a human decision, and why?`
+}
+
+State the next action(s) with recipient and channel, what they do not establish, and what remains open. Facts that arrive after the decision point are unknown to you.`;
 
   const reference = asIs
     ? ''

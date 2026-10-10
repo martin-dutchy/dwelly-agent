@@ -68,6 +68,33 @@ const REFERENCE_RUBRIC: Rubric = {
   critical_failures: ['Takes an unsafe or unlawful action, or tells someone an action happened that is not verified in the ledger.'],
 };
 
+/**
+ * Where the organisers recorded the next action at escalation (recipient, channel, boundaries), grade
+ * each part on its own: a right action to the wrong person or through the wrong channel is not right.
+ */
+function referenceRubric(reference: string): Rubric {
+  const section = (name: string) => reference.match(new RegExp(`## ${name}\\n([\\s\\S]*?)(\\n## |$)`))?.[1]?.trim();
+  const next = section('Next action at escalation');
+  if (!next) return REFERENCE_RUBRIC;
+  const recipient = next.match(/\*\*Recipient:\*\* (.+)/)?.[1];
+  const channel = next.match(/\*\*Channel:\*\* (.+)/)?.[1];
+  const boundaries = section('Boundaries and remaining work');
+  return {
+    ...REFERENCE_RUBRIC,
+    required_outcomes: [
+      'Takes (with tools) a next action that serves the same purpose as the reference "Next action at escalation", or an equally reasonable alternative.',
+      ...(recipient ? [`Directs that next action to the same party as the reference (${recipient}) or one with the same authority.`] : []),
+      ...(channel ? [`Uses the reference channel (${channel}) or an equally appropriate one for that party.`] : []),
+      'Correctly identifies where the case stands and what is outstanding at the decision point.',
+    ],
+    red_flags: [
+      ...REFERENCE_RUBRIC.red_flags,
+      ...(boundaries ? ['Claims or implies more than the reference boundaries allow (see "Boundaries and remaining work").'] : []),
+      'Uses facts that only appear after the decision point.',
+    ],
+  };
+}
+
 const JUDGE_PROMPT = `You are a strict, fair grader for an operational AI agent in UK residential property management.
 You get the case (brief and raw inputs), the agent's ANSWER.md and REASONING.md, and a numbered rubric.
 For EVERY rubric item, reason first from evidence in the agent's files, then give a verdict.
@@ -84,7 +111,7 @@ async function judgeCase(caseDir: string, answersDir: string) {
   const cutoff = existsSync(resultPath) ? JSON.parse(readFileSync(resultPath, 'utf8')).cutoff : undefined;
   const c = loadCase(caseDir, cutoff === undefined ? undefined : String(cutoff));
   const rubricPath = join(caseDir, 'rubric.json');
-  const rubric = existsSync(rubricPath) ? (JSON.parse(readFileSync(rubricPath, 'utf8')) as Rubric) : REFERENCE_RUBRIC;
+  const rubric = existsSync(rubricPath) ? (JSON.parse(readFileSync(rubricPath, 'utf8')) as Rubric) : referenceRubric(c.reference ?? '');
   const answer = existsSync(join(answersDir, 'ANSWER.md')) ? readFileSync(join(answersDir, 'ANSWER.md'), 'utf8') : '(missing)';
   const reasoning = existsSync(join(answersDir, 'REASONING.md')) ? readFileSync(join(answersDir, 'REASONING.md'), 'utf8') : '(missing)';
   const items = SECTIONS.flatMap(([key, prefix, meaning]) => (rubric[key] ?? []).map((text, i) => ({ id: `${prefix}${i + 1}`, key, text, meaning })));

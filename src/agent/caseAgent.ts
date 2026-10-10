@@ -10,12 +10,52 @@ import type { Toolset } from './opsTools.js';
 import { verify as coreVerify } from './verify.js';
 
 /** The fixture-backed tools shared with the voice agents. Batch cases use createOpsToolset instead. */
-export const coreToolset = (): Toolset => ({ tools: coreTools, execute: executeTool, verify: coreVerify, state: { tickets: [], records: [] } });
+export const coreToolset = (): Toolset => ({ tools: coreTools, execute: executeTool, verify: coreVerify, state: { tickets: [], records: [], properties: [] } });
 
 const asSchema = (s: z.ZodType) => z.toJSONSchema(s) as unknown as TSchema;
 const text = (t: string) => [{ type: 'text' as const, text: t }];
 
+/** What the agency does next, in the vocabulary of the real case histories. */
+export const NEXT_ACTION_TYPES = [
+  'REQUEST_LANDLORD_APPROVAL',
+  'ASSIGN_PROVIDER',
+  'BOOK_OR_CONFIRM_APPOINTMENT',
+  'CHASE_PROVIDER',
+  'CHASE_LANDLORD',
+  'CHASE_TENANT',
+  'SEND_QUOTE_FOR_APPROVAL',
+  'APPROVE_INVOICE_FOR_PAYMENT',
+  'REPLY_TO_TENANT',
+  'REQUEST_INFORMATION',
+  'SPLIT_NEW_REQUEST',
+  'RECLASSIFY',
+  'WAIT',
+  'CLOSE_WITH_PAYMENT',
+  'CLOSE_WITHOUT_PAYMENT',
+  'ESCALATE_TO_HUMAN',
+  'OTHER',
+] as const;
+
+export const NextAction = z.object({
+  type: z.enum(NEXT_ACTION_TYPES),
+  action: z.string().describe('The action in one sentence, e.g. "Ask the landlord to approve the £172.51 + VAT quote"'),
+  recipient: z.string().describe('Who it is for, by name and role (e.g. "Ava Kendall, landlord"), or "internal"'),
+  channel: z.enum(['email', 'sms', 'phone_call', 'whatsapp', 'letter', 'portal', 'internal']),
+  ledger_id: z
+    .string()
+    .optional()
+    .describe('The verified ledger entry that performed it. Required for every type except WAIT and OTHER; for WAIT cite the schedule_follow_up or put_on_hold entry when there is one'),
+});
+export type NextAction = z.infer<typeof NextAction>;
+
 export const Decision = z.object({
+  case_state: z.string().describe('Where the case stands at the decision point: stage, who is waiting on whom, what is outstanding'),
+  next_actions: z.array(NextAction).describe('The next action(s) taken now, most important first. At least one.'),
+  boundaries: z
+    .array(z.string())
+    .describe('What these actions do NOT establish or decide, e.g. "Booking the visit does not confirm the cause or who pays"'),
+  remaining_work: z.array(z.string()).describe('What is still open after these actions, and who owns it'),
+  missing_info: z.array(z.string()).describe('Information that was missing or unavailable and mattered; empty if none'),
   outcome: z.enum(['resolved', 'action_taken', 'escalated', 'needs_info', 'no_action']).describe('Final state of the case'),
   severity: z.enum(['emergency', 'urgent', 'routine', 'n/a']).describe('Highest severity found'),
   summary: z.string().describe('Two or three sentences: what happened and what was done'),
@@ -114,7 +154,8 @@ export async function runCase(opts: CaseRunOptions) {
         const done = ledger.findVerified(toolCall.name, a);
         if (done) return { block: true, reason: `Already done and verified as ${done.id} (${done.ref}). Do not repeat it.` };
       }
-      const policy = policyBlock(toolCall.name, a);
+      // Run-level rules first (they know the ledger), then the toolset's own rules (they know the job record).
+      const policy = policyBlock(toolCall.name, a) ?? toolset.guard?.(toolCall.name, a);
       if (policy) {
         policyLog.push({ tool: toolCall.name, reason: policy });
         return { block: true, reason: `Blocked by policy: ${policy}` };
@@ -145,6 +186,20 @@ export async function runCase(opts: CaseRunOptions) {
         const handled = new Set((d.failed_actions ?? []).map((f) => f.ledger_id));
         for (const e of ledger.unresolved()) {
           if (!handled.has(e.id)) problems.push(`${e.id} (${e.tool}) is ${e.status}: list it in failed_actions with how you handled it.`);
+        }
+        // The next actions are what the case is judged on: each must name a recipient and be backed by a verified action.
+        if (!d.next_actions?.length) problems.push('next_actions is empty: state the next action you took (WAIT with a schedule_follow_up counts).');
+        for (const na of d.next_actions ?? []) {
+          if (!na.ledger_id) {
+            if (!['WAIT', 'OTHER'].includes(na.type)) problems.push(`next action "${na.action}" (${na.type}) has no ledger_id: perform it with a tool first, then cite the entry.`);
+            continue;
+          }
+          const e = ledger.get(na.ledger_id);
+          if (!e) problems.push(`next action "${na.action}" cites ${na.ledger_id}, which is not in the ledger: perform it with a tool first.`);
+          else if (e.status !== 'verified') problems.push(`next action "${na.action}" cites ${na.ledger_id} (${e.tool}), which is ${e.status}.`);
+          else if (na.type === 'WAIT' && !['schedule_follow_up', 'put_on_hold'].includes(e.tool))
+            problems.push(`WAIT must cite a schedule_follow_up or put_on_hold entry with a review date, not ${e.tool}.`);
+          else if (na.type === 'ESCALATE_TO_HUMAN' && e.tool !== 'escalate_to_human') problems.push(`ESCALATE_TO_HUMAN must cite an escalate_to_human entry, not ${e.tool}.`);
         }
         // An escalation or open question must actually have been handed to someone, never left waiting.
         const hasTool = (n: string) => toolset.tools.some((t) => t.name === n);

@@ -6,6 +6,7 @@ import { runCase } from './caseAgent.js';
 const verifyCall = fauxToolCall('verify_identity', { tenant_id: 'T-1003', full_name: 'Priya Shah', date_of_birth: '1998-07-21' });
 const ticketArgs = { tenant_id: 'T-1003', category: 'appliance', urgency: 'routine', description: 'Oven door hinge broken' };
 const decision = (over: Record<string, unknown>) => ({
+  case_state: 'open', next_actions: [{ type: 'WAIT', action: 'wait', recipient: 'internal', channel: 'internal' }], boundaries: [], remaining_work: [], missing_info: [],
   outcome: 'action_taken',
   severity: 'routine',
   summary: 'Logged the repair.',

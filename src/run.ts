@@ -13,6 +13,7 @@ import { runCase } from './agent/caseAgent.js';
 import { type LoadedCase, casePrompt, listCases, loadCase } from './agent/cases.js';
 import { claude, streamFn } from './agent/models.js';
 import { jevEnabled, prescreen, screenNote } from './agent/jev.js';
+import { seedFromCase } from './agent/opsSeed.js';
 import { createOpsToolset } from './agent/opsTools.js';
 import { type Usage, renderAnswer, renderReasoning } from './agent/report.js';
 import { CASE_SYSTEM_PROMPT } from './agent/systemPrompt.js';
@@ -47,7 +48,7 @@ async function processCase(dir: string): Promise<Row> {
     c = loadCase(dir, values.at);
     const prompt = casePrompt(c);
     const screen = await prescreen(prompt);
-    const toolset = createOpsToolset(c.seedTickets);
+    const toolset = createOpsToolset(seedFromCase(c));
     const writeTools = toolset.tools.filter((t) => t.kind === 'write').map((t) => t.name);
     const failures = chaosPlan(writeTools, Number(values.chaos), `${values.seed}:${c.id}`, c.failures);
     const chaos = Object.fromEntries(Object.entries(failures).filter(([k]) => !(k in c!.failures)));
