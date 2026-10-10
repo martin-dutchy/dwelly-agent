@@ -2,6 +2,8 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { CallRow, EventRow } from '../voice/store.js';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { fetchAudio } from '../voice/finalize.js';
+
+const audioCache = new Map<string, Buffer>();
 import { parseHistory } from '../agent/publicCases.js';
 import { join } from 'node:path';
 import { CASE_SETS, gradeBatch, importRun, startBatch } from './batch.js';
@@ -196,11 +198,25 @@ export async function opsRoutes(path: string, req: IncomingMessage, res: ServerR
   // The real recording of a call, proxied from ElevenLabs (the key stays on the server).
   const audio = path.match(/^\/ops\/show\/audio\/(conv_[\w]+)$/)?.[1];
   if (audio) {
-    const r = await fetchAudio(audio);
-    if (!r.ok || !r.body) return json(res, { error: 'no audio' }, 404);
-    res.writeHead(200, { 'content-type': r.headers.get('content-type') ?? 'audio/mpeg', 'cache-control': 'private, max-age=3600' });
-    for await (const chunk of r.body) res.write(chunk);
-    return void res.end();
+    // Cached in memory and served with byte ranges, so the browser can seek straight to each clip.
+    let buf = audioCache.get(audio);
+    if (!buf) {
+      const r = await fetchAudio(audio);
+      if (!r.ok) return json(res, { error: 'no audio' }, 404);
+      buf = Buffer.from(await r.arrayBuffer());
+      audioCache.set(audio, buf);
+    }
+    const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range ?? '');
+    const head = { 'content-type': 'audio/mpeg', 'accept-ranges': 'bytes', 'cache-control': 'private, max-age=3600' };
+    if (m && (m[1] || m[2])) {
+      const start = m[1] ? Number(m[1]) : Math.max(0, buf.length - Number(m[2]));
+      const end = m[1] && m[2] ? Math.min(Number(m[2]), buf.length - 1) : buf.length - 1;
+      if (start >= buf.length || start > end) { res.writeHead(416, { 'content-range': `bytes */${buf.length}` }); return void res.end(); }
+      res.writeHead(206, { ...head, 'content-range': `bytes ${start}-${end}/${buf.length}`, 'content-length': end - start + 1 });
+      return void res.end(buf.subarray(start, end + 1));
+    }
+    res.writeHead(200, { ...head, 'content-length': buf.length });
+    return void res.end(buf);
   }
   // Reset the demo: reopen every decided task, drop people's replies from the cases, back to the start.
   if (path === '/ops/show/reset' && req.method === 'POST') {

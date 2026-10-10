@@ -173,8 +173,8 @@ const D = ${JSON.stringify(d).replace(/</g, '\\u003c')};
   const hold = (ms) => (autoplay || (window.DemoCursor && window.DemoCursor.AUTO) ? sleep(ms) : Promise.resolve());
   const scenes = [
     async () => { say('These are open lettings cases. Each one is stuck, waiting for a person.'); head(D.totals.cases + ' open cases, each waiting on a person.'); set('k-open', D.totals.cases); for (const c of D.cards) { card(c).classList.add('in'); await sleep(45); } $('more').classList.add('in'); await hold(1600); },
-    async () => { say('Our agents tag onto the cases you already have and start solving them.'); head('Agents pick up every case.'); for (const c of D.cards) { state(card(c), 'working', 'Agent working'); await sleep(35); } tick(4); if (callCard) { const el = card(callCard); el.classList.add('focus'); el.querySelector('.state').textContent = 'Calling ' + D.call.name + ' (' + D.call.role.toLowerCase() + ')'; } await hold(1400); say('This one needs the ' + D.call.role.toLowerCase() + '’s go-ahead, so the agent phones him.'); await hold(1900); },
-    async () => { say(D.call.real ? 'This is a real person: a stranger who answered our LinkedIn post.' : 'The AI voice agent is on the call now. It explains the quote and asks for a decision.', D.call.real ? 'The AI voice agent is on the call with him now.' : ''); head('Case ' + (callCard?.no ?? '') + ': the agent is calling the ' + D.call.role.toLowerCase() + '.'); await playCall(); },
+    async () => { say('Our agents tag onto the cases you already have and start solving them.'); head('Agents pick up every case.'); for (const c of D.cards) { state(card(c), 'working', 'Agent working'); await sleep(35); } tick(4); if (callCard) { const el = card(callCard); el.classList.add('focus'); el.querySelector('.state').textContent = 'Calling ' + D.call.name + ' (' + D.call.role.toLowerCase() + ')'; } await hold(1400); say('This one needs the ' + D.call.role.replace(/\\s*\\(.*\\)/, '').toLowerCase() + '’s go-ahead, so the agent phones him.'); await hold(1900); },
+    async () => { say(D.call.real ? 'This is a real person: a stranger who answered our LinkedIn post.' : 'The AI voice agent is on the call now. It explains the quote and asks for a decision.', D.call.real ? 'The AI voice agent is on the call with him now.' : ''); head('Case ' + (callCard?.no ?? '') + ': the agent is calling the ' + D.call.role.replace(/\\s*\\(.*\\)/, '').toLowerCase() + '.'); await playCall(); },
     async () => { say('His answer is read back and recorded. Every follow-up is confirmed.', 'No staff time spent.'); const el = card(callCard); head('Follow-ups done, each one confirmed.'); const lis = el.querySelectorAll('li'); for (const li of lis) { li.classList.add('on'); await sleep(200); } state(el, 'done', 'Done automatically. No staff time.'); auto++; counters(); tick(12); await hold(1500); },
     async () => { say('This tenant asks about parking. The agent can’t see a policy, so it doesn’t guess.', 'It asks a person instead.'); const el = card(personCard); head('One case needs a person.'); state(el, 'person', 'Needs a person: ' + personCard.person.question); el.insertAdjacentHTML('beforeend', '<a class="go" href="' + personCard.person.href + '">Open in Decisions</a>'); people++; counters(); await hold(1400); },
     async () => fastForward(),
@@ -281,24 +281,27 @@ const D = ${JSON.stringify(d).replace(/</g, '\\u003c')};
       for (let k = 0; k < clips.length && !ended; k++) {
         const c = clips[k];
         if (k > 0 && c.from - clips[k - 1].to >= 1) addMark(c.from - clips[k - 1].to);
-        while (li < L.length && at[li] < c.from) li++;
+        // Turn times are whole seconds: a line stamped up to 1s before the clip still belongs to it.
+        while (li < L.length && at[li] < c.from - 1) li++;
         if (Math.abs(a.currentTime - c.from) > 0.3) {
           const seeked = new Promise((r) => a.addEventListener('seeked', r, { once: true }));
           a.currentTime = c.from; await Promise.race([seeked, sleep(1500), stop]);
         }
         if (ended) break;
         await playOrAsk(a, () => ended); // if the browser blocks sound, ask for one click rather than going silent
+        // When each clip really started and stopped (wall clock), so a screen recording can be matched to the audio.
+        console.info('[calllog]', JSON.stringify({ ev: 'play', from: a.currentTime, at: Date.now() }));
         a.playbackRate = 1;
         await new Promise((resolve) => {
           const poll = setInterval(() => {
             const now = a.currentTime; set('timer', 'In call · ' + mmss(now));
-            while (li < L.length && at[li] <= now && at[li] < c.to) addLine(L[li++]);
+            while (li < L.length && at[li] <= Math.max(now, c.from) && at[li] < c.to - 0.5) addLine(L[li++]);
             if (ended || a.ended || a.error || now >= c.to) { clearInterval(poll); resolve(); }
           }, 80);
           stop.then(() => { clearInterval(poll); resolve(); });
         });
-        a.pause();
-        if (!ended) while (li < L.length && at[li] < c.to) addLine(L[li++]);
+        a.pause(); console.info('[calllog]', JSON.stringify({ ev: 'pause', to: a.currentTime, at: Date.now() }));
+        if (!ended) while (li < L.length && at[li] < c.to - 0.5) addLine(L[li++]);
       }
       while (li < L.length && at[li] < clips[clips.length - 1].from) li++;
     }
