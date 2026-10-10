@@ -69,6 +69,16 @@ describe('visit confirmation', () => {
     expect(mentionsDate('booked 18/09 am', '2025-09-08 10:00')).toBe(false);
     expect(mentionsDate('Monday morning between 10 and 12', '2025-09-08 10:00')).toBe(false);
     expect(mentionsDate('I can come tomorrow at 10', '2025-09-08 10:00', '2025-09-07 15:00')).toBe(true);
+    expect(mentionsDate('They agree on a visit time for the next day after 10:30 AM.', '2025-09-08 10:30', '2025-09-07 05:03')).toBe(true);
+    expect(mentionsDate('They agree on a visit time for the next day after 10:30 AM.', '2025-09-09 10:30', '2025-09-07 05:03')).toBe(false);
+  });
+
+  it('reads "tomorrow" from the day the provider said it, not from today', () => {
+    const said = ['### 2025-09-02 18:00 UTC — event 030', '- **From:** Contractor', 'I can come tomorrow at 10.'].join('\n');
+    const t = ops({}, { evidence: said, today: '2025-09-03 07:00' });
+    const visit = (datetime: string) => t.guard!('set_visit', { ticket_ref: 'NBL-1', datetime, slot_text: '10am', access: 'tenant_home', confirmed_by: 'provider', evidence_quote: 'I can come tomorrow at 10' }, []);
+    expect(visit('2025-09-03 10:00')).toBeUndefined();
+    expect(visit('2025-09-04 10:00')).toMatch(/does not name/);
   });
 
   it('says who wrote the words in an organiser history, and nothing for other formats', () => {

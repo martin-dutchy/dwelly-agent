@@ -20,9 +20,16 @@ describe('case system prompt', () => {
 
   it('names only tools, arguments and values that exist', () => {
     const { tools } = createOpsToolset();
-    const known = [...tools.map((t) => `${t.name} ${JSON.stringify(z.toJSONSchema(t.parameters))}`), JSON.stringify(z.toJSONSchema(Decision))].join(' ');
-    const named = [...CASE_SYSTEM_PROMPT.matchAll(/`([a-z]+(?:_[a-z]+)+)`/g)].map((m) => m[1]);
+    const known = [...tools.map((t) => `${t.name} ${JSON.stringify(z.toJSONSchema(t.parameters))}`), 'submit_decision', JSON.stringify(z.toJSONSchema(Decision))].join(' ');
+    // Every snake_case word, backticked or not: the shared policy names tools in plain text.
+    const named = [...new Set([...CASE_SYSTEM_PROMPT.matchAll(/\b[a-z]+(?:_[a-z]+)+\b/g)].map((m) => m[0]))];
     expect(named.length).toBeGreaterThan(10);
     expect(named.filter((n) => !known.includes(n))).toEqual([]);
+  });
+
+  it('carries no live-call-only rules the case tools cannot follow', () => {
+    expect(CASE_SYSTEM_PROMPT).not.toMatch(/explicit yes/i);
+    expect(CASE_SYSTEM_PROMPT).not.toMatch(/say so plainly and escalate/);
+    expect(CASE_SYSTEM_PROMPT).not.toMatch(/unsure you have the authority/);
   });
 });
