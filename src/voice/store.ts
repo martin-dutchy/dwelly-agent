@@ -7,7 +7,19 @@ import postgres from 'postgres';
  * Audio and ElevenLabs' own transcript stay in ElevenLabs; we keep a copy of the transcript for grading.
  */
 
-export type Tester = { id: string; name: string; token: string; daily_cap: number; revoked: boolean; created_at: string };
+export type Tester = {
+  id: string;
+  name: string;
+  token: string;
+  daily_cap: number;
+  revoked: boolean;
+  created_at: string;
+  /** E.164 number to ring when they press "Call me now"; null = browser calls only. */
+  phone: string | null;
+  /** Fixed case for this person; null = rotate through the scenarios. */
+  scenario_id: string | null;
+};
+export type NewTester = { name: string; dailyCap: number; phone?: string | null; scenarioId?: string | null };
 export type CallRow = {
   conversation_id: string;
   tester_id: string | null;
@@ -29,7 +41,7 @@ export type CallResult = Pick<CallRow, 'duration_secs' | 'passed' | 'grade' | 'f
 
 export interface VoiceStore {
   init(): Promise<void>;
-  createTester(name: string, dailyCap: number): Promise<Tester>;
+  createTester(t: NewTester): Promise<Tester>;
   listTesters(): Promise<Tester[]>;
   testerByToken(token: string): Promise<Tester | undefined>;
   setRevoked(id: string, revoked: boolean): Promise<void>;
@@ -54,8 +66,8 @@ export function memoryStore(): VoiceStore {
   const events = new Map<string, EventRow[]>();
   return {
     init: async () => {},
-    async createTester(name, daily_cap) {
-      const t = { id: `t_${newToken()}`, name, token: newToken(), daily_cap, revoked: false, created_at: now() };
+    async createTester({ name, dailyCap, phone = null, scenarioId = null }) {
+      const t = { id: `t_${newToken()}`, name, token: newToken(), daily_cap: dailyCap, revoked: false, created_at: now(), phone, scenario_id: scenarioId };
       testers.push(t);
       return t;
     },
@@ -106,6 +118,8 @@ const SCHEMA = [
   `create table if not exists voice_testers (
     id text primary key, name text not null, token text not null unique, daily_cap int not null default 10,
     revoked boolean not null default false, created_at timestamptz not null default now())`,
+  `alter table voice_testers add column if not exists phone text`,
+  `alter table voice_testers add column if not exists scenario_id text`,
   `create table if not exists voice_calls (
     conversation_id text primary key, tester_id text references voice_testers(id), scenario_id text not null, brain text not null,
     status text not null default 'live', started_at timestamptz not null default now(), ended_at timestamptz,
@@ -125,8 +139,9 @@ export function pgStore(url: string): VoiceStore {
     async init() {
       for (const s of SCHEMA) await sql.unsafe(s);
     },
-    async createTester(name, dailyCap) {
-      const [t] = await sql`insert into voice_testers (id, name, token, daily_cap) values (${`t_${newToken()}`}, ${name}, ${newToken()}, ${dailyCap}) returning *`;
+    async createTester({ name, dailyCap, phone = null, scenarioId = null }) {
+      const [t] = await sql`insert into voice_testers (id, name, token, daily_cap, phone, scenario_id)
+        values (${`t_${newToken()}`}, ${name}, ${newToken()}, ${dailyCap}, ${phone}, ${scenarioId}) returning *`;
       return row<Tester>(t);
     },
     listTesters: async () => (await sql`select * from voice_testers order by created_at desc`).map((r) => row<Tester>(r)),

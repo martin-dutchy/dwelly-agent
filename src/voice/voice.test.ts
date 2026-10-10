@@ -8,7 +8,9 @@ import { conversationIdOf, syncInterruption } from './pi/brain.js';
 import type { AddressInfo } from 'node:net';
 import { onAudit } from '../core/audit.js';
 import { buildCallLog, grade, scenarios } from './scenarios.js';
-import { createVoiceServer } from './server.js';
+import { createVoiceServer, toE164 } from './server.js';
+import { whatsappLink, whatsappMessage } from './campaign.js';
+import { testerCard } from './scenarios.js';
 import { memoryStore } from './store.js';
 import { normaliseDate, normalisePostcode } from './spoken.js';
 import { READBACK_FIELD, handleVoiceToolCall } from './toolCall.js';
@@ -191,7 +193,7 @@ describe('tester and admin routes', () => {
 
   it('serves a card to a valid invite, hides the script, and blocks revoked links', async () => {
     await withServer(async (base, store) => {
-      const t = await store.createTester('Mum', 2);
+      const t = await store.createTester({ name: 'Mum', dailyCap: 2 });
       const res = await (await fetch(`${base}/t/${t.token}/api/card`)).json();
       expect(res.name).toBe('Mum');
       expect(res.card.situation).toBeTruthy();
@@ -205,7 +207,7 @@ describe('tester and admin routes', () => {
 
   it('enforces the daily call cap per invite', async () => {
     await withServer(async (base, store) => {
-      const t = await store.createTester('Dad', 1);
+      const t = await store.createTester({ name: 'Dad', dailyCap: 1 });
       await store.registerCall({ conversationId: conv('cap'), testerId: t.id, scenarioId: 'routine-repair', brain: 'native' });
       const r = await fetch(`${base}/t/${t.token}/api/start`, { method: 'POST' });
       expect(r.status).toBe(429);
@@ -221,13 +223,44 @@ describe('tester and admin routes', () => {
     });
   });
 
+  it('keeps a fixed case on the invite and refuses phone calls without a number', async () => {
+    await withServer(async (base, store) => {
+      const t = await store.createTester({ name: 'Marc', dailyCap: 5, phone: '+447700900123', scenarioId: 'gas-emergency' });
+      const res = await (await fetch(`${base}/t/${t.token}/api/card`)).json();
+      expect(res.card.id).toBe('gas-emergency');
+      expect(res.fixed).toBe(true);
+      expect(res.phone).toBeNull(); // no ELEVENLABS_PHONE_NUMBER_ID in this env, so no call-me button
+      const r = await fetch(`${base}/t/${t.token}/api/phone-call`, { method: 'POST', body: JSON.stringify({ scenarioId: 'gas-emergency' }) });
+      expect(r.status).toBe(400);
+    });
+  });
+
   it('only lets a tester end their own calls', async () => {
     await withServer(async (base, store) => {
-      const a = await store.createTester('A', 5);
-      const b = await store.createTester('B', 5);
+      const a = await store.createTester({ name: 'A', dailyCap: 5 });
+      const b = await store.createTester({ name: 'B', dailyCap: 5 });
       const id = conv('own');
       await store.registerCall({ conversationId: id, testerId: a.id, scenarioId: 'routine-repair', brain: 'native' });
       expect((await fetch(`${base}/t/${b.token}/api/calls/${id}/end`, { method: 'POST' })).status).toBe(404);
     });
+  });
+});
+
+describe('WhatsApp heads-up', () => {
+  it('normalises UK numbers to E.164', () => {
+    expect(toE164('+44 7877 094577')).toBe('+447877094577');
+    expect(toE164('07877 094577')).toBe('+447877094577');
+    expect(toE164('0044 7877 094577')).toBe('+447877094577');
+    expect(toE164('hello')).toBeUndefined();
+  });
+
+  it('includes the call-me link and the card, and opens the right chat', () => {
+    const card = testerCard(scenarios[0]);
+    const m = whatsappMessage(card, { name: 'Marc', from: '+16813346993', link: 'https://x.test/t/abc', phone: true });
+    expect(m).toContain('Hi Marc!');
+    expect(m).toContain('Call me now');
+    expect(m).toContain('https://x.test/t/abc');
+    expect(m).toContain(card.situation);
+    expect(whatsappLink(m, '+44 7877 094577')).toMatch(/^https:\/\/wa\.me\/447877094577\?text=/);
   });
 });

@@ -90,6 +90,15 @@ const elevenlabs = async (path: string, env: Env) => {
   if (!r.ok) throw new Error(`ElevenLabs ${r.status}: ${(await r.text()).slice(0, 300)}`);
   return r.json() as Promise<Record<string, string>>;
 };
+// The number friends will see ringing, for the WhatsApp heads-up. Looked up once.
+let callerIdCache: string | undefined;
+async function callerId(env: Env) {
+  if (callerIdCache || !env.ELEVENLABS_PHONE_NUMBER_ID) return callerIdCache ?? '';
+  try {
+    callerIdCache = (await elevenlabs(`/v1/convai/phone-numbers/${env.ELEVENLABS_PHONE_NUMBER_ID}`, env)).phone_number;
+  } catch {}
+  return callerIdCache ?? '';
+}
 const conversationToken = (env: Env) => elevenlabs(`/v1/convai/conversation/token?agent_id=${env.ELEVENLABS_AGENT_ID}`, env).then((r) => r.token);
 
 // Cost guard. Calls are only registered after they start, so tokens are counted when minted.
@@ -100,6 +109,36 @@ function mint(key: string, cap: number) {
   if (m.n >= cap) return false;
   minted.set(key, { day, n: m.n + 1 });
   return true;
+}
+
+const E164 = /^\+[1-9]\d{7,14}$/;
+/** Normalise "+44 7877 094577" / "07877094577" to E.164; UK numbers assumed without a country code. */
+export const toE164 = (raw: unknown) => {
+  if (typeof raw !== 'string') return undefined;
+  const digits = raw.replace(/[^\d+]/g, '');
+  const n = digits.startsWith('+') ? digits : digits.startsWith('00') ? `+${digits.slice(2)}` : digits.startsWith('0') ? `+44${digits.slice(1)}` : `+${digits}`;
+  return E164.test(n) ? n : undefined;
+};
+
+/** Ring a number with the agent from our Twilio number, register the call, and grade it when it ends. */
+async function placePhoneCall(env: Env, store: VoiceStore, o: { to: string; scenarioId: string; testerId: string | null }) {
+  if (!env.ELEVENLABS_PHONE_NUMBER_ID) throw new Error('ELEVENLABS_PHONE_NUMBER_ID is not set');
+  const r = await fetch('https://api.elevenlabs.io/v1/convai/twilio/outbound-call', {
+    method: 'POST',
+    headers: { 'xi-api-key': env.ELEVENLABS_API_KEY || env.ELEVEN_API_KEY || '', 'content-type': 'application/json' },
+    body: JSON.stringify({
+      agent_id: env.ELEVENLABS_AGENT_ID,
+      agent_phone_number_id: env.ELEVENLABS_PHONE_NUMBER_ID,
+      to_number: o.to,
+      conversation_initiation_client_data: { conversation_config_override: { agent: { first_message: OUTBOUND_FIRST_MESSAGE } } },
+    }),
+  });
+  const out = (await r.json().catch(() => ({}))) as { conversation_id?: string; detail?: unknown };
+  if (!r.ok || !out.conversation_id) throw new Error(`ElevenLabs: ${JSON.stringify(out.detail ?? out).slice(0, 300)}`);
+  await store.registerCall({ conversationId: out.conversation_id, testerId: o.testerId, scenarioId: o.scenarioId, brain: brainName(env) });
+  // Phone calls run longer than browser ones: keep checking for up to 20 minutes.
+  void finalizeCall(store, out.conversation_id, { attempts: 120, delayMs: 10_000 });
+  return out.conversation_id;
 }
 
 /** The scenario this tester has done least, skipping one they asked to swap. */
@@ -118,8 +157,21 @@ async function testerRoutes(token: string, rest: string, req: IncomingMessage, r
 
   if (rest === 'api/card' && req.method === 'GET') {
     const url = new URL(req.url ?? '/', 'http://local');
-    const s = await nextScenario(store, tester.id, url.searchParams.get('skip') ?? undefined);
-    return send(res, 200, { name: tester.name, card: testerCard(s) });
+    const fixed = scenarios.find((x) => x.id === tester.scenario_id);
+    const s = fixed ?? (await nextScenario(store, tester.id, url.searchParams.get('skip') ?? undefined));
+    // Only the last digits, so a forwarded link doesn't reveal the whole number.
+    const phone = tester.phone && env.ELEVENLABS_PHONE_NUMBER_ID ? `•••• ${tester.phone.slice(-4)}` : null;
+    return send(res, 200, { name: tester.name, card: testerCard(s), phone, fixed: !!fixed });
+  }
+  if (rest === 'api/phone-call' && req.method === 'POST') {
+    const { scenarioId } = await readJson(req);
+    if (!tester.phone || !env.ELEVENLABS_PHONE_NUMBER_ID) return send(res, 400, { error: 'Phone calls are not set up for this link.' });
+    if (!scenarios.some((x) => x.id === scenarioId) || (tester.scenario_id && tester.scenario_id !== scenarioId)) return send(res, 400, { error: 'bad request' });
+    const used = await store.callsToday(tester.id);
+    if (used >= tester.daily_cap || !mint(tester.id, tester.daily_cap) || !mint('all', Number(env.VOICE_DAILY_CALL_CAP ?? 200)))
+      return send(res, 429, { error: "That's the limit for today. Thank you! Try again tomorrow." });
+    await placePhoneCall(env, store, { to: tester.phone, scenarioId, testerId: tester.id });
+    return send(res, 200, { ok: true });
   }
   if (rest === 'api/start' && req.method === 'POST') {
     const used = await store.callsToday(tester.id);
@@ -145,7 +197,7 @@ async function testerRoutes(token: string, rest: string, req: IncomingMessage, r
 
 async function adminRoutes(path: string, req: IncomingMessage, res: ServerResponse, store: VoiceStore, env: Env) {
   if (path === '/admin' || path === '/admin/')
-    return html(res, adminHomePage(await store.listTesters(), await store.listCalls(), publicBase(req, env), scenarios.map(testerCard), !!env.ELEVENLABS_PHONE_NUMBER_ID));
+    return html(res, adminHomePage(await store.listTesters(), await store.listCalls(), publicBase(req, env), scenarios.map(testerCard), !!env.ELEVENLABS_PHONE_NUMBER_ID, await callerId(env)));
   if (path === '/admin/console') return html(res, page('index.html'));
   const callPage = path.match(/^\/admin\/calls\/([\w-]+)$/)?.[1];
   if (callPage) {
@@ -156,9 +208,12 @@ async function adminRoutes(path: string, req: IncomingMessage, res: ServerRespon
 
   const api = path.slice('/admin/api/'.length);
   if (api === 'testers' && req.method === 'POST') {
-    const { name, dailyCap } = await readJson(req);
+    const { name, dailyCap, phone, scenarioId } = await readJson(req);
     if (typeof name !== 'string' || !name.trim()) return send(res, 400, { error: 'name required' });
-    return send(res, 200, await store.createTester(name.trim().slice(0, 60), Math.max(1, Math.min(50, Number(dailyCap) || 10))));
+    const number = phone ? toE164(phone) : null;
+    if (phone && !number) return send(res, 400, { error: 'phone must look like +447700900123 or 07700900123' });
+    const fixed = scenarios.some((x) => x.id === scenarioId) ? (scenarioId as string) : null;
+    return send(res, 200, await store.createTester({ name: name.trim().slice(0, 60), dailyCap: Math.max(1, Math.min(50, Number(dailyCap) || 10)), phone: number, scenarioId: fixed }));
   }
   const revoke = api.match(/^testers\/([\w-]+)\/revoke$/)?.[1];
   if (revoke && req.method === 'POST') {
@@ -175,27 +230,13 @@ async function adminRoutes(path: string, req: IncomingMessage, res: ServerRespon
     return res.end();
   }
   if (api === 'phone-call' && req.method === 'POST') {
-    // Outbound test call: ElevenLabs rings the number from our Twilio number with the chosen scenario.
     const { scenarioId, to } = await readJson(req);
     const s = scenarios.find((x) => x.id === scenarioId);
-    if (!s || typeof to !== 'string' || !/^\+[1-9]\d{7,14}$/.test(to)) return send(res, 400, { error: 'pick a scenario and a number like +447700900123' });
+    const number = toE164(to);
+    if (!s || !number) return send(res, 400, { error: 'pick a scenario and a number like +447700900123' });
     if (!env.ELEVENLABS_PHONE_NUMBER_ID) return send(res, 400, { error: 'ELEVENLABS_PHONE_NUMBER_ID is not set' });
-    const r = await fetch('https://api.elevenlabs.io/v1/convai/twilio/outbound-call', {
-      method: 'POST',
-      headers: { 'xi-api-key': env.ELEVENLABS_API_KEY || env.ELEVEN_API_KEY || '', 'content-type': 'application/json' },
-      body: JSON.stringify({
-        agent_id: env.ELEVENLABS_AGENT_ID,
-        agent_phone_number_id: env.ELEVENLABS_PHONE_NUMBER_ID,
-        to_number: to,
-        conversation_initiation_client_data: { conversation_config_override: { agent: { first_message: OUTBOUND_FIRST_MESSAGE } } },
-      }),
-    });
-    const out = (await r.json().catch(() => ({}))) as { conversation_id?: string; detail?: unknown };
-    if (!r.ok || !out.conversation_id) return send(res, 502, { error: `ElevenLabs: ${JSON.stringify(out.detail ?? out).slice(0, 300)}` });
-    await store.registerCall({ conversationId: out.conversation_id, testerId: null, scenarioId: s.id, brain: brainName(env) });
-    // Phone calls run longer than browser ones: keep checking for up to 20 minutes.
-    void finalizeCall(store, out.conversation_id, { attempts: 120, delayMs: 10_000 });
-    return send(res, 200, { conversationId: out.conversation_id, card: testerCard(s) });
+    const conversationId = await placePhoneCall(env, store, { to: number, scenarioId: s.id, testerId: null });
+    return send(res, 200, { conversationId, card: testerCard(s) });
   }
   const regrade = api.match(/^calls\/([\w-]+)\/regrade$/)?.[1];
   if (regrade && req.method === 'POST') {

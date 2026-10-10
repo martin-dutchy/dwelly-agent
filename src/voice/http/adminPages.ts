@@ -1,3 +1,4 @@
+import { whatsappLink, whatsappMessage } from '../campaign.js';
 import type { CallLog, Scenario } from '../scenarios.js';
 import type { CallRow, Tester } from '../store.js';
 
@@ -43,11 +44,17 @@ const verdict = (c: Pick<CallRow, 'passed' | 'status'>) =>
 
 type Card = { id: string; title: string; persona: string; situation: string; youKnow: string[]; tips: string[] };
 
-export function adminHomePage(testers: Tester[], calls: CallRow[], base: string, cards: Card[] = [], phoneReady = false) {
+export function adminHomePage(testers: Tester[], calls: CallRow[], base: string, cards: Card[] = [], phoneReady = false, callerId = '') {
   const testerRows = testers
     .map((t) => {
       const link = `${base.replace(/\/$/, '')}/t/${t.token}`;
-      return `<tr><td>${esc(t.name)}</td><td><code>${esc(link)}</code> <button class="ghost" data-copy="${esc(link)}">Copy</button></td>
+      const card = cards.find((c) => c.id === t.scenario_id);
+      const message = whatsappMessage(card, { name: t.name, from: callerId, link, phone: !!t.phone && phoneReady });
+      const wa = t.phone ? whatsappLink(message, t.phone) : whatsappLink(message);
+      return `<tr><td>${esc(t.name)}${t.phone ? `<br><span class="muted">${esc(t.phone)}</span>` : ''}</td>
+        <td><code>${esc(link)}</code><br><span class="muted">${esc(card?.title ?? 'rotating cases')}</span></td>
+        <td style="white-space:nowrap"><a href="${esc(wa)}" target="_blank" rel="noopener"><button class="ghost" type="button">WhatsApp</button></a>
+          <button class="ghost" data-copy="${esc(message)}">Copy message</button></td>
         <td>${t.daily_cap}/day</td><td>${t.revoked ? '<span class="fail">revoked</span>' : 'active'}</td>
         <td><button class="ghost" data-revoke="${esc(t.id)}" data-to="${t.revoked ? 'false' : 'true'}">${t.revoked ? 'Restore' : 'Revoke'}</button></td></tr>`;
     })
@@ -72,10 +79,13 @@ export function adminHomePage(testers: Tester[], calls: CallRow[], base: string,
       <div id="card"></div></div>
     <div class="panel"><h2>Invite someone</h2>
       <form class="inline" id="invite"><input type="text" name="name" placeholder="Name, e.g. Mum" required maxlength="60">
+      <input type="text" name="phone" placeholder="Phone (optional) +447…" style="width:170px">
+      <select name="scenarioId"><option value="">Rotate cases</option>${cards.map((c) => `<option value="${esc(c.id)}">${esc(c.title)}</option>`).join('')}</select>
       <label class="muted">Calls per day <input type="number" name="dailyCap" value="10" min="1" max="50" style="width:70px"></label>
       <button>Create link</button></form>
-      <p class="muted">Each person gets their own link. Calls are tagged with their name and capped per day. Revoke a link at any time.</p></div>
-    <div class="panel"><h2>Invites</h2><table><tr><th>Name</th><th>Link</th><th>Cap</th><th>Status</th><th></th></tr>${testerRows || '<tr><td colspan="5" class="muted">No invites yet.</td></tr>'}</table></div>
+      <p class="muted">Each person gets their own link. With a phone number, their page has a "Call me now" button that makes the agent ring them; without one they call from the browser. Calls are tagged with their name and capped per day.</p></div>
+    <div class="panel"><h2>Invites</h2><table><tr><th>Name</th><th>Link and case</th><th>Send</th><th>Cap</th><th>Status</th><th></th></tr>${testerRows || '<tr><td colspan="6" class="muted">No invites yet.</td></tr>'}</table>
+      <p class="muted">WhatsApp opens your own chat with the message ready (on a Mac it sometimes drops the text: use Copy message and paste).</p></div>
     <div class="panel"><h2>Calls (${passed}/${graded} passed)</h2><table><tr><th>When (UK)</th><th>Who</th><th>Scenario</th><th>Brain</th><th>Length</th><th>Grade</th><th>Flags</th></tr>
       ${callRows || '<tr><td colspan="7" class="muted">No calls yet.</td></tr>'}</table></div>`,
     `const CARDS = ${JSON.stringify(cards).replace(/</g, '\\u003c')};
@@ -97,10 +107,10 @@ export function adminHomePage(testers: Tester[], calls: CallRow[], base: string,
     });
     document.getElementById('invite').addEventListener('submit', async (e) => {
       e.preventDefault(); const f = new FormData(e.target);
-      const r = await fetch('/admin/api/testers', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: f.get('name'), dailyCap: f.get('dailyCap') }) });
+      const r = await fetch('/admin/api/testers', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: f.get('name'), dailyCap: f.get('dailyCap'), phone: f.get('phone') || null, scenarioId: f.get('scenarioId') || null }) });
       if (r.ok) location.reload(); else alert(await r.text());
     });
-    document.querySelectorAll('[data-copy]').forEach((b) => b.addEventListener('click', async () => { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = 'Copied'; }));
+    document.querySelectorAll('[data-copy]').forEach((b) => b.addEventListener('click', async () => { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = 'Copied ✓'; }));
     document.querySelectorAll('[data-revoke]').forEach((b) => b.addEventListener('click', async () => {
       await fetch('/admin/api/testers/' + b.dataset.revoke + '/revoke', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ revoked: b.dataset.to === 'true' }) });
       location.reload();
