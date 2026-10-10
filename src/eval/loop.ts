@@ -9,18 +9,23 @@
 //                prints per-case marks (✓✗✓), pass@1, pass^N and decision stability.
 //   --no-judge:  deterministic checks only (no judge call); pass = no failed critical/prohibited check.
 //   --rescore R: skip the agent and the judge, rebuild summary.json from an existing run folder R.
+//   --harness F: harness v2 flags for the agent runs (brief,skills,… | all | none; default $HARNESS), passed to run.ts.
 // Deterministic checks (case checks.json + global checks) run on every case run before the judge result is read;
 // a failed critical/prohibited check zeroes that run like a critical rubric item.
+// Every miss (rubric item not met, red flag hit, failed check) is labelled with the harness layer that should fix it
+// (taxonomy.ts): <run>/taxonomy.json and a per-layer table.
 // Exits 1 on a malformed checks.json (before any agent run), on any failed critical/prohibited check, or on a regression
 // (mean score down more than 5 points, a new critical, or lower coverage).
-// Baselines are kept per profile, split and k. The holdout split prints aggregates only: never tune on it.
+// Baselines are kept per profile, split, harness flags and k. The holdout split prints aggregates only: never tune on it.
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
+import { HARNESS_FLAGS, flagsLine, parseHarnessFlags } from '../agent/harness/flags.js';
 import { runCaseChecks } from './checks.js';
 import { loadAllChecks, specErrorLine } from './runChecks.js';
-import { type EscalateLabel, type RunRow, buildRunRow, compareToBaseline, summarize } from './summary.js';
+import { type EscalateLabel, type RunRow, baselineTag, buildRunRow, compareToBaseline, summarize } from './summary.js';
+import { type ClassifiedMiss, classifyRun, layerTable, summarizeTaxonomy } from './taxonomy.js';
 
 const { values } = parseArgs({
   options: {
@@ -38,8 +43,15 @@ const { values } = parseArgs({
     baseline: { type: 'string' },
     rescore: { type: 'string' },
     'save-baseline': { type: 'boolean', default: false },
+    harness: { type: 'string', default: process.env.HARNESS ?? '' },
   },
 });
+
+/** The flag set as one stable word for keys and folder names: 'none', 'all', or the flags in canonical order. */
+function harnessKey(spec: string | undefined) {
+  const flags = parseHarnessFlags(spec);
+  return HARNESS_FLAGS.every((f) => flags[f]) ? 'all' : flagsLine(flags);
+}
 
 const PROFILES: Record<string, { model: string; judge: string; thinking: string; concurrency: string }> = {
   quick: { model: 'claude-haiku-5-5', judge: 'claude-sonnet-5-5', thinking: 'low', concurrency: '16' },
@@ -48,7 +60,7 @@ const PROFILES: Record<string, { model: string; judge: string; thinking: string;
 };
 
 type Group = { dir: string; only: string[]; at?: string };
-type Meta = { split: string; profile: string; config: { model: string; judge: string; thinking: string; concurrency: string }; k: number; chaos: number; seed: string; noJudge: boolean; groups: Group[] };
+type Meta = { split: string; profile: string; config: { model: string; judge: string; thinking: string; concurrency: string }; k: number; chaos: number; seed: string; noJudge: boolean; groups: Group[]; harness?: string };
 
 const slug = (dir: string) => dir.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const readJson = (p: string) => (existsSync(p) ? JSON.parse(readFileSync(p, 'utf8')) : undefined);
@@ -69,9 +81,18 @@ if (values.rescore) {
   }
   if (values['no-judge']) meta.noJudge = true;
   if (values.split) meta.split = values.split;
+  // Runs written before the harness flags existed ran with none.
+  meta.harness ??= 'none';
 } else {
   const base = PROFILES[values.profile!];
   if (!base) throw new Error(`Unknown profile "${values.profile}" (have: ${Object.keys(PROFILES).join(', ')})`);
+  let harness: string;
+  try {
+    harness = harnessKey(values.harness);
+  } catch (e) {
+    console.error(e instanceof Error ? e.message : String(e));
+    process.exit(1);
+  }
   const split = values.split ?? 'dev';
   const splits = JSON.parse(readFileSync('cases/splits.json', 'utf8')) as Record<string, Group[]>;
   if (!Array.isArray(splits[split])) throw new Error(`Unknown split "${split}" (have: ${Object.keys(splits).filter((k) => !k.startsWith('_')).join(', ')})`);
@@ -85,10 +106,12 @@ if (values.rescore) {
     seed: values.seed!,
     noJudge: values['no-judge']!,
     groups: splits[split],
+    harness,
   };
-  root = join('runs', 'loop', `${split}-${values.profile}${k > 1 ? `-k${k}` : ''}-${stamp}`);
+  root = join('runs', 'loop', `${split}-${values.profile}${harness !== 'none' ? `-h-${harness.replace(/,/g, '+')}` : ''}${k > 1 ? `-k${k}` : ''}-${stamp}`);
 }
 const { split, k } = meta;
+const harness = meta.harness ?? 'none';
 const holdout = split === 'holdout';
 const groups = meta.groups.map((g) => ({ ...g, ids: g.only.filter((id) => !only || only.includes(id)) })).filter((g) => g.ids.length);
 /** k = 1 keeps the flat <root>/<group>/<id> layout of earlier runs; k > 1 uses <root>/<group>/run-<i>/<id>. */
@@ -115,7 +138,7 @@ const { config: cfg } = meta;
 const t0 = Date.now();
 if (!values.rescore) {
   console.log(
-    `Loop: ${split} · profile ${meta.profile} · agent ${cfg.model} (thinking ${cfg.thinking}) · judge ${meta.noJudge ? 'off (checks only)' : cfg.judge} · concurrency ${cfg.concurrency}${k > 1 ? ` · k ${k}` : ''}${meta.chaos > 0 ? ` · chaos ${meta.chaos}` : ''}`,
+    `Loop: ${split} · profile ${meta.profile} · agent ${cfg.model} (thinking ${cfg.thinking}) · judge ${meta.noJudge ? 'off (checks only)' : cfg.judge} · concurrency ${cfg.concurrency}${k > 1 ? ` · k ${k}` : ''}${meta.chaos > 0 ? ` · chaos ${meta.chaos}` : ''}${harness !== 'none' ? ` · harness ${harness}` : ''}`,
   );
   mkdirSync(root, { recursive: true });
   writeFileSync(join(root, 'meta.json'), JSON.stringify(meta, null, 2));
@@ -125,7 +148,7 @@ if (!values.rescore) {
       const common = ['--only', g.ids.join(','), '--concurrency', cfg.concurrency];
       for (let i = 1; i <= k; i++) {
         const out = runDir(g, i);
-        const runLog = await tsx(['src/run.ts', '--in', g.dir, '--out', out, ...common, '--model', cfg.model, '--thinking', cfg.thinking, '--chaos', String(meta.chaos), '--seed', meta.seed, ...(g.at ? ['--at', g.at] : [])]);
+        const runLog = await tsx(['src/run.ts', '--in', g.dir, '--out', out, ...common, '--model', cfg.model, '--thinking', cfg.thinking, '--chaos', String(meta.chaos), '--seed', meta.seed, '--harness', harness, ...(g.at ? ['--at', g.at] : [])]);
         const judgeLog = await tsx(['src/eval/judge.ts', '--cases', g.dir, '--answers', out, '--model', cfg.judge, '--label', `${split}-${meta.profile}-${slug(g.dir)}${k > 1 ? `-run${i}` : ''}`, ...common, ...(meta.noJudge ? ['--no-judge'] : []), ...(holdout ? ['--summary-only'] : [])]);
         console.log(`\n▶ ${g.dir}${k > 1 ? ` run ${i}/${k}` : ''} (${g.ids.length} cases)${holdout ? ': output hidden' : `\n${runLog.trim()}\n${judgeLog.trim()}`}`);
       }
@@ -136,6 +159,7 @@ if (!values.rescore) {
 }
 
 // Read every run back from disk and evaluate the deterministic checks in-process (same code as pnpm checks).
+const classified: ClassifiedMiss[] = [];
 const runRows: RunRow[] = groups.flatMap((g) =>
   g.ids.flatMap((id) => {
     const caseDir = join(g.dir, id);
@@ -144,19 +168,16 @@ const runRows: RunRow[] = groups.flatMap((g) =>
     const label = (spec?.expect?.escalate ?? expected?.escalate) as EscalateLabel | undefined;
     return Array.from({ length: k }, (_, j) => {
       const answersDir = join(runDir(g, j + 1), id);
-      return buildRunRow({
-        key: `${slug(g.dir)}/${id}`,
-        run: j + 1,
-        result: readJson(join(answersDir, 'result.json')),
-        grades: meta.noJudge ? undefined : readJson(join(answersDir, 'grades.json')),
-        checks: existsSync(caseDir) ? runCaseChecks(caseDir, answersDir, spec).results : [],
-        answerExists: existsSync(join(answersDir, 'ANSWER.md')),
-        label,
-        tags: spec?.tags,
-      });
+      const key = `${slug(g.dir)}/${id}`;
+      const result = readJson(join(answersDir, 'result.json'));
+      const grades = meta.noJudge ? undefined : readJson(join(answersDir, 'grades.json'));
+      const checks = existsSync(caseDir) ? runCaseChecks(caseDir, answersDir, spec).results : [];
+      classified.push(...classifyRun({ key, run: j + 1, caseDir, result, grades, checks }));
+      return buildRunRow({ key, run: j + 1, result, grades, checks, answerExists: existsSync(join(answersDir, 'ANSWER.md')), label, tags: spec?.tags });
     });
   }),
 );
+const taxonomy = summarizeTaxonomy(classified, runRows.length);
 
 const metrics = summarize(runRows, k);
 const summary = {
@@ -165,13 +186,15 @@ const summary = {
   config: cfg,
   at: values.rescore ? (readJson(join(root, 'summary.json'))?.at ?? stamp) : stamp,
   chaos: meta.chaos,
+  harness,
   ...(values.rescore ? { rescoredFrom: root } : {}),
   wallSecs: values.rescore ? (readJson(join(root, 'summary.json'))?.wallSecs ?? 0) : Math.round((Date.now() - t0) / 1000),
   ...metrics,
+  missesByLayer: taxonomy.byLayer,
 };
 type Summary = typeof summary;
 
-const tag = `${meta.profile}-${split}${meta.chaos > 0 ? '-chaos' : ''}${only ? '-partial' : ''}${k > 1 ? `-k${k}` : ''}`;
+const tag = baselineTag({ profile: meta.profile, split, chaos: meta.chaos, partial: !!only, k, harness });
 const ownBaseline = values.baseline ?? join('evals', `baseline-${tag}.json`);
 // An --only run is compared, on the shared cases, with the full-split baseline when it has no partial
 // baseline of its own or the full one was measured more recently (the code under test has moved on).
@@ -181,6 +204,8 @@ const preferFull = !existsSync(ownBaseline) || measuredAt(fullBaseline) > measur
 const baselinePath = !values.baseline && only && existsSync(fullBaseline) && preferFull ? fullBaseline : ownBaseline;
 const baseline = readJson(baselinePath) as (Partial<Summary> & Pick<Summary, 'at' | 'mean' | 'decided' | 'criticalCases' | 'rows'>) | undefined;
 writeFileSync(join(root, 'summary.json'), JSON.stringify(summary, null, 2));
+// Holdout keeps the per-layer counts only: the item texts and reasons are tuning material.
+writeFileSync(join(root, 'taxonomy.json'), JSON.stringify(holdout ? { ...taxonomy, layers: taxonomy.layers.map((l) => ({ ...l, rules: {} })), items: [] } : taxonomy, null, 2));
 if (!values.rescore) {
   mkdirSync('evals', { recursive: true });
   writeFileSync(join('evals', `latest-${tag}.json`), JSON.stringify(summary, null, 2));
@@ -189,7 +214,7 @@ if (!values.rescore) {
 const fmt = (n: number) => (n > 0 ? `+${n.toFixed(1)}` : n.toFixed(1));
 const pct = (n: number | null | undefined) => (n == null ? '-' : n.toFixed(2));
 const s = summary;
-console.log(`\n══ ${split} · ${meta.profile}${k > 1 ? ` · k ${k}` : ''}${s.chaos > 0 ? ` (chaos ${s.chaos})` : ''} ══`);
+console.log(`\n══ ${split} · ${meta.profile}${k > 1 ? ` · k ${k}` : ''}${s.chaos > 0 ? ` (chaos ${s.chaos})` : ''}${harness !== 'none' ? ` · harness ${harness}` : ''} ══`);
 console.log(`Coverage ${s.decided}/${s.cases} decided · ${s.judged} judged · mean ${s.mean.toFixed(1)} · critical in ${s.criticalCases} · agent $${s.cost.toFixed(2)} + judge $${s.judgeCost.toFixed(2)} · ${s.wallSecs}s`);
 console.log(
   `pass@1 ${pct(s.passAt1)}${s.passK !== null ? ` · pass^${k} ${pct(s.passK)}` : ''}${s.stability ? ` · stable ${s.stability.stableCases}/${s.stability.cases}` : ''} (pass by ${s.passBasis}) · esc P/R ${pct(s.escalation.precision)}/${pct(s.escalation.recall)} over ${s.escalation.runs} labelled run(s)` +
@@ -227,6 +252,10 @@ if (baseline) {
   if (!holdout) console.table(s.rows.map((r) => ({ case: r.key, ...(k > 1 ? { runs: r.marks } : {}), score: r.score === null ? '-' : Number(r.score.toFixed(1)), outcome: r.outcome, critical: r.critical.join(',') || '-' })));
   console.log(`No baseline at ${baselinePath}: run again with --save-baseline to set one.`);
 }
+if (taxonomy.misses) {
+  console.log(`\nMisses by layer (${taxonomy.misses} over ${taxonomy.runs} run(s); details in taxonomy.json):`);
+  console.table(holdout ? taxonomy.layers.map((l) => ({ layer: l.layer, misses: l.misses, cases: l.cases })) : layerTable(taxonomy));
+} else console.log('\nMisses by layer: none');
 if (values['save-baseline']) {
   // Never the full-split fallback: a subset run must not overwrite the full baseline.
   writeFileSync(ownBaseline, JSON.stringify(summary, null, 2));

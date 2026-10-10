@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { audit } from './audit.js';
+import { canonical, classifyFailure } from './failures.js';
 import type { ToolContext, ToolDef, ToolResult } from './tools.js';
 
 export type ExecutorOptions = {
@@ -24,7 +25,20 @@ async function runWithFailures(tool: ToolDef, args: Record<string, unknown>, ctx
   return result;
 }
 
-/** Single execution path: validation, guard, scripted failures, error capture, audit trail. */
+// Failed attempts per conversation and intent (tool + canonical args), so the class can tell a first failure from a repeat.
+const failedAttempts = new WeakMap<ToolContext, Map<string, number>>();
+
+function typed(ctx: ToolContext, name: string, args: unknown, result: ToolResult): ToolResult {
+  const seen = failedAttempts.get(ctx) ?? new Map<string, number>();
+  failedAttempts.set(ctx, seen);
+  const key = `${name}:${canonical(args ?? {})}`;
+  const attempt = (seen.get(key) ?? 0) + 1;
+  seen.set(key, attempt);
+  const { failureClass, nextStep } = classifyFailure(name, attempt, String(result.details ?? result.error ?? ''));
+  return { ...result, failure_class: failureClass, next_step: nextStep };
+}
+
+/** Single execution path: validation, guard, scripted failures, error capture, failure class, audit trail. */
 export async function executeWith(opts: ExecutorOptions, name: string, rawArgs: unknown, ctx: ToolContext): Promise<ToolResult> {
   const tool = opts.tools.find((t) => t.name === name);
   let result: ToolResult;
@@ -43,6 +57,8 @@ export async function executeWith(opts: ExecutorOptions, name: string, rawArgs: 
       } catch (e) {
         result = { ok: false, error: 'tool_failed', say: 'The system is not responding. Escalate to a human.', details: String(e) };
       }
+      // A result with only `say` is the tool redirecting the request, not a failure.
+      if (result.ok === false && result.error !== undefined) result = typed(ctx, name, parsed.data, result);
     }
   }
   audit(ctx.conversationId, { type: 'tool', channel: ctx.channel, name, args: rawArgs, result });

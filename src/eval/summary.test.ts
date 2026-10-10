@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import type { CheckResult, ResultJson } from './checks.js';
 import { runCaseChecks } from './checks.js';
-import { type RunRow, buildRunRow, compareToBaseline, foldCase, requiredFraction, summarize } from './summary.js';
+import { type RunRow, baselineTag, buildRunRow, compareToBaseline, foldCase, requiredFraction, summarize } from './summary.js';
 
 const ok: CheckResult = { id: 'ids', kind: 'no_fabricated_ids', severity: 'critical', pass: true, detail: '' };
 const failCrit: CheckResult = { id: 'no-approve', kind: 'tool_not_called', severity: 'critical', pass: false, detail: 'approve_quote executed as A2' };
@@ -199,6 +199,22 @@ describe('compareToBaseline', () => {
     const d = compareToBaseline({ ...full, mean: 50 }, full);
     expect(d.scope).toBe('all');
     expect(d.regressions).toEqual(['mean score dropped -18.0']);
+  });
+});
+
+describe('baselineTag', () => {
+  const base = { profile: 'final', split: 'dev', chaos: 0, partial: false, k: 1 };
+  it('no harness flags keep the existing baseline keys (evals/baseline-final-dev*.json)', () => {
+    expect(baselineTag(base)).toBe('final-dev');
+    expect(baselineTag({ ...base, harness: 'none' })).toBe('final-dev');
+    expect(baselineTag({ ...base, harness: '', k: 3 })).toBe('final-dev-k3');
+    expect(baselineTag({ ...base, harness: 'none', partial: true })).toBe('final-dev-partial');
+    expect(baselineTag({ ...base, profile: 'quick', chaos: 0.15, partial: true, k: 3 })).toBe('quick-dev-chaos-partial-k3');
+  });
+  it('a flag set gets its own key, so flags-on runs are compared only with flags-on baselines', () => {
+    expect(baselineTag({ ...base, harness: 'all', k: 3, chaos: 0.15 })).toBe('final-dev-h-all-chaos-k3');
+    expect(baselineTag({ ...base, harness: 'brief,skills', partial: true })).toBe('final-dev-h-brief+skills-partial');
+    expect(baselineTag({ ...base, harness: 'brief,skills', partial: true }).replace('-partial', '')).toBe(baselineTag({ ...base, harness: 'brief,skills' }));
   });
 });
 
