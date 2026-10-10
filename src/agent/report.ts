@@ -1,6 +1,6 @@
 import type { Decision } from './caseAgent.js';
 import type { LoadedCase } from './cases.js';
-import type { CriticResult } from './critic/critic.js';
+import { CHECKLIST, type CriticResult } from './critic/critic.js';
 import type { CaseBrief, CompletionProblem, FailureClass } from './harness/contracts.js';
 import type { GateResult, Screen } from './jev.js';
 import type { LedgerEntry } from './ledger.js';
@@ -227,8 +227,8 @@ const PARSE_LABEL: Record<string, string> = {
   derived: 'built by the loader',
 };
 
-/** Mirrors the critic's fixed checklist; any other kept id came from the case-specific (dynamic) part. */
-const FIXED_CRITIC_ITEMS = new Set([...Array.from({ length: 13 }, (_, i) => String(i + 1)), 'M1', 'M2', 'M3']);
+/** Any kept id outside the critic's fixed checklist came from the case-specific (dynamic) part. */
+const FIXED_CRITIC_ITEMS = new Set(CHECKLIST.map(([id]) => id));
 const MAX_LINES = 10;
 const CLASS_ORDER: string[] = ['retry', 'alternative_route', 'record_and_escalate'] satisfies FailureClass[];
 
