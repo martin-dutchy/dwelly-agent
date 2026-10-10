@@ -59,6 +59,8 @@ export type CriticInput = {
   draft: unknown;
   ledger: LedgerEntry[];
   policyLog: { tool: string; reason: string }[];
+  /** Harness v2: the rendered brief and the loaded skills' red flags. Unused until WS G. */
+  context?: { brief?: string; redFlags?: string[] };
 };
 
 export type CriticOptions = {

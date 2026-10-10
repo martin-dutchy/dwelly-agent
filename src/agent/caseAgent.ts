@@ -7,9 +7,15 @@ import { type GateResult, checkMessage } from './jev.js';
 import type { CaseMedia } from './cases.js';
 import { type CriticResult, revisionNote, runCritic } from './critic/critic.js';
 import { escalationPacketProblems, preCriticProblems } from './critic/validators.js';
+import { COMPLETION_CHECKS } from './completion/index.js';
+import { GUARDS } from './guards/index.js';
+import { completionProblems, firstGuardBlock } from './harness/apply.js';
+import type { CompletionProblem, GuardContext, HarnessRun } from './harness/contracts.js';
+import { NO_FLAGS } from './harness/flags.js';
 import { ActionLedger } from './ledger.js';
 import { quoteAppears } from './opsChecks.js';
 import type { Toolset } from './opsTools.js';
+import { listSkills, loadSkill } from './skills/index.js';
 import { verify as coreVerify } from './verify.js';
 
 /** The fixture-backed tools shared with the voice agents. Batch cases use createOpsToolset instead. */
@@ -71,6 +77,26 @@ export const Decision = z.object({
     .describe('Every ledger entry that did not verify, and how it was handled'),
   conflicts: z.array(z.string()).describe('Contradictions found between sources, and which source you trusted'),
   assumptions: z.array(z.string()),
+  escalations: z
+    .array(
+      z.object({
+        to: z.string().describe('Who must decide, by role or team'),
+        decision_needed: z.string(),
+        options: z.array(z.string()),
+        recommendation: z.string(),
+        deadline: z.string().describe('By when, as a date or date and time'),
+        evidence: z.array(z.string()).describe('Where the facts come from: file names, event ids or quotes'),
+        already_done: z.array(z.string()).describe('What you did before handing over'),
+        ledger_id: z.string().optional().describe('The escalate_to_human entry'),
+      }),
+    )
+    .optional()
+    .describe('Each handover to a human, as a packet they can act on alone'),
+  follow_ups: z
+    .array(z.object({ party: z.string(), purpose: z.string(), review_on: z.string(), ledger_id: z.string() }))
+    .optional()
+    .describe('Each dated follow-up you scheduled, citing its schedule_follow_up or put_on_hold entry'),
+  unknowns: z.array(z.string()).optional().describe('What nobody in the records knows yet and who could find out'),
 });
 export type Decision = z.infer<typeof Decision>;
 
@@ -89,6 +115,8 @@ export type CaseRunOptions = {
   thinkingLevel?: ModelThinkingLevel;
   /** Pre-submit review of the first valid draft by a second model. Off when absent. */
   critic?: { model: Model<Api>; streamFn: StreamFn; timeoutMs?: number; attachments: string[] };
+  /** Harness v2 layers and their flags. Absent means every flag off. */
+  harness?: HarnessRun;
 };
 
 /** Tools a pre-submit review may never lead to: they move money, commit a provider, or end the job. */
@@ -124,6 +152,30 @@ export async function runCase(opts: CaseRunOptions) {
     },
   }));
 
+  const flags = opts.harness?.flags ?? NO_FLAGS;
+  const guardContext = (): GuardContext => ({ bundle: opts.harness?.bundle, brief: opts.harness?.brief, ledger: ledger.entries, state: toolset.state, flags });
+  const harnessLog = { guardBlocks: [] as { tool: string; rule: string; reason: string }[], completion: [] as (CompletionProblem & { capped: boolean })[], skillsLoaded: [] as string[] };
+  const completionCounts = new Map<string, number>();
+  const skillTools: AgentTool[] =
+    flags.skills && listSkills().length
+      ? [
+          {
+            name: 'load_skill',
+            label: 'load_skill',
+            description: `Read the playbook for a situation you recognise in this case. Available: ${listSkills()
+              .map((s) => `${s.id} (${s.whenToUse})`)
+              .join('; ')}.`,
+            parameters: asSchema(z.object({ id: z.string() })),
+            executionMode: 'parallel',
+            execute: async (_id, params) => {
+              const id = String((params as { id?: unknown }).id ?? '');
+              harnessLog.skillsLoaded.push(id);
+              return { content: text(loadSkill(id)), details: { id } };
+            },
+          },
+        ]
+      : [];
+
   const submitDecision: AgentTool = {
     name: 'submit_decision',
     label: 'submit_decision',
@@ -152,7 +204,8 @@ export async function runCase(opts: CaseRunOptions) {
     const empty = { model: c.model.id, ms: 0, cost: 0, items: [], kept: [], dropped: [] };
     if (startedAt + timeoutMs - Date.now() < CRITIC_MIN_TIME_LEFT_MS) return { ...empty, status: 'skipped', reason: 'low_time' };
     try {
-      return await runCritic({ prompt: opts.prompt, attachments: c.attachments, draft: d, ledger: ledger.entries, policyLog }, { model: c.model, streamFn: c.streamFn, timeoutMs: c.timeoutMs, match: quoteAppears });
+      const context = flags.criticContext ? { brief: opts.harness?.briefText, redFlags: (opts.harness?.skills ?? []).flatMap((s) => s.redFlags) } : undefined;
+      return await runCritic({ prompt: opts.prompt, attachments: c.attachments, draft: d, ledger: ledger.entries, policyLog, context }, { model: c.model, streamFn: c.streamFn, timeoutMs: c.timeoutMs, match: quoteAppears });
     } catch (e) {
       return { ...empty, status: 'error', reason: `exception: ${e instanceof Error ? e.message : String(e)}` };
     }
@@ -175,7 +228,7 @@ export async function runCase(opts: CaseRunOptions) {
       systemPrompt: opts.systemPrompt,
       model: opts.model,
       thinkingLevel: opts.thinkingLevel ?? 'off',
-      tools: [...domainTools, submitDecision],
+      tools: [...domainTools, ...skillTools, submitDecision],
     },
     streamFn: opts.streamFn,
     sessionId: opts.caseId,
@@ -193,7 +246,14 @@ export async function runCase(opts: CaseRunOptions) {
         return { block: true, reason: `Blocked by policy: ${reason} Record what is still to do in remaining_work and call submit_decision.` };
       }
       // Run-level rules first (they know the ledger), then the toolset's own rules (they know the job record).
-      const policy = policyBlock(toolCall.name, a) ?? toolset.guard?.(toolCall.name, a, ledger.entries);
+      let policy = policyBlock(toolCall.name, a) ?? toolset.guard?.(toolCall.name, a, ledger.entries);
+      if (!policy && flags.guardsV2 && getTool(toolCall.name)) {
+        const v2 = firstGuardBlock(GUARDS, { tool: toolCall.name, args: a }, guardContext());
+        if (v2) {
+          harnessLog.guardBlocks.push({ tool: toolCall.name, rule: v2.rule, reason: v2.reason });
+          policy = `[${v2.rule}] ${v2.reason}`;
+        }
+      }
       if (policy) {
         policyLog.push({ tool: toolCall.name, reason: policy });
         const key = `${toolCall.name}|${String(a.ticket_ref ?? a.ref ?? '')}`;
@@ -272,6 +332,11 @@ export async function runCase(opts: CaseRunOptions) {
             preReviewBlocks++;
             problems.push(...pre);
           }
+        }
+        if (flags.completionV2) {
+          const { bounce, capped } = completionProblems(COMPLETION_CHECKS, d, guardContext(), completionCounts);
+          harnessLog.completion.push(...bounce.map((p) => ({ ...p, capped: false })), ...capped.map((p) => ({ ...p, capped: true })));
+          problems.push(...bounce.map((p) => p.message));
         }
         if (problems.length) return { block: true, reason: `Decision rejected:\n- ${problems.join('\n- ')}` };
         // One review per case, of the first draft that passes every check above; never a second round.
@@ -357,5 +422,5 @@ export async function runCase(opts: CaseRunOptions) {
     critic.unaddressed = criticEvent.unaddressed = unchanged ? critic.kept.map((f) => `[${f.id}] ${f.finding}`) : [];
   }
 
-  return { decision, ledger: ledger.entries, state: toolset.state, gateLog, policyLog, trace, messages: agent.state.messages, error: agent.state.errorMessage ?? (timedOut && !decision ? `timed out after ${Math.round(timeoutMs / 1000)}s` : undefined), critic };
+  return { decision, ledger: ledger.entries, state: toolset.state, gateLog, policyLog, harnessLog, trace, messages: agent.state.messages, error: agent.state.errorMessage ?? (timedOut && !decision ? `timed out after ${Math.round(timeoutMs / 1000)}s` : undefined), critic };
 }

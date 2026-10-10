@@ -19,7 +19,12 @@ import { toolsetLine, toolsetStartLine, withOrganiserApi, withToolsetLine } from
 import { readOrganiserEnv } from './agent/adapters/toolMap.js';
 import { runCase } from './agent/caseAgent.js';
 import { type LoadedCase, casePrompt, listCases, loadCase } from './agent/cases.js';
+import { compileBrief, renderBrief } from './agent/brief/index.js';
+import type { CaseBrief, Skill } from './agent/harness/contracts.js';
+import { flagsLine, parseHarnessFlags } from './agent/harness/flags.js';
+import { fromLoadedCase, ingest, toLoadedCase } from './agent/ingest/index.js';
 import { hintsFor } from './agent/maintenance/stateReconstruct.js';
+import { classify, renderSkills, selectSkills } from './agent/skills/index.js';
 import { claude, streamFn } from './agent/models.js';
 import { jevEnabled, prescreen, screenNote } from './agent/jev.js';
 import { seedFromCase } from './agent/opsSeed.js';
@@ -50,10 +55,19 @@ const { values } = parseArgs({
     resume: { type: 'boolean', default: false },
     // Pre-submit critic. CRITIC=on in the environment also reaches the runs `pnpm loop` spawns.
     critic: { type: 'string', default: process.env.CRITIC || 'off' },
+    // Harness v2 layers, e.g. --harness brief,skills or all. HARNESS in the environment also reaches `pnpm loop` runs.
+    harness: { type: 'string', default: process.env.HARNESS ?? '' },
   },
 });
 if (!['on', 'off'].includes(values.critic!)) {
   console.error('--critic must be on or off');
+  process.exit(1);
+}
+let flags: ReturnType<typeof parseHarnessFlags>;
+try {
+  flags = parseHarnessFlags(values.harness);
+} catch (e) {
+  console.error(e instanceof Error ? e.message : String(e));
   process.exit(1);
 }
 const THINKING = ['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'] as const;
@@ -145,9 +159,31 @@ async function processCase(dir: string, timeoutMs: number): Promise<Row> {
     // Everything that can hang runs inside the guard; files are written only after it, so a case the runner
     // gave up on can never overwrite its fallback later.
     const work = async () => {
-      c = loadCase(dir, values.at);
-      const hints = hintsFor(c);
-      const prompt = casePrompt(c) + (hints.text ? `\n\n${hints.text}` : '');
+      const bundle = flags.ingestV2 ? ingest(dir, { at: values.at }) : fromLoadedCase(loadCase(dir, values.at));
+      c = toLoadedCase(bundle);
+      const harnessErrors: string[] = [];
+      let brief: CaseBrief | undefined;
+      let hints: { text: string; hintsError?: string } = { text: '' };
+      if (flags.brief) {
+        try {
+          brief = compileBrief(bundle);
+          hints = { text: renderBrief(brief) };
+        } catch (e) {
+          hints = { text: '', hintsError: e instanceof Error ? e.message : String(e) };
+        }
+      } else hints = hintsFor(c);
+      let skills: Skill[] = [];
+      if (flags.skills) {
+        try {
+          const tags = classify(bundle, brief);
+          if (brief) brief.tags = tags;
+          skills = selectSkills(tags);
+        } catch (e) {
+          harnessErrors.push(`skills: ${e instanceof Error ? e.message : String(e)}`);
+        }
+      }
+      const skillText = renderSkills(skills);
+      const prompt = casePrompt(c) + (hints.text ? `\n\n${hints.text}` : '') + (skillText ? `\n\n${skillText}` : '');
       const screen = await prescreen(prompt);
       const adapter = withOrganiserApi(createOpsToolset(seedFromCase(c)), organiser, c.id);
       const toolset = adapter.toolset;
@@ -166,10 +202,12 @@ async function processCase(dir: string, timeoutMs: number): Promise<Row> {
         thinkingLevel: thinking,
         timeoutMs,
         critic: criticModel && { model: criticModel, streamFn, attachments: c.inputs.map((i) => i.name) },
+        harness: { flags, bundle, brief, skills, briefText: hints.text },
       });
-      return { c, hints, screen, chaos, run, toolsetReport: adapter.report() };
+      const harness = { flags: flagsLine(flags), tags: brief?.tags ?? [], skills: skills.map((s) => s.id), errors: harnessErrors, log: run.harnessLog };
+      return { c, hints, screen, chaos, run, harness, toolsetReport: adapter.report() };
     };
-    const { c: lc, hints, screen, chaos, run, toolsetReport } = await bounded(work(), timeoutMs + GUARD_GRACE_MS);
+    const { c: lc, hints, screen, chaos, run, harness, toolsetReport } = await bounded(work(), timeoutMs + GUARD_GRACE_MS);
     const assistants = run.messages.filter((m: any) => m.role === 'assistant') as any[];
     const usage: Usage = {
       input: assistants.reduce((a, m) => a + (m.usage?.input ?? 0), 0),
@@ -196,7 +234,7 @@ async function processCase(dir: string, timeoutMs: number): Promise<Row> {
     }
     writeFileSync(
       join(outDir, 'result.json'),
-      JSON.stringify({ id: lc.id, model: values.model, thinking, cutoff: lc.cutoff, totalEvents: lc.totalEvents, inputs: lc.inputs.map((i) => ({ name: i.name, ...i.parse })), withheld: lc.withheld, timeoutMs, toolset: toolsetReport, chaos, screen, hintsError: hints.hintsError, gateLog: run.gateLog, policyLog: run.policyLog, decision: run.decision, ledger: run.ledger, state: run.state, usage: { ...usage, retries, thinkingTokens }, error: run.error, critic: run.critic }, null, 2),
+      JSON.stringify({ id: lc.id, model: values.model, thinking, cutoff: lc.cutoff, totalEvents: lc.totalEvents, inputs: lc.inputs.map((i) => ({ name: i.name, ...i.parse })), withheld: lc.withheld, timeoutMs, toolset: toolsetReport, chaos, screen, hintsError: hints.hintsError, harness, gateLog: run.gateLog, policyLog: run.policyLog, decision: run.decision, ledger: run.ledger, state: run.state, usage: { ...usage, retries, thinkingTokens }, error: run.error, critic: run.critic }, null, 2),
     );
     return {
       id: lc.id,
@@ -258,6 +296,7 @@ const manifest = {
   model: values.model,
   thinking,
   critic: criticModel?.id ?? 'off',
+  harness: flags,
   jev: jevEnabled(),
   commit: git('rev-parse', 'HEAD'),
   dirty: !!git('status', '--porcelain'),
@@ -268,7 +307,7 @@ try {
   writeFileSync(join(values.out!, 'run.json'), JSON.stringify(manifest, null, 2));
 } catch {}
 const startLines = [
-  `Running ${dirs.length} cases with ${values.model}, thinking ${thinking} (concurrency ${values.concurrency}, Jev ${jevEnabled() ? 'on' : 'off'}${criticModel ? `, critic ${criticModel.id}` : ''}${Number(values.chaos) > 0 ? `, chaos ${values.chaos} seed ${values.seed}` : ''}${deadline ? `, deadline ${hhmm(deadline)}, case timeout ${Math.round(base / 1000)}s` : ''}${values.resume ? `, resuming ${done.length} of ${dirs.length}` : ''}) at commit ${manifest.commit?.slice(0, 8) ?? 'unknown'}${manifest.dirty ? ' with uncommitted changes' : ''}…`,
+  `Running ${dirs.length} cases with ${values.model}, thinking ${thinking} (concurrency ${values.concurrency}, Jev ${jevEnabled() ? 'on' : 'off'}${criticModel ? `, critic ${criticModel.id}` : ''}${flagsLine(flags) !== 'none' ? `, harness ${flagsLine(flags)}` : ''}${Number(values.chaos) > 0 ? `, chaos ${values.chaos} seed ${values.seed}` : ''}${deadline ? `, deadline ${hhmm(deadline)}, case timeout ${Math.round(base / 1000)}s` : ''}${values.resume ? `, resuming ${done.length} of ${dirs.length}` : ''}) at commit ${manifest.commit?.slice(0, 8) ?? 'unknown'}${manifest.dirty ? ' with uncommitted changes' : ''}…`,
   toolsetStartLine(organiser, createOpsToolset().tools.map((t) => t.name)),
 ];
 for (const l of startLines) log(l);
