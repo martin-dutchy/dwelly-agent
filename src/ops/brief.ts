@@ -58,6 +58,7 @@ export function fallbackBrief(t: HumanTask): Brief {
 }
 
 export async function briefFor(t: HumanTask, opts: { model?: string; timeoutMs?: number; caseIntro?: string } = {}): Promise<Brief> {
+  if (process.env.VITEST) return fallbackBrief(t); // tests never call the model
   const hit = cache.get(t.id);
   if (hit) return hit;
   const running = pending.get(t.id);
