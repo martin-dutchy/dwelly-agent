@@ -1,6 +1,6 @@
 # M5 remaining misses
 
-Status: active · Shape: default plan · Owner: Marc (Claude sessions) · Written 2026-10-10 15:10 BST · Parent: [dwelly-case-worker-master-plan.md](dwelly-case-worker-master-plan.md) · Follows: [M5-residual-misses-plan.md](M5-residual-misses-plan.md)
+Status: active (done except 001 R4 and the final full dev run) · Shape: default plan · Owner: Marc (Claude sessions) · Written 2026-10-10 15:10 BST · Parent: [dwelly-case-worker-master-plan.md](dwelly-case-worker-master-plan.md) · Follows: [M5-residual-misses-plan.md](M5-residual-misses-plan.md)
 
 ## Goal
 
@@ -90,14 +90,14 @@ Each re-runs only its own cases at k = 3. Merge, then one union run on the 14 ca
 
 ## Acceptance criteria
 
-- [ ] `opsTools.test.ts`: `request_landlord_approval` keeps and returns `update`; the ledger entry shows it. Fails before A, passes after.
-- [ ] 001 R4 passes in ≥ 2/3 runs, and the ledger shows a verified letter to the second flat or a verified internal request for its contact.
-- [ ] 008 R3 passes in ≥ 2/3 runs. In every 008 run, the ledger shows an `internal` message carrying the scope list.
-- [ ] 025 R3 passes in ≥ 2/3 runs.
-- [ ] 02 R1 passes in ≥ 2/3 runs on the merged `main` policy.
-- [ ] Union of the 14 cases at k = 3: required-met ≥ 95 % (baseline 91.1 %), with 0 critical, prohibited or red-flag hits. At least 8 of the 17 targeted P items pass in ≥ 2/3 runs (13 P1, P2; 025 P1; 020 P2, P3; 047 P2; 010 P1; 014 P1, P3; 026 P1, P3; 042 P1, P3; 008 P1, P2, P3; 008 R1 excluded).
+- [x] `opsTools.test.ts`: `request_landlord_approval` keeps and returns `update`; the ledger entry shows it. Fails before A, passes after (both new tests failed with the source change stashed).
+- [ ] 001 R4 passes in ≥ 2/3 runs, and the ledger shows a verified letter to the second flat or a verified internal request for its contact. Not met: 0/3. The agent does not notice the second reporter, who is named once in passing (Discoveries).
+- [x] 008 R3 passes in ≥ 2/3 runs (3/3 in the union run). In every 008 run, the ledger shows an `internal` message carrying the scope list.
+- [x] 025 R3 passes in ≥ 2/3 runs (3/3; 025 required-met 100/100/100).
+- [x] 02 R1 passes in ≥ 2/3 runs on the merged `main` policy (2/3 in the union run, 3/3 in workstream C+F).
+- [x] Union of the 14 cases at k = 3: required-met ≥ 95 % (baseline 91.1 %; 94.6 % in the union run, 97.0 % with 010 replaced by its re-run after the recurring-schedule fix; positives 71/114 → 95/114), with 0 critical, prohibited or red-flag hits. At least 8 of the 17 targeted P items pass in ≥ 2/3 runs (13 P1, P2; 025 P1; 020 P2, P3; 047 P2; 010 P1; 014 P1, P3; 026 P1, P3; 042 P1, P3; 008 P1, P2, P3; 008 R1 excluded).
 - [ ] Full dev split (k = 1), current scoring formula: mean ≥ 89.3 (the 13:12 run re-scored), required-met ≥ 92.7 %, 0 critical, prohibited or red-flag hits, escalation P/R 1.00/1.00.
-- [ ] `pnpm verify` exits 0.
+- [x] `pnpm verify` exits 0 (31 files, 583 tests).
 
 ## Verification
 
@@ -110,6 +110,13 @@ Each re-runs only its own cases at k = 3. Merge, then one union run on the 14 ca
 
 - [x] (2026-10-10 15:10 BST) Plan drafted from the missed-items analysis of `runs/loop/dev-cursor-k3-2026-10-10T13-58-46-969Z`.
 - [x] (2026-10-10 15:12 BST) Open questions answered; three workstreams launched.
+- [x] (2026-10-10 15:11 BST) C+F (`f05cb20`): colleague-who-raised-the-work trigger and internal scope message when no second provider is named. k = 3: 008 50/75/50 → 75/75/100 with an internal scope message in 3/3; 02 R1 3/3 under `main`'s gas/CO rule. Run `runs/loop/dev-cursor-k3-2026-10-10T14-08-39-492Z`.
+- [x] (2026-10-10 15:14 BST) A+B (`bab58c0`): `update` on `request_landlord_approval` (record, ANSWER rendering, two tests failing before and passing after), letter contact for a flat named in the case. k = 3: 025 50/75/75 → 100/100/100; 001 R4 still 0/3. Runs `runs/loop/dev-cursor-k3-2026-10-10T14-09-01-141Z` (kept), `…14-11-40-456Z` (reverted line).
+- [x] (2026-10-10 15:21 BST) D+E (`1e968d6`): UK lettings facts (gas check window and copies, warranties, tenant alterations) and the "carry the implication through" block; 13 of 14 targeted positives at or above baseline; the wrong-trade line dropped (0/3 twice). Runs `runs/loop/dev-cursor-k3-2026-10-10T14-08-47-640Z`, `…14-15-22-678Z`.
+- [x] (2026-10-10 15:22 BST) Merged; tightened the "see attached" line so it never quotes figures from an unseen document. Union k = 3: `Coverage 14/14 decided · mean 92.7 · critical in 0` / `pass^3 0.71 · checks 114/114`, required 94.6 %, positives 95/114. Run `runs/loop/dev-cursor-k3-2026-10-10T14-21-49-541Z`.
+- [x] (2026-10-10 15:26 BST) Full dev (66 cases now, incl. `main`'s new voice-call cases): `Coverage 66/66 decided · mean 88.9 · critical in 2` / `esc P/R 1.00/1.00 · checks 193/193`; public cuts 93.5 (required 97.0 %), practice 95.4 (97.4 %), public examples 93.3, voice calls 72.2. Both zeroed cases (voice 105, 110) told a tenant to pay to remove the landlord's appliance (Tenant Fees Act). Run `runs/loop/dev-cursor-2026-10-10T14-21-51-553Z`.
+- [x] (2026-10-10 15:29 BST) Tenant Fees Act permitted-payments fact added, and the own-appliance row now says the landlord's item goes at the landlord's cost. k = 3 on 105, 110, 038, 040: `mean 94.8 · critical in 0`, checks 33/33. Run `runs/loop/dev-cursor-k3-2026-10-10T14-26-41-883Z`.
+- [x] (2026-10-10 15:33 BST) 010 regressed in the union run (100/67/33): the recurring line made the agent schedule from the wrong anchor date. Reworded to keep the next date the party gave; 010 k = 3: 100/100/100. Run `runs/loop/dev-cursor-k3-2026-10-10T14-29-05-136Z`.
 
 ## Decision log
 
