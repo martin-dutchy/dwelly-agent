@@ -1,0 +1,243 @@
+{
+  "id": "012",
+  "model": "claude-sonnet-5-5",
+  "cutoff": 18,
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Stage: visit. Troubleshooting failed (tenant, 23/04). Landlord had already agreed to an engineer (event 008, and the property manager's 25/04 note). Riverside Compliance assigned 25/04. Visit recorded by the system for Wed 29/04/2026 8am-12pm. Waiting on the provider to confirm the company name and slot; follow-up set for 28/04.",
+    "next_actions": [
+      {
+        "type": "CHASE_PROVIDER",
+        "action": "Ask Riverside Compliance to confirm that Grant (who said he was from Cedar Utilities) is attending for them and that the 29/04 8-12 slot stands. Quote and photos are needed before any repair.",
+        "recipient": "Riverside Compliance, contractor",
+        "channel": "email",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Confirm the visit on Wed 29/04 8-12 to the tenant and say when they will next hear from us (by 28/04).",
+        "recipient": "Leo Turner, tenant",
+        "channel": "email",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "WAIT",
+        "action": "Follow up on 28/04 for the provider's confirmation of the company and slot.",
+        "recipient": "Riverside Compliance, contractor",
+        "channel": "internal",
+        "ledger_id": "A4"
+      }
+    ],
+    "boundaries": [
+      "Messages sent do not confirm that the provider has accepted the slot or that the company name is correct.",
+      "No cost, cause or repair approval is established. Any quote still needs landlord approval or the spend limit.",
+      "I did not call set_visit because the system already recorded the visit."
+    ],
+    "remaining_work": [
+      "Provider confirmation of company and slot (agency, by 28/04)",
+      "Visit on 29/04, then record the result",
+      "If a quote is needed: record it and get landlord approval before work",
+      "Invoice and final checks, then close"
+    ],
+    "missing_info": [
+      "Whether Cedar Utilities and Riverside Compliance are the same company",
+      "Spend limit and landlord's decision on any quote (none visible)"
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "The dishwasher job is at the visit stage with a recorded visit on 29/04 8am-12pm. The call log names a different company (Cedar Utilities) and a different tenant surname (Kendall) from the assignment, so I asked the provider to confirm, updated the tenant, resumed auto mode and set a follow-up for 28/04.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "A visit is booked for Wed 29/04/2026, 8am-12pm with Riverside Compliance. Outstanding: confirmation of the provider's identity and slot, the visit result, any quote and landlord approval, then the invoice and close."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Email Riverside Compliance to confirm the company name and slot (done), and email tenant Leo Turner confirming the visit (done). Follow-up on 28/04."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "No. The name mismatch can be settled by asking the provider. Nothing in this case needs a human decision at the moment."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Email to Riverside Compliance asking for confirmation of company and slot"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Email to tenant confirming the visit window and when they will next hear from us"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Returned the ticket to auto mode"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Follow-up set for 28/04"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "The call log names Cedar Utilities, but the assigned provider is Riverside Compliance.",
+      "The call log names the tenant as Leo Kendall, but the records say Leo Turner. Treated as a typo; the tenant was reached on the number on file.",
+      "Event 001 refers to an email from Sept 2025, and event 004 says it was unclear whether a later reply was about this dishwasher. The current tenant email of 23/04 settles that the fault persists."
+    ],
+    "assumptions": [
+      "The landlord agreed to an engineer attending (event 008, and the 25/04 manager note), but no recorded landlord decision or spend limit is visible, so no repair spend is approved."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Riverside Compliance",
+        "recipient_role": "contractor",
+        "channel": "email",
+        "contact": "existing thread (event 015 email)",
+        "ticket_ref": "NBL-012",
+        "body": "Hello, a quick check on the dishwasher job at Flat 9, 89 Juniper Mews. Our record shows a call from \"Grant from Cedar Utilities\" agreeing Wednesday 29/04/2026, 8am-12pm with the tenant. The job was assigned to Riverside Compliance. Please confirm Grant is attending for Riverside Compliance and that the Wednesday 8-12 slot is confirmed. If it is a different company, please tell us so we can correct the record. As per the job email, please send a quote with photos before any repair work, and don't start until we confirm approval. Thank you."
+      },
+      "key": "send_message:{body:\"Hello, a quick check on the dishwasher job at Flat 9, 89 Juniper Mews. Our record shows a call from \\\"Grant from Cedar Utilities\\\" agreeing Wednesday 29/04/2026, 8am-12pm with the tenant. The job was assigned to Riverside Compliance. Please confirm Grant is attending for Riverside Compliance and that the Wednesday 8-12 slot is confirmed. If it is a different company, please tell us so we can correct the record. As per the job email, please send a quote with photos before any repair work, and don't start until we confirm approval. Thank you.\",channel:\"email\",contact:\"existing thread (event 015 email)\",recipient_name:\"Riverside Compliance\",recipient_role:\"contractor\",ticket_ref:\"NBL-012\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-101",
+      "evidence": [
+        "MSG-101 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Leo Turner",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 011 email)",
+        "ticket_ref": "NBL-012",
+        "body": "Hi Leo, thanks for running the checks. We have an engineer visit down for Wednesday 29 April, between 8am and 12pm, for them to look at the dishwasher door. Please make sure someone is home. We are just confirming the engineer's company details with them and will tell you if anything changes. If any repair needs a quote, we will get the landlord's approval first. You will next hear from us by Tuesday 28 April, or sooner if anything changes."
+      },
+      "key": "send_message:{body:\"Hi Leo, thanks for running the checks. We have an engineer visit down for Wednesday 29 April, between 8am and 12pm, for them to look at the dishwasher door. Please make sure someone is home. We are just confirming the engineer's company details with them and will tell you if anything changes. If any repair needs a quote, we will get the landlord's approval first. You will next hear from us by Tuesday 28 April, or sooner if anything changes.\",channel:\"email\",contact:\"existing thread (event 011 email)\",recipient_name:\"Leo Turner\",recipient_role:\"tenant\",ticket_ref:\"NBL-012\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-102",
+      "evidence": [
+        "MSG-102 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "resume_auto",
+      "args": {
+        "ticket_ref": "NBL-012"
+      },
+      "key": "resume_auto:{ticket_ref:\"NBL-012\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-012",
+      "evidence": [
+        "Ticket NBL-012 read back after resume_auto"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "schedule_follow_up",
+      "args": {
+        "ticket_ref": "NBL-012",
+        "due_on": "2026-04-28",
+        "party": "Riverside Compliance",
+        "purpose": "Check provider has confirmed the 29/04 8-12 slot and the Cedar Utilities/Riverside name mismatch before the visit"
+      },
+      "key": "schedule_follow_up:{due_on:\"2026-04-28\",party:\"Riverside Compliance\",purpose:\"Check provider has confirmed the 29/04 8-12 slot and the Cedar Utilities/Riverside name mismatch before the visit\",ticket_ref:\"NBL-012\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "FUP-103",
+      "evidence": [
+        "FUP-103 found in the schedule_follow_up log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-012",
+        "stage": "visit",
+        "property": "Flat 9, 89 Juniper Mews, Willowbank, ZZ2 0ZZ",
+        "description": "Dishwasher door not closing,",
+        "mode": "auto"
+      }
+    ],
+    "records": [
+      {
+        "id": "MSG-101",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Riverside Compliance",
+          "recipient_role": "contractor",
+          "channel": "email",
+          "contact": "existing thread (event 015 email)",
+          "body": "Hello, a quick check on the dishwasher job at Flat 9, 89 Juniper Mews. Our record shows a call from \"Grant from Cedar Utilities\" agreeing Wednesday 29/04/2026, 8am-12pm with the tenant. The job was assigned to Riverside Compliance. Please confirm Grant is attending for Riverside Compliance and that the Wednesday 8-12 slot is confirmed. If it is a different company, please tell us so we can correct the record. As per the job email, please send a quote with photos before any repair work, and don't start until we confirm approval. Thank you.",
+          "ticket_ref": "NBL-012"
+        },
+        "at": 1791632668829
+      },
+      {
+        "id": "MSG-102",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Leo Turner",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 011 email)",
+          "body": "Hi Leo, thanks for running the checks. We have an engineer visit down for Wednesday 29 April, between 8am and 12pm, for them to look at the dishwasher door. Please make sure someone is home. We are just confirming the engineer's company details with them and will tell you if anything changes. If any repair needs a quote, we will get the landlord's approval first. You will next hear from us by Tuesday 28 April, or sooner if anything changes.",
+          "ticket_ref": "NBL-012"
+        },
+        "at": 1791632668829
+      },
+      {
+        "id": "FUP-103",
+        "tool": "schedule_follow_up",
+        "args": {
+          "ticket_ref": "NBL-012",
+          "due_on": "2026-04-28",
+          "party": "Riverside Compliance",
+          "purpose": "Check provider has confirmed the 29/04 8-12 slot and the Cedar Utilities/Riverside name mismatch before the visit"
+        },
+        "at": 1791632668830
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 9, 89 Juniper Mews, Willowbank, ZZ2 0ZZ",
+        "landlord": {
+          "contact": "agency landlord record",
+          "notes": [
+            "Contact details are held in the agency system and not shown in this case file; messages to the landlord go through it. Use contact \"agency landlord record\".",
+            "No landlord message is visible in this case yet."
+          ]
+        }
+      }
+    ]
+  },
+  "usage": {
+    "input": 8,
+    "output": 3049,
+    "cost": 0.057128200000000004,
+    "turns": 3,
+    "durationMs": 22284,
+    "retries": 0
+  }
+}

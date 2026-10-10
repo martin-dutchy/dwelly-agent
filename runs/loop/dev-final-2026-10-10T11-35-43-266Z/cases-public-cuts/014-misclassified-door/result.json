@@ -1,0 +1,211 @@
+{
+  "id": "014-misclassified-door",
+  "model": "claude-sonnet-5-5",
+  "cutoff": 2,
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Intake stage. Misclassified as Appliances; actual issue is a front door that must be slammed to close. No landlord decision, no contractor. Waiting on the tenant for details.",
+    "next_actions": [
+      {
+        "type": "REQUEST_INFORMATION",
+        "action": "Ask tenant about glazing/damage, whether the door locks securely, and access times",
+        "recipient": "Tenant",
+        "channel": "email",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "RECLASSIFY",
+        "action": "Ticket note correcting category from appliance to door/locks",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "WAIT",
+        "action": "Follow up with tenant 2024-06-10, then seek landlord approval",
+        "recipient": "Tenant",
+        "channel": "internal",
+        "ledger_id": "A3"
+      }
+    ],
+    "boundaries": [
+      "Nothing is booked or approved; cause of the fault and who pays are not established",
+      "The fridge man's comment is hearsay and unverified",
+      "The reclassification is a ticket note; the category field was not changed"
+    ],
+    "remaining_work": [
+      "Get tenant's reply",
+      "Get landlord approval or choice of contractor (no landlord contact on the property record)",
+      "Assign contractor and book visit",
+      "Raise severity if the door cannot lock or the glass is cracked"
+    ],
+    "missing_info": [
+      "Landlord contact and spend limit",
+      "Door type and condition, whether it locks",
+      "Access details"
+    ],
+    "outcome": "needs_info",
+    "severity": "routine",
+    "summary": "The intake wrongly labelled a door fault as an appliance issue. I noted the correction on the ticket, asked the tenant the door and access questions, and set a follow-up for 2024-06-10. No human decision is needed yet.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "At intake and misclassified. The real issue is a front door that has to be slammed to close. Outstanding: tenant details, landlord approval, contractor and visit."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Tenant, by email on the existing thread: door and glass condition, whether it locks, and access times. A follow-up is set for 2024-06-10, then landlord approval."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "Not yet. If the door cannot be secured or the glass is cracked, or the landlord cannot be contacted, escalate. The property record has no landlord details."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Ticket note reclassifying the issue as a door fault"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Information request sent to tenant"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Follow-up scheduled for 2024-06-10"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Intake classified the issue as Appliances (fridge), but the tenant text describes a door fault; the fridge man was only mentioned as a witness."
+    ],
+    "assumptions": [
+      "The tenant is reachable on the existing thread",
+      "Severity is routine until the tenant confirms the door still secures"
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "update_ticket",
+      "args": {
+        "ref": "NBL-014-misclassified-door",
+        "note": "Reclassified: intake labelled this Appliances (fridge Q&A irrelevant). Real issue is front door (and back door) not closing properly, has to be slammed; glass may shatter. Category locks/doors, routine pending details. Fridge questions can be ignored. No landlord contact on property record; landlord decision still needed."
+      },
+      "key": "update_ticket:{note:\"Reclassified: intake labelled this Appliances (fridge Q&A irrelevant). Real issue is front door (and back door) not closing properly, has to be slammed; glass may shatter. Category locks/doors, routine pending details. Fridge questions can be ignored. No landlord contact on property record; landlord decision still needed.\",ref:\"NBL-014-misclassified-door\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-014-misclassified-door",
+      "evidence": [
+        "Ticket NBL-014-misclassified-door read back at stage init"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "request_information",
+      "args": {
+        "recipient_name": "Tenant",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 001 note)",
+        "questions": [
+          "Sorry, our system mistook this for a fridge problem, so please ignore the fridge questions. Is the front door glazed, and is the glass cracked or loose now?",
+          "Does the door still lock securely once it is shut, or can it be left unlocked or open?",
+          "What times and days suit a visit, and is there any access info (entry code, alarm, pets)?"
+        ],
+        "why": "Intake misclassified the door issue as an appliance; need door details and access to arrange a routine repair."
+      },
+      "key": "request_information:{channel:\"email\",contact:\"existing thread (event 001 note)\",questions:[\"Sorry, our system mistook this for a fridge problem, so please ignore the fridge questions. Is the front door glazed, and is the glass cracked or loose now?\",\"Does the door still lock securely once it is shut, or can it be left unlocked or open?\",\"What times and days suit a visit, and is there any access info (entry code, alarm, pets)?\"],recipient_name:\"Tenant\",recipient_role:\"tenant\",why:\"Intake misclassified the door issue as an appliance; need door details and access to arrange a routine repair.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "REQ-101",
+      "evidence": [
+        "REQ-101 found in the request_information log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "schedule_follow_up",
+      "args": {
+        "ticket_ref": "NBL-014-misclassified-door",
+        "due_on": "2024-06-10",
+        "purpose": "Chase tenant for door details/access; then send landlord approval request (landlord contact missing from property record)",
+        "party": "Tenant"
+      },
+      "key": "schedule_follow_up:{due_on:\"2024-06-10\",party:\"Tenant\",purpose:\"Chase tenant for door details/access; then send landlord approval request (landlord contact missing from property record)\",ticket_ref:\"NBL-014-misclassified-door\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "FUP-102",
+      "evidence": [
+        "FUP-102 found in the schedule_follow_up log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-014-misclassified-door",
+        "stage": "init",
+        "property": "Flat 12, 52 Meadow Row, Kingshaven, ZZ9 5ZZ",
+        "description": "Front door you have to slam to shut like the back. when fridge man arrived he even commented and said it will cause a shatter in glass- he said he was also going to report to you.",
+        "notes": [
+          "Reclassified: intake labelled this Appliances (fridge Q&A irrelevant). Real issue is front door (and back door) not closing properly, has to be slammed; glass may shatter. Category locks/doors, routine pending details. Fridge questions can be ignored. No landlord contact on property record; landlord decision still needed."
+        ]
+      }
+    ],
+    "records": [
+      {
+        "id": "REQ-101",
+        "tool": "request_information",
+        "args": {
+          "recipient_name": "Tenant",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 001 note)",
+          "questions": [
+            "Sorry, our system mistook this for a fridge problem, so please ignore the fridge questions. Is the front door glazed, and is the glass cracked or loose now?",
+            "Does the door still lock securely once it is shut, or can it be left unlocked or open?",
+            "What times and days suit a visit, and is there any access info (entry code, alarm, pets)?"
+          ],
+          "why": "Intake misclassified the door issue as an appliance; need door details and access to arrange a routine repair."
+        },
+        "at": 1791632170083
+      },
+      {
+        "id": "FUP-102",
+        "tool": "schedule_follow_up",
+        "args": {
+          "ticket_ref": "NBL-014-misclassified-door",
+          "due_on": "2024-06-10",
+          "party": "Tenant",
+          "purpose": "Chase tenant for door details/access; then send landlord approval request (landlord contact missing from property record)"
+        },
+        "at": 1791632172015
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 12, 52 Meadow Row, Kingshaven, ZZ9 5ZZ"
+      }
+    ]
+  },
+  "usage": {
+    "input": 10,
+    "output": 2242,
+    "cost": 0.0405956,
+    "turns": 4,
+    "durationMs": 18520,
+    "retries": 0
+  }
+}

@@ -1,0 +1,233 @@
+{
+  "id": "044-invoice-unavailable",
+  "model": "claude-sonnet-5-5",
+  "cutoff": 19,
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Ticket at mp_time stage, on hold until 2025-02-14. Cedar Homes reports the job complete but the invoice attachment did not arrive. Tenant confirmation and landlord update are outstanding.",
+    "next_actions": [
+      {
+        "type": "REQUEST_INFORMATION",
+        "action": "Ask Cedar Homes to resend the invoice as a PDF with the total including VAT, and to confirm the visit date",
+        "recipient": "Noah Ellis, contractor",
+        "channel": "email",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "CHASE_TENANT",
+        "action": "Ask the tenant to confirm the handle is fixed and the window works",
+        "recipient": "Harriet, tenant",
+        "channel": "email",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "WAIT",
+        "action": "Hold until 2025-02-14 for the invoice and tenant confirmation",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A4"
+      }
+    ],
+    "boundaries": [
+      "Contractor's email does not prove the work is done: tenant confirmation is still needed.",
+      "No invoice has been recorded, so the amount, who pays and the landlord's spend limit are unchecked.",
+      "The ticket is not closed and no payment is approved."
+    ],
+    "remaining_work": [
+      "Receive and record the invoice, then check it against the landlord's approval and the assigned contractor (agency)",
+      "Get the tenant's confirmation (agency)",
+      "Tell the landlord the outcome, then close the ticket (agency)",
+      "Resolve the tenant name and phone discrepancy (agency)"
+    ],
+    "missing_info": [
+      "Invoice (attachment unavailable)",
+      "Visit date",
+      "Tenant confirmation",
+      "Landlord spend limit (property record is empty)"
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "The landlord approved the repair on 9 Feb and Cedar Homes was assigned. On 11 Feb Cedar Homes said the work was complete, but the invoice did not arrive. I asked the contractor to resend it, asked the tenant to confirm the fix, noted the record conflicts and put the ticket on hold until 14 Feb.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "The repair was approved by the landlord and the contractor reports it complete. The invoice is missing, the tenant has not confirmed, the landlord has not been told the outcome, and the ticket is not closed."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Email Cedar Homes (Noah Ellis) to resend the invoice, and email the tenant to confirm the fix. Both are sent."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "No. This is routine chasing. A human would only be needed if the invoice is flagged against the approval or the contractor stays silent."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Emailed Cedar Homes for invoice resend"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Emailed tenant to confirm the fix"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Noted record conflicts on the ticket"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Put ticket on hold, review 2025-02-14"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Tenant is addressed as Harriet in the emails but named Nora Quinn in the contractor messages.",
+      "The contractor was given two phone numbers: 07700 900307 and 07700 900251.",
+      "The contractor email cites ticket ref NBL-044-1849 but the ticket list shows NBL-044-invoice-unavailable. I used the ticket list ref."
+    ],
+    "assumptions": [
+      "The tenant is reachable on the existing thread from event 007.",
+      "The landlord's 'please go ahead' covers the handle repair."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Noah Ellis, Cedar Homes",
+        "recipient_role": "contractor",
+        "channel": "email",
+        "contact": "existing thread (event 019 email)",
+        "ticket_ref": "NBL-044-invoice-unavailable",
+        "body": "Hi Noah, thanks for letting us know the window handle job at Flat 21, 129 Juniper Mews is complete. The invoice didn't come through on our side. Please resend it as a PDF, made out to the agency, showing the total including VAT and the work done (handle fitted to the window at the top of the stairs). Please also confirm the date of the visit. Thanks, Grace"
+      },
+      "key": "send_message:{body:\"Hi Noah, thanks for letting us know the window handle job at Flat 21, 129 Juniper Mews is complete. The invoice didn't come through on our side. Please resend it as a PDF, made out to the agency, showing the total including VAT and the work done (handle fitted to the window at the top of the stairs). Please also confirm the date of the visit. Thanks, Grace\",channel:\"email\",contact:\"existing thread (event 019 email)\",recipient_name:\"Noah Ellis, Cedar Homes\",recipient_role:\"contractor\",ticket_ref:\"NBL-044-invoice-unavailable\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-101",
+      "evidence": [
+        "MSG-101 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Harriet (tenant)",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 007 email)",
+        "ticket_ref": "NBL-044-invoice-unavailable",
+        "body": "Hi Harriet, Cedar Homes have told us the window handle at the top of your stairs has been fixed. Could you let us know whether the handle is on and the window now opens and closes properly? If anything still isn't right, tell us and we'll get it sorted. Thanks, Grace"
+      },
+      "key": "send_message:{body:\"Hi Harriet, Cedar Homes have told us the window handle at the top of your stairs has been fixed. Could you let us know whether the handle is on and the window now opens and closes properly? If anything still isn't right, tell us and we'll get it sorted. Thanks, Grace\",channel:\"email\",contact:\"existing thread (event 007 email)\",recipient_name:\"Harriet (tenant)\",recipient_role:\"tenant\",ticket_ref:\"NBL-044-invoice-unavailable\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-102",
+      "evidence": [
+        "MSG-102 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "add_note",
+      "args": {
+        "entity": "NBL-044-invoice-unavailable",
+        "note": "Conflicts: tenant greeted as Harriet (events 005/007) but contractor notified as Nora Quinn; phone 07700 900307 vs 07700 900251. Ticket ref NBL-044-1849 in contractor email vs ticket list ref. Invoice attachment unavailable (event 019). Completion is contractor-reported only; tenant confirmation pending. Check landlord spend limit/who pays once invoice arrives."
+      },
+      "key": "add_note:{entity:\"NBL-044-invoice-unavailable\",note:\"Conflicts: tenant greeted as Harriet (events 005/007) but contractor notified as Nora Quinn; phone 07700 900307 vs 07700 900251. Ticket ref NBL-044-1849 in contractor email vs ticket list ref. Invoice attachment unavailable (event 019). Completion is contractor-reported only; tenant confirmation pending. Check landlord spend limit/who pays once invoice arrives.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NOTE-103",
+      "evidence": [
+        "NOTE-103 found in the add_note log"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "put_on_hold",
+      "args": {
+        "ticket_ref": "NBL-044-invoice-unavailable",
+        "reason": "Waiting for Provider",
+        "comment": "Waiting for Cedar Homes to resend invoice (attachment unavailable) and for tenant to confirm the handle is fixed.",
+        "review_on": "2025-02-14"
+      },
+      "key": "put_on_hold:{comment:\"Waiting for Cedar Homes to resend invoice (attachment unavailable) and for tenant to confirm the handle is fixed.\",reason:\"Waiting for Provider\",review_on:\"2025-02-14\",ticket_ref:\"NBL-044-invoice-unavailable\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-044-invoice-unavailable",
+      "evidence": [
+        "Ticket NBL-044-invoice-unavailable read back after put_on_hold"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-044-invoice-unavailable",
+        "stage": "mp_time",
+        "property": "Flat 21, 129 Juniper Mews, Northbridge, ZZ9 4ZZ",
+        "description": "Opened the blind above this window this morning and the window handle fell off.... Now unable to open the window.",
+        "hold": {
+          "reason": "Waiting for Provider",
+          "comment": "Waiting for Cedar Homes to resend invoice (attachment unavailable) and for tenant to confirm the handle is fixed.",
+          "review_on": "2025-02-14"
+        },
+        "mode": "manual"
+      }
+    ],
+    "records": [
+      {
+        "id": "MSG-101",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Noah Ellis, Cedar Homes",
+          "recipient_role": "contractor",
+          "channel": "email",
+          "contact": "existing thread (event 019 email)",
+          "body": "Hi Noah, thanks for letting us know the window handle job at Flat 21, 129 Juniper Mews is complete. The invoice didn't come through on our side. Please resend it as a PDF, made out to the agency, showing the total including VAT and the work done (handle fitted to the window at the top of the stairs). Please also confirm the date of the visit. Thanks, Grace",
+          "ticket_ref": "NBL-044-invoice-unavailable"
+        },
+        "at": 1791629081892
+      },
+      {
+        "id": "MSG-102",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Harriet (tenant)",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 007 email)",
+          "body": "Hi Harriet, Cedar Homes have told us the window handle at the top of your stairs has been fixed. Could you let us know whether the handle is on and the window now opens and closes properly? If anything still isn't right, tell us and we'll get it sorted. Thanks, Grace",
+          "ticket_ref": "NBL-044-invoice-unavailable"
+        },
+        "at": 1791629081892
+      },
+      {
+        "id": "NOTE-103",
+        "tool": "add_note",
+        "args": {
+          "entity": "NBL-044-invoice-unavailable",
+          "note": "Conflicts: tenant greeted as Harriet (events 005/007) but contractor notified as Nora Quinn; phone 07700 900307 vs 07700 900251. Ticket ref NBL-044-1849 in contractor email vs ticket list ref. Invoice attachment unavailable (event 019). Completion is contractor-reported only; tenant confirmation pending. Check landlord spend limit/who pays once invoice arrives."
+        },
+        "at": 1791629081893
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 21, 129 Juniper Mews, Northbridge, ZZ9 4ZZ"
+      }
+    ]
+  },
+  "usage": {
+    "input": 12,
+    "output": 2883,
+    "cost": 0.056046500000000006,
+    "turns": 5,
+    "durationMs": 19868
+  }
+}

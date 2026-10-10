@@ -1,0 +1,179 @@
+{
+  "id": "003",
+  "model": "claude-sonnet-5-5",
+  "cutoff": 19,
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Final checks (ticket stage: documents). Estimate marked approved (event 010, no figure recorded), contractor said invoice sent (event 017), system marked completed (event 019). Waiting on the contractor for a readable invoice and completion confirmation.",
+    "next_actions": [
+      {
+        "type": "REQUEST_INFORMATION",
+        "action": "Ask the contractor to resend the invoice as a PDF or plain text with total and confirm the estimate figure and that work is complete",
+        "recipient": "Bennett, contractor",
+        "channel": "email",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "WAIT",
+        "action": "Follow-up on 2025-07-28 to chase, then record the invoice, check it against the estimate, file it and close",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A2"
+      }
+    ],
+    "boundaries": [
+      "Asking for the invoice does not approve payment or confirm the work was done to standard.",
+      "Ticket not closed; invoice not recorded or checked."
+    ],
+    "remaining_work": [
+      "Obtain a readable invoice and record it, checking it against the approved estimate and the assigned contractor.",
+      "Get written completion confirmation.",
+      "Check the landlord has been told the outcome, and whether the work is a deposit deduction (needs a human if disputed).",
+      "Then close."
+    ],
+    "missing_info": [
+      "Invoice contents (attachment not readable to me)",
+      "Approved estimate figure",
+      "Written completion evidence",
+      "Landlord or tenancy details are not on the property record"
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "Job is at final checks after the contractor said the invoice was sent. I could not see the invoice or any approved figure, so I asked the contractor to resend the invoice and confirm completion, and set a follow-up for 28 July.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "At final checks. Outstanding: a readable invoice checked against the approved estimate, completion confirmation, landlord informed, and then closing."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Email to Bennett (contractor) asking for the invoice as PDF or plain text and a completion confirmation, with a follow-up on 28 July."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "Not yet. A human is needed only if the invoice exceeds the estimate or comes from a different company, or if the cost is disputed as a deposit deduction."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Requested invoice and completion confirmation from contractor"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Scheduled follow-up for 2025-07-28"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "The inspection report is dated 16 March 2026 with a signature of 22 July 2025, which is after the case date. The report's dates are inconsistent. I treated it as context only."
+    ],
+    "assumptions": [
+      "The invoice attachment (attachment-02) was not visible to me, so I did not rely on its contents."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "request_information",
+      "args": {
+        "recipient_name": "Bennett",
+        "recipient_role": "contractor",
+        "channel": "email",
+        "contact": "existing thread (event 017 email)",
+        "questions": [
+          "Please resend your invoice for Flat 30, 30 Harbour View (job NBL-003-2766) as a PDF or in plain text, showing the company name, invoice date and total including VAT.",
+          "Please confirm the estimate figure you gave and that the cleaning, dumped-items removal and carpet clean are all finished."
+        ],
+        "why": "We are on final checks but I cannot see the invoice contents or any recorded estimate figure to check it against, and there is no written completion confirmation."
+      },
+      "key": "request_information:{channel:\"email\",contact:\"existing thread (event 017 email)\",questions:[\"Please resend your invoice for Flat 30, 30 Harbour View (job NBL-003-2766) as a PDF or in plain text, showing the company name, invoice date and total including VAT.\",\"Please confirm the estimate figure you gave and that the cleaning, dumped-items removal and carpet clean are all finished.\"],recipient_name:\"Bennett\",recipient_role:\"contractor\",why:\"We are on final checks but I cannot see the invoice contents or any recorded estimate figure to check it against, and there is no written completion confirmation.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "REQ-101",
+      "evidence": [
+        "REQ-101 found in the request_information log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "schedule_follow_up",
+      "args": {
+        "ticket_ref": "NBL-003-2766",
+        "due_on": "2025-07-28",
+        "purpose": "Chase Bennett for readable invoice and completion confirmation; then record invoice, check against approved estimate, file and close.",
+        "party": "Bennett (contractor)"
+      },
+      "key": "schedule_follow_up:{due_on:\"2025-07-28\",party:\"Bennett (contractor)\",purpose:\"Chase Bennett for readable invoice and completion confirmation; then record invoice, check against approved estimate, file and close.\",ticket_ref:\"NBL-003-2766\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "FUP-102",
+      "evidence": [
+        "FUP-102 found in the schedule_follow_up log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-003-2766",
+        "stage": "documents",
+        "property": "Flat 30, 30 Harbour View, Northbridge, ZZ9 0ZZ",
+        "description": "Please provide an estimate to clean property as per check out to include the removal of dumped items left in the property and a carpet clean."
+      }
+    ],
+    "records": [
+      {
+        "id": "REQ-101",
+        "tool": "request_information",
+        "args": {
+          "recipient_name": "Bennett",
+          "recipient_role": "contractor",
+          "channel": "email",
+          "contact": "existing thread (event 017 email)",
+          "questions": [
+            "Please resend your invoice for Flat 30, 30 Harbour View (job NBL-003-2766) as a PDF or in plain text, showing the company name, invoice date and total including VAT.",
+            "Please confirm the estimate figure you gave and that the cleaning, dumped-items removal and carpet clean are all finished."
+          ],
+          "why": "We are on final checks but I cannot see the invoice contents or any recorded estimate figure to check it against, and there is no written completion confirmation."
+        },
+        "at": 1791632163128
+      },
+      {
+        "id": "FUP-102",
+        "tool": "schedule_follow_up",
+        "args": {
+          "ticket_ref": "NBL-003-2766",
+          "due_on": "2025-07-28",
+          "party": "Bennett (contractor)",
+          "purpose": "Chase Bennett for readable invoice and completion confirmation; then record invoice, check against approved estimate, file and close."
+        },
+        "at": 1791632163129
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 30, 30 Harbour View, Northbridge, ZZ9 0ZZ"
+      }
+    ]
+  },
+  "usage": {
+    "input": 8,
+    "output": 2113,
+    "cost": 0.0390847,
+    "turns": 3,
+    "durationMs": 15927,
+    "retries": 0
+  }
+}

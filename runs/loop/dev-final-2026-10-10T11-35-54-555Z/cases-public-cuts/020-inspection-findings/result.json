@@ -1,0 +1,220 @@
+{
+  "id": "020-inspection-findings",
+  "model": "claude-sonnet-5-5",
+  "cutoff": 20,
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Inspection done 15/02 (report dated 16/02), uploaded, sent to landlord. Landlord has replied about an unapproved dog flap and a spare key after a lock change. Ticket on hold awaiting tenant answers, review 2024-02-21.",
+    "next_actions": [
+      {
+        "type": "REQUEST_INFORMATION",
+        "action": "Ask tenant about lock change, spare key and dog flap consent",
+        "recipient": "Tenant",
+        "channel": "email",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Acknowledge landlord's points, say we are checking, and ask the sender to confirm identity",
+        "recipient": "Landlord",
+        "channel": "email",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "WAIT",
+        "action": "Hold until 2024-02-21 for tenant answers",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A3"
+      }
+    ],
+    "boundaries": [
+      "Nothing decides whether the dog flap is allowed; that is the landlord's call.",
+      "No lock or key action taken or confirmed.",
+      "The inspection report does not prove consent either way."
+    ],
+    "remaining_work": [
+      "Tenant's answers on lock change, key and dog flap consent",
+      "Landlord to confirm identity and decision on dog flap",
+      "Tenant to remove the Bedroom 1 command-strip marks and make good (not yet communicated)",
+      "Ticket close after the above"
+    ],
+    "missing_info": [
+      "Landlord contact and details on property record (empty)",
+      "Whether a lock change occurred and who holds the spare key",
+      "Dog flap consent history"
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "The inspection is complete and the report went to the landlord. The landlord's reply raises a dog flap they did not approve and a spare key after a lock change. I asked the tenant for facts, acknowledged the landlord and asked them to confirm who they are, and put the ticket on hold until 21 Feb.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "The inspection is done and reported. Outstanding: the landlord's dog flap and spare key queries, tenant facts, the sender identity check, and the Bedroom 1 sticker marks."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Tenant email asking about the lock change, key and dog flap consent (A2). Landlord email acknowledging and asking for identity confirmation (A1). Then wait to 21 Feb (A3)."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "Not yet. The dog flap consent is the landlord's decision. Escalate if the identity mismatch stays unresolved or if a dispute or unlawful lock change emerges."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Emailed landlord thread acknowledging queries"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Asked tenant for lock/key/dog flap facts"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Put ticket on hold, review 2024-02-21"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Landlord email names Felix Clarke but the report email went to Oliver Bennett.",
+      "Visit dates 13/02 vs 15/02: the 15/02 reschedule is the later one and the report is dated 16/02, which is a further inconsistency. Treated as a genuine reschedule."
+    ],
+    "assumptions": [
+      "Event 020 is a summary of the landlord's email; the original wording is not visible."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Landlord",
+        "recipient_role": "landlord",
+        "channel": "email",
+        "contact": "existing thread (event 020 email)",
+        "ticket_ref": "NBL-020-inspection-findings",
+        "body": "Thank you for your email about Flat 12, 162 Beacon Close. We have noted two points: the dog flap, which you say you did not approve (the inspection report does record one in the utility room/back door), and the spare front door key after a lock change. We are checking with the tenant when the lock was changed and who holds the spare key, and whether the dog flap was agreed. We will come back to you once we know. We have not yet given the tenant any decision on the dog flap; that stays with you. Your email came from the name Felix Clarke, while our records show Oliver Bennett as landlord. Please confirm who you are and your connection to the property."
+      },
+      "key": "send_message:{body:\"Thank you for your email about Flat 12, 162 Beacon Close. We have noted two points: the dog flap, which you say you did not approve (the inspection report does record one in the utility room/back door), and the spare front door key after a lock change. We are checking with the tenant when the lock was changed and who holds the spare key, and whether the dog flap was agreed. We will come back to you once we know. We have not yet given the tenant any decision on the dog flap; that stays with you. Your email came from the name Felix Clarke, while our records show Oliver Bennett as landlord. Please confirm who you are and your connection to the property.\",channel:\"email\",contact:\"existing thread (event 020 email)\",recipient_name:\"Landlord\",recipient_role:\"landlord\",ticket_ref:\"NBL-020-inspection-findings\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-101",
+      "evidence": [
+        "MSG-101 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "request_information",
+      "args": {
+        "recipient_name": "Tenant",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 006 email)",
+        "questions": [
+          "Has the front door lock been changed, and if so when and by whom?",
+          "If so, where is the spare front door key now?",
+          "Did you get the landlord's written agreement before the dog flap was fitted? If so, could you send it?"
+        ],
+        "why": "The landlord has raised the dog flap and a spare key after a lock change. We need your answers before replying to them. Nothing has been decided."
+      },
+      "key": "request_information:{channel:\"email\",contact:\"existing thread (event 006 email)\",questions:[\"Has the front door lock been changed, and if so when and by whom?\",\"If so, where is the spare front door key now?\",\"Did you get the landlord's written agreement before the dog flap was fitted? If so, could you send it?\"],recipient_name:\"Tenant\",recipient_role:\"tenant\",why:\"The landlord has raised the dog flap and a spare key after a lock change. We need your answers before replying to them. Nothing has been decided.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "REQ-102",
+      "evidence": [
+        "REQ-102 found in the request_information log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "put_on_hold",
+      "args": {
+        "ticket_ref": "NBL-020-inspection-findings",
+        "reason": "Waiting for Tenant",
+        "comment": "Awaiting tenant answers on lock change, spare key and dog flap consent; landlord to confirm identity (sender Felix Clarke vs record Oliver Bennett). Bedroom 1 sticker marks also noted in report.",
+        "review_on": "2024-02-21"
+      },
+      "key": "put_on_hold:{comment:\"Awaiting tenant answers on lock change, spare key and dog flap consent; landlord to confirm identity (sender Felix Clarke vs record Oliver Bennett). Bedroom 1 sticker marks also noted in report.\",reason:\"Waiting for Tenant\",review_on:\"2024-02-21\",ticket_ref:\"NBL-020-inspection-findings\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-020-inspection-findings",
+      "evidence": [
+        "Ticket NBL-020-inspection-findings read back after put_on_hold"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-020-inspection-findings",
+        "stage": "init",
+        "property": "Flat 12, 162 Beacon Close, Cedarford, ZZ9 5ZZ",
+        "description": "Inspection",
+        "hold": {
+          "reason": "Waiting for Tenant",
+          "comment": "Awaiting tenant answers on lock change, spare key and dog flap consent; landlord to confirm identity (sender Felix Clarke vs record Oliver Bennett). Bedroom 1 sticker marks also noted in report.",
+          "review_on": "2024-02-21"
+        },
+        "mode": "manual"
+      }
+    ],
+    "records": [
+      {
+        "id": "MSG-101",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Landlord",
+          "recipient_role": "landlord",
+          "channel": "email",
+          "contact": "existing thread (event 020 email)",
+          "body": "Thank you for your email about Flat 12, 162 Beacon Close. We have noted two points: the dog flap, which you say you did not approve (the inspection report does record one in the utility room/back door), and the spare front door key after a lock change. We are checking with the tenant when the lock was changed and who holds the spare key, and whether the dog flap was agreed. We will come back to you once we know. We have not yet given the tenant any decision on the dog flap; that stays with you. Your email came from the name Felix Clarke, while our records show Oliver Bennett as landlord. Please confirm who you are and your connection to the property.",
+          "ticket_ref": "NBL-020-inspection-findings"
+        },
+        "at": 1791632186716
+      },
+      {
+        "id": "REQ-102",
+        "tool": "request_information",
+        "args": {
+          "recipient_name": "Tenant",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 006 email)",
+          "questions": [
+            "Has the front door lock been changed, and if so when and by whom?",
+            "If so, where is the spare front door key now?",
+            "Did you get the landlord's written agreement before the dog flap was fitted? If so, could you send it?"
+          ],
+          "why": "The landlord has raised the dog flap and a spare key after a lock change. We need your answers before replying to them. Nothing has been decided."
+        },
+        "at": 1791632186717
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 12, 162 Beacon Close, Cedarford, ZZ9 5ZZ"
+      }
+    ]
+  },
+  "usage": {
+    "input": 8,
+    "output": 2798,
+    "cost": 0.04740530000000001,
+    "turns": 3,
+    "durationMs": 20747,
+    "retries": 0
+  }
+}

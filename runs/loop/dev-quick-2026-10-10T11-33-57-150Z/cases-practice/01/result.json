@@ -1,0 +1,352 @@
+{
+  "id": "01",
+  "model": "claude-haiku-5-5",
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Emergency gas call at P-201 (Flat 4, 12 Mare Street), reported 22:40 Fri 09/10/2026. Job JOB-101 is open at init. Tenant has been told to leave and call 0800 111 999. HeatRight Ltd has been asked to attend tonight, but no attendance time is confirmed yet. Escalation ESC-105 is with the on-call maintenance team.",
+    "next_actions": [
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Tenant told to leave the flat, avoid switches and flames, not restart the boiler, call 0800 111 999 (or 999 if unwell), and to confirm once outside.",
+        "recipient": "Amelia Clarke, tenant",
+        "channel": "whatsapp",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "ASSIGN_PROVIDER",
+        "action": "Emergency gas make-safe call-out sent to HeatRight Ltd (C-11, Gas Safe 550123) asking for attendance tonight and an arrival time.",
+        "recipient": "HeatRight Ltd, contractor",
+        "channel": "sms",
+        "ledger_id": "A4"
+      },
+      {
+        "type": "CHASE_LANDLORD",
+        "action": "Landlord told of the suspected gas leak, the emergency make-safe (which goes ahead without his approval), and that any work beyond make-safe above £300 inc VAT will come back to him.",
+        "recipient": "Ben Hartley, landlord",
+        "channel": "sms",
+        "ledger_id": "A3"
+      },
+      {
+        "type": "ESCALATE_TO_HUMAN",
+        "action": "On-call maintenance P1 escalation: confirm HeatRight attends tonight, use Swift Plumbing & Heating (C-12) as backup, and arrange temporary accommodation if the boiler cannot be made safe tonight.",
+        "recipient": "maintenance on-call team (internal)",
+        "channel": "internal",
+        "ledger_id": "A5"
+      }
+    ],
+    "boundaries": [
+      "Sending these messages does not confirm a gas leak or its cause; only a Gas Safe engineer can establish that.",
+      "No contractor visit time is confirmed, so no set_visit or assign_contractor was recorded.",
+      "The tenant has not yet confirmed she has left the property or called 0800 111 999.",
+      "Work beyond make-safe is not approved; the landlord's spend limit is £300 inc VAT."
+    ],
+    "remaining_work": [
+      "On-call team: confirm HeatRight (or backup Swift) attendance tonight and get the arrival time (maintenance, P1, ESC-105).",
+      "Record the engineer's make-safe outcome and any Gas Safe report on JOB-101.",
+      "Tell the tenant the confirmed attendance time once it is known.",
+      "Landlord: approval for any repair or replacement above £300 inc VAT.",
+      "R-4801 (dripping tap, visit 2026-10-15) is unaffected and stays on its own job."
+    ],
+    "missing_info": [
+      "HeatRight's response and arrival time (not yet received).",
+      "Confirmation that the tenant and her guest are safely outside.",
+      "Whether the 82-year-old guest needs extra support (the CRM does not record this)."
+    ],
+    "outcome": "escalated",
+    "severity": "emergency",
+    "summary": "A rotten-egg smell from the boiler is a possible gas leak, so this is an emergency even though the tenant said it was \"not urgent\", and an 82-year-old guest is staying in the flat. The tenant was told to leave, avoid switches and flames, and call 0800 111 999. JOB-101 was opened, HeatRight Ltd was asked to attend tonight, the landlord was told, and P1 escalation ESC-105 was raised for the on-call team to confirm attendance.",
+    "answers": [
+      {
+        "question": "1. What severity is this and why, given the tenant says it is \"not urgent\"?",
+        "answer": "Emergency. A rotten-egg smell from a gas boiler is the standard sign of a gas leak, and the tenant's \"not urgent\" tone does not change that. An 82-year-old guest is also in the property."
+      },
+      {
+        "question": "2. What exactly do you tell the tenant right now, and in what order?",
+        "answer": "1) Open windows and doors and leave the flat with everyone, including the guest. 2) Do not use light switches, lighters, candles or electrical appliances, and do not restart the boiler. 3) From outside, call 0800 111 999 (free, 24 hours), or 999 if unwell. 4) An engineer is being arranged and you will be messaged with details. Tell us once you are safe."
+      },
+      {
+        "question": "3. Which actions do you take tonight (job, contractor, escalation, landlord)?",
+        "answer": "Opened JOB-101 as an emergency gas job (A1). Messaged the tenant with safety advice (A2). Sent HeatRight Ltd an emergency call-out request (A4). Told the landlord, Ben Hartley, and explained the make-safe goes ahead without approval (A3). Escalated P1 to the on-call maintenance team (A5). Did not assign a contractor or book a visit time, because none is confirmed. Work beyond make-safe waits for landlord approval above £300 inc VAT."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Opened emergency gas job JOB-101 for P-201 (linked to R-4801)."
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Sent the tenant safety advice: leave, no switches or flames, call 0800 111 999."
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Told the landlord Ben Hartley about the suspected gas leak and the emergency make-safe."
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Sent HeatRight Ltd an emergency gas call-out request for tonight."
+      },
+      {
+        "ledger_id": "A5",
+        "description": "Escalated P1 to on-call maintenance (ESC-105)."
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "The CRM marks the tenant as not vulnerable, but the WhatsApp message says an 82-year-old is staying in the flat. I treated the occupancy as vulnerable for safety purposes and flagged it for the on-call team.",
+      "The tenant describes the issue as \"not urgent\", but the symptom is a gas-leak sign. Safety took priority over her description."
+    ],
+    "assumptions": [
+      "A rotten-egg smell is treated as a possible gas leak until a Gas Safe engineer says otherwise.",
+      "HeatRight Ltd (C-11) is the preferred boiler contractor per the landlord's notes and is out of hours.",
+      "The emergency make-safe is allowed without landlord approval under the emergency exception in policy."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "create_ticket",
+      "args": {
+        "property": "P-201",
+        "category": "gas",
+        "severity": "emergency",
+        "description": "Tenant reports boiler (Worcester 30i, fitted 2017) giving off a rotten-egg smell when it fires up, reported 09/10/2026 22:40 via WhatsApp. Possible gas leak. Tenant says \"not urgent\" but this is treated as an emergency. A vulnerable adult (82, a guest of the flatmate) may be staying at the property. Tenant told to leave, avoid switches and flames, and call 0800 111 999. Make-safe needed tonight.",
+        "tenant": "T-1001",
+        "related_ticket_ref": "R-4801"
+      },
+      "key": "create_ticket:{category:\"gas\",description:\"Tenant reports boiler (Worcester 30i, fitted 2017) giving off a rotten-egg smell when it fires up, reported 09/10/2026 22:40 via WhatsApp. Possible gas leak. Tenant says \\\"not urgent\\\" but this is treated as an emergency. A vulnerable adult (82, a guest of the flatmate) may be staying at the property. Tenant told to leave, avoid switches and flames, and call 0800 111 999. Make-safe needed tonight.\",property:\"P-201\",related_ticket_ref:\"R-4801\",severity:\"emergency\",tenant:\"T-1001\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "JOB-101",
+      "evidence": [
+        "Ticket JOB-101 read back at stage init"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Amelia Clarke",
+        "recipient_role": "tenant",
+        "channel": "whatsapp",
+        "contact": "+447700900101",
+        "ticket_ref": "R-4801",
+        "body": "Hi Amelia, thanks for telling us. A rotten-egg smell from the boiler can mean a gas leak, so we are treating this as an emergency, even though it is out of hours. Please do this now:\n1. Open the windows and doors and leave the flat with everyone in it, including your flatmate's mum.\n2. Don't use any light switches, lighters, candles or electrical appliances, and don't start the boiler again.\n3. From outside, call the National Gas Emergency line on 0800 111 999 (free, 24 hours). If you can't get through or you feel unwell, call 999.\nWe are arranging a gas engineer to attend as soon as possible and will message you with the details. Once you are safe, please let us know you have left the property."
+      },
+      "key": "send_message:{body:\"Hi Amelia, thanks for telling us. A rotten-egg smell from the boiler can mean a gas leak, so we are treating this as an emergency, even though it is out of hours. Please do this now:\\n1. Open the windows and doors and leave the flat with everyone in it, including your flatmate's mum.\\n2. Don't use any light switches, lighters, candles or electrical appliances, and don't start the boiler again.\\n3. From outside, call the National Gas Emergency line on 0800 111 999 (free, 24 hours). If you can't get through or you feel unwell, call 999.\\nWe are arranging a gas engineer to attend as soon as possible and will message you with the details. Once you are safe, please let us know you have left the property.\",channel:\"whatsapp\",contact:\"+447700900101\",recipient_name:\"Amelia Clarke\",recipient_role:\"tenant\",ticket_ref:\"R-4801\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-102",
+      "evidence": [
+        "MSG-102 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Ben Hartley",
+        "recipient_role": "landlord",
+        "channel": "sms",
+        "contact": "+447700900201",
+        "ticket_ref": "R-4801",
+        "body": "Hi Ben, Amelia Clarke at Flat 4, 12 Mare Street reports a rotten-egg smell from the boiler when it fires up. We are treating it as a possible gas leak. The tenant has been told to leave the flat and call 0800 111 999. We are sending HeatRight Ltd out tonight to make it safe. This is an emergency, so it goes ahead without waiting for your approval. Any cost above your £300 limit will come back to you before work beyond make-safe is approved."
+      },
+      "key": "send_message:{body:\"Hi Ben, Amelia Clarke at Flat 4, 12 Mare Street reports a rotten-egg smell from the boiler when it fires up. We are treating it as a possible gas leak. The tenant has been told to leave the flat and call 0800 111 999. We are sending HeatRight Ltd out tonight to make it safe. This is an emergency, so it goes ahead without waiting for your approval. Any cost above your £300 limit will come back to you before work beyond make-safe is approved.\",channel:\"sms\",contact:\"+447700900201\",recipient_name:\"Ben Hartley\",recipient_role:\"landlord\",ticket_ref:\"R-4801\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-103",
+      "evidence": [
+        "MSG-103 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "HeatRight Ltd",
+        "recipient_role": "contractor",
+        "channel": "sms",
+        "contact": "+447700900311",
+        "ticket_ref": "R-4801",
+        "body": "EMERGENCY gas call-out, Flat 4, 12 Mare Street, London E8 1HL (P-201). Tenant Amelia Clarke reports a rotten-egg smell from a Worcester 30i combi boiler (fitted 2017) when it fires up. Please attend tonight to make safe and confirm your arrival time. Tenant has been told to leave the flat and call 0800 111 999. Tenant contact: +447700900101. An 82-year-old is staying at the property. Please reply with your attendance time."
+      },
+      "key": "send_message:{body:\"EMERGENCY gas call-out, Flat 4, 12 Mare Street, London E8 1HL (P-201). Tenant Amelia Clarke reports a rotten-egg smell from a Worcester 30i combi boiler (fitted 2017) when it fires up. Please attend tonight to make safe and confirm your arrival time. Tenant has been told to leave the flat and call 0800 111 999. Tenant contact: +447700900101. An 82-year-old is staying at the property. Please reply with your attendance time.\",channel:\"sms\",contact:\"+447700900311\",recipient_name:\"HeatRight Ltd\",recipient_role:\"contractor\",ticket_ref:\"R-4801\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-104",
+      "evidence": [
+        "MSG-104 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A5",
+      "tool": "escalate_to_human",
+      "args": {
+        "priority": "P1",
+        "team": "maintenance",
+        "reason": "Possible gas leak at P-201 (rotten-egg smell from boiler), reported out of hours. Tenant told to leave and call 0800 111 999. Needs a gas engineer tonight and an on-call person to confirm the make-safe.",
+        "known": "WhatsApp 09/10/2026 22:40 from Amelia Clarke (T-1001): smell \"like rotten eggs\" when boiler fires. Says \"not urgent\", but flatmate's mother (82) is staying. Boiler: Worcester 30i, 2017. CO alarm in kitchen (2022). Landlord Ben Hartley (+447700900201), spend limit £300 inc VAT. HeatRight Ltd (C-11, Gas Safe 550123, out of hours) is the preferred boiler contractor. Tenant told to leave and call 0800 111 999. HeatRight texted for emergency attendance. Landlord texted.",
+        "missing": "HeatRight's attendance time is not confirmed. No reply yet from the tenant that they have left. The CRM marks the tenant as not vulnerable, but an 82-year-old is staying in the flat.",
+        "options": [
+          "On-call engineer to confirm HeatRight attends tonight and make the boiler safe",
+          "If HeatRight cannot attend tonight, use Swift Plumbing & Heating (C-12, Gas Safe 551987) as the backup",
+          "Arrange temporary accommodation for the tenant and guest if the boiler cannot be made safe tonight"
+        ],
+        "recommendation": "Confirm HeatRight attendance tonight; use Swift as backup. Check the tenant has left the property and that 0800 111 999 has been called. Do not let anyone re-light the boiler until a Gas Safe engineer has checked it.",
+        "deadline": "2026-10-09 23:59"
+      },
+      "key": "escalate_to_human:{deadline:\"2026-10-09 23:59\",known:\"WhatsApp 09/10/2026 22:40 from Amelia Clarke (T-1001): smell \\\"like rotten eggs\\\" when boiler fires. Says \\\"not urgent\\\", but flatmate's mother (82) is staying. Boiler: Worcester 30i, 2017. CO alarm in kitchen (2022). Landlord Ben Hartley (+447700900201), spend limit £300 inc VAT. HeatRight Ltd (C-11, Gas Safe 550123, out of hours) is the preferred boiler contractor. Tenant told to leave and call 0800 111 999. HeatRight texted for emergency attendance. Landlord texted.\",missing:\"HeatRight's attendance time is not confirmed. No reply yet from the tenant that they have left. The CRM marks the tenant as not vulnerable, but an 82-year-old is staying in the flat.\",options:[\"On-call engineer to confirm HeatRight attends tonight and make the boiler safe\",\"If HeatRight cannot attend tonight, use Swift Plumbing & Heating (C-12, Gas Safe 551987) as the backup\",\"Arrange temporary accommodation for the tenant and guest if the boiler cannot be made safe tonight\"],priority:\"P1\",reason:\"Possible gas leak at P-201 (rotten-egg smell from boiler), reported out of hours. Tenant told to leave and call 0800 111 999. Needs a gas engineer tonight and an on-call person to confirm the make-safe.\",recommendation:\"Confirm HeatRight attendance tonight; use Swift as backup. Check the tenant has left the property and that 0800 111 999 has been called. Do not let anyone re-light the boiler until a Gas Safe engineer has checked it.\",team:\"maintenance\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "ESC-105",
+      "evidence": [
+        "ESC-105 found in the escalate_to_human log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "R-4801",
+        "tenant_id": "T-1001",
+        "category": "plumbing",
+        "stage": "visit",
+        "description": "Dripping kitchen tap",
+        "visit_date": "2026-10-15"
+      },
+      {
+        "ref": "JOB-101",
+        "stage": "init",
+        "property": "P-201",
+        "tenant": "T-1001",
+        "category": "gas",
+        "severity": "emergency",
+        "description": "Tenant reports boiler (Worcester 30i, fitted 2017) giving off a rotten-egg smell when it fires up, reported 09/10/2026 22:40 via WhatsApp. Possible gas leak. Tenant says \"not urgent\" but this is treated as an emergency. A vulnerable adult (82, a guest of the flatmate) may be staying at the property. Tenant told to leave, avoid switches and flames, and call 0800 111 999. Make-safe needed tonight.",
+        "related_ticket_ref": "R-4801"
+      }
+    ],
+    "records": [
+      {
+        "id": "MSG-102",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Amelia Clarke",
+          "recipient_role": "tenant",
+          "channel": "whatsapp",
+          "contact": "+447700900101",
+          "body": "Hi Amelia, thanks for telling us. A rotten-egg smell from the boiler can mean a gas leak, so we are treating this as an emergency, even though it is out of hours. Please do this now:\n1. Open the windows and doors and leave the flat with everyone in it, including your flatmate's mum.\n2. Don't use any light switches, lighters, candles or electrical appliances, and don't start the boiler again.\n3. From outside, call the National Gas Emergency line on 0800 111 999 (free, 24 hours). If you can't get through or you feel unwell, call 999.\nWe are arranging a gas engineer to attend as soon as possible and will message you with the details. Once you are safe, please let us know you have left the property.",
+          "ticket_ref": "R-4801"
+        },
+        "at": 1791632049402
+      },
+      {
+        "id": "MSG-103",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Ben Hartley",
+          "recipient_role": "landlord",
+          "channel": "sms",
+          "contact": "+447700900201",
+          "body": "Hi Ben, Amelia Clarke at Flat 4, 12 Mare Street reports a rotten-egg smell from the boiler when it fires up. We are treating it as a possible gas leak. The tenant has been told to leave the flat and call 0800 111 999. We are sending HeatRight Ltd out tonight to make it safe. This is an emergency, so it goes ahead without waiting for your approval. Any cost above your £300 limit will come back to you before work beyond make-safe is approved.",
+          "ticket_ref": "R-4801"
+        },
+        "at": 1791632049402
+      },
+      {
+        "id": "MSG-104",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "HeatRight Ltd",
+          "recipient_role": "contractor",
+          "channel": "sms",
+          "contact": "+447700900311",
+          "body": "EMERGENCY gas call-out, Flat 4, 12 Mare Street, London E8 1HL (P-201). Tenant Amelia Clarke reports a rotten-egg smell from a Worcester 30i combi boiler (fitted 2017) when it fires up. Please attend tonight to make safe and confirm your arrival time. Tenant has been told to leave the flat and call 0800 111 999. Tenant contact: +447700900101. An 82-year-old is staying at the property. Please reply with your attendance time.",
+          "ticket_ref": "R-4801"
+        },
+        "at": 1791632049402
+      },
+      {
+        "id": "ESC-105",
+        "tool": "escalate_to_human",
+        "args": {
+          "priority": "P1",
+          "team": "maintenance",
+          "reason": "Possible gas leak at P-201 (rotten-egg smell from boiler), reported out of hours. Tenant told to leave and call 0800 111 999. Needs a gas engineer tonight and an on-call person to confirm the make-safe.",
+          "known": "WhatsApp 09/10/2026 22:40 from Amelia Clarke (T-1001): smell \"like rotten eggs\" when boiler fires. Says \"not urgent\", but flatmate's mother (82) is staying. Boiler: Worcester 30i, 2017. CO alarm in kitchen (2022). Landlord Ben Hartley (+447700900201), spend limit £300 inc VAT. HeatRight Ltd (C-11, Gas Safe 550123, out of hours) is the preferred boiler contractor. Tenant told to leave and call 0800 111 999. HeatRight texted for emergency attendance. Landlord texted.",
+          "missing": "HeatRight's attendance time is not confirmed. No reply yet from the tenant that they have left. The CRM marks the tenant as not vulnerable, but an 82-year-old is staying in the flat.",
+          "options": [
+            "On-call engineer to confirm HeatRight attends tonight and make the boiler safe",
+            "If HeatRight cannot attend tonight, use Swift Plumbing & Heating (C-12, Gas Safe 551987) as the backup",
+            "Arrange temporary accommodation for the tenant and guest if the boiler cannot be made safe tonight"
+          ],
+          "recommendation": "Confirm HeatRight attendance tonight; use Swift as backup. Check the tenant has left the property and that 0800 111 999 has been called. Do not let anyone re-light the boiler until a Gas Safe engineer has checked it.",
+          "deadline": "2026-10-09 23:59"
+        },
+        "at": 1791632049403
+      }
+    ],
+    "properties": [
+      {
+        "id": "P-201",
+        "address": "Flat 4, 12 Mare Street, London E8 1HL",
+        "tenanted": true,
+        "landlord": {
+          "name": "Benjamin Hartley",
+          "email": "ben.hartley@hartleyhomes.co.uk",
+          "phone": "+447700900201",
+          "spend_limit_gbp": 300,
+          "notes": [
+            "Prefers Ben (not Benjamin).",
+            "Call before anything over £300 (inc VAT).",
+            "Use HeatRight Ltd for boilers if possible."
+          ]
+        },
+        "contractors": [
+          {
+            "contractor_id": "C-11",
+            "name": "HeatRight Ltd",
+            "trades": [
+              "gas",
+              "heating"
+            ],
+            "gas_safe_no": "550123",
+            "phone": "+447700900311",
+            "out_of_hours": true
+          },
+          {
+            "contractor_id": "C-12",
+            "name": "Swift Plumbing & Heating",
+            "trades": [
+              "plumbing",
+              "heating",
+              "gas"
+            ],
+            "gas_safe_no": "551987",
+            "phone": "+447700900312",
+            "out_of_hours": true
+          }
+        ]
+      }
+    ]
+  },
+  "usage": {
+    "input": 6,
+    "output": 5282,
+    "cost": 0.005603145,
+    "turns": 2,
+    "durationMs": 21727,
+    "retries": 0
+  }
+}

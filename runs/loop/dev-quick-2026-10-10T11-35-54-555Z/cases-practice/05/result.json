@@ -1,0 +1,392 @@
+{
+  "id": "05",
+  "model": "claude-haiku-5-5",
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Ticket R-4815 (Flat 9, 3 Amhurst Road, P-203; tenant Priya Shah). Diagnosis visit done by Capital Boiler Fix (C-19) on Sat 10 Oct. Quote Q-101 for £640 inc VAT is recorded. On hold, waiting for landlord Ben Hartley's decision; review 2026-10-12.",
+    "next_actions": [
+      {
+        "type": "REQUEST_LANDLORD_APPROVAL",
+        "action": "Ask landlord Ben Hartley to approve or decline the £640 inc VAT quote (or have HeatRight quote instead) by SMS, requesting a call today.",
+        "recipient": "Ben Hartley, landlord",
+        "channel": "sms",
+        "ledger_id": "A3"
+      },
+      {
+        "type": "REQUEST_LANDLORD_APPROVAL",
+        "action": "Formal approval request APR-102 logged for the £640 quote, with options.",
+        "recipient": "Ben Hartley, landlord",
+        "channel": "internal",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "CHASE_PROVIDER",
+        "action": "Tell Kieran Doyle not to order parts until the landlord decides.",
+        "recipient": "Kieran Doyle, Capital Boiler Fix",
+        "channel": "email",
+        "ledger_id": "A4"
+      },
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Tell tenant Priya Shah the quote is awaiting landlord decision, with gas-safety advice.",
+        "recipient": "Priya Shah, tenant",
+        "channel": "email",
+        "ledger_id": "A5"
+      },
+      {
+        "type": "WAIT",
+        "action": "Hold the job until the landlord decides; review on 2026-10-12.",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A6"
+      }
+    ],
+    "boundaries": [
+      "Quote is NOT approved. £640 exceeds the landlord's £300 inc VAT limit on file, and the 2023 note allowing emergencies without asking does not cover this (no gas smell, not a vulnerable occupant, heating partly working).",
+      "Recording the quote does not commit spend; no parts ordered and no contractor assigned.",
+      "The landlord's 2019 email asks for a call before any spend over £300."
+    ],
+    "remaining_work": [
+      "Landlord decision on Q-101 (owner: Ben Hartley). If approved, record his exact words, then approve or assign and book the visit. If he picks HeatRight, request their quote.",
+      "Review on 2026-10-12: phone Ben if no reply, then escalate to maintenance P2 if he stays silent."
+    ],
+    "missing_info": [
+      "Landlord's decision on the £640 quote",
+      "Whether landlord wants HeatRight (preferred) to quote instead"
+    ],
+    "outcome": "action_taken",
+    "severity": "urgent",
+    "summary": "Capital Boiler Fix's £640 inc VAT quote for the PCB and diverter valve is above Ben Hartley's £300 limit, so it is not approved. I recorded the quote, asked Ben by SMS for a yes/no call and offered HeatRight as an alternative, told Kieran not to order parts, updated Priya, and put the job on hold until 2026-10-12.",
+    "answers": [
+      {
+        "question": "1. Can you approve this quote?",
+        "answer": "No. £640 inc VAT is over the landlord's £300 inc VAT limit, and his standing instruction is to call before any spend over £300. The 2023 'sort emergencies without asking' note does not cover this: there is no gas smell or vulnerable occupant, and heating still works intermittently. Approval needs Ben's recorded decision."
+      },
+      {
+        "question": "2. Who needs to be contacted, how, and what exactly do you ask for?",
+        "answer": "Ben Hartley (landlord), by SMS to +447700900201 with a call requested. Asked: approve £640 inc VAT with Capital Boiler Fix for the replacement PCB and diverter valve, or have HeatRight quote instead, or arrange his own contractor. Kieran Doyle (Capital Boiler Fix), by email: do not order parts until the landlord decides. Priya Shah (tenant), by email: quote is awaiting landlord decision, with gas-safety advice."
+      },
+      {
+        "question": "3. Is there anything the tenant needs in the meantime?",
+        "answer": "Yes. She was told the decision is pending and what happens next, with no date promised. She was given the gas emergency line (0800 111 999) and told to turn the boiler off and leave if she smells gas. Hot water is off, so she should contact us if the heating also fails."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Recorded quote Q-101, £640 inc VAT, on R-4815"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Requested landlord approval APR-102 from Ben Hartley"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "SMS to Ben Hartley asking for a yes/no call"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Email to Kieran Doyle: do not order parts until landlord decides"
+      },
+      {
+        "ledger_id": "A5",
+        "description": "Email to Priya Shah: decision pending, gas safety advice"
+      },
+      {
+        "ledger_id": "A6",
+        "description": "Put R-4815 on hold, waiting for landlord, review 2026-10-12"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Kieran's email refers to job R-4815 and the work is at Flat 9; the ticket record shows C-19 (Capital Boiler Fix) as assigned. Both match.",
+      "The 2023 note allows emergency work without asking. This is not an emergency under policy (no gas smell, no vulnerable occupant), so the £300 limit and the 2019 instruction apply.",
+      "The landlord's standing HeatRight preference conflicts with the Capital Boiler Fix quote. Landlord was asked whether he wants HeatRight to quote."
+    ],
+    "assumptions": [
+      "Today is Saturday 10 Oct 2026; the next working day is Monday 12 Oct.",
+      "Priya Shah is not vulnerable (CRM), and heating still partly works, so this is urgent, not an emergency.",
+      "Ben's phone number on file (+447700900201, updated 2025) is current."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "record_quote",
+      "args": {
+        "ticket_ref": "R-4815",
+        "provider": "Capital Boiler Fix (Gas Safe 558812)",
+        "amount_gbp": 640,
+        "vat": "included",
+        "items": [
+          "Vaillant PCB £295",
+          "Diverter valve £120",
+          "Labour (3h) £118.33",
+          "VAT 20% £106.67"
+        ],
+        "source": "inputs/quote_CBF-2291.md; email from Kieran Doyle, Sat 10 Oct 2026 11:02"
+      },
+      "key": "record_quote:{amount_gbp:640,items:[\"Vaillant PCB £295\",\"Diverter valve £120\",\"Labour (3h) £118.33\",\"VAT 20% £106.67\"],provider:\"Capital Boiler Fix (Gas Safe 558812)\",source:\"inputs/quote_CBF-2291.md; email from Kieran Doyle, Sat 10 Oct 2026 11:02\",ticket_ref:\"R-4815\",vat:\"included\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "R-4815",
+      "evidence": [
+        "Ticket R-4815 read back after record_quote"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "request_landlord_approval",
+      "args": {
+        "ticket_ref": "R-4815",
+        "landlord": "Ben Hartley (L-01)",
+        "decision_needed": "Approve Capital Boiler Fix quote CBF-2291 for £640 inc VAT (replacement PCB and diverter valve, Vaillant boiler, Flat 9, 3 Amhurst Road). This is above your £300 inc VAT limit, so we need your decision before any parts are ordered. Please also say whether you would rather HeatRight Ltd (your preferred boiler contractor) do the work.",
+        "deadline": "2026-10-12 12:00",
+        "options": [
+          "Approve £640 inc VAT with Capital Boiler Fix (recommended: attended today, parts can be ordered for Monday)",
+          "Ask HeatRight Ltd (C-11) to quote for the same repair instead",
+          "Decline and arrange your own contractor"
+        ]
+      },
+      "key": "request_landlord_approval:{deadline:\"2026-10-12 12:00\",decision_needed:\"Approve Capital Boiler Fix quote CBF-2291 for £640 inc VAT (replacement PCB and diverter valve, Vaillant boiler, Flat 9, 3 Amhurst Road). This is above your £300 inc VAT limit, so we need your decision before any parts are ordered. Please also say whether you would rather HeatRight Ltd (your preferred boiler contractor) do the work.\",landlord:\"Ben Hartley (L-01)\",options:[\"Approve £640 inc VAT with Capital Boiler Fix (recommended: attended today, parts can be ordered for Monday)\",\"Ask HeatRight Ltd (C-11) to quote for the same repair instead\",\"Decline and arrange your own contractor\"],ticket_ref:\"R-4815\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "APR-102",
+      "evidence": [
+        "APR-102 found in the request_landlord_approval log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Ben Hartley",
+        "recipient_role": "landlord",
+        "channel": "sms",
+        "contact": "+447700900201",
+        "body": "Hi Ben, Mare & Co here about Flat 9, 3 Amhurst Road (no hot water). Capital Boiler Fix attended today: the boiler's PCB board and diverter valve need replacing. Their quote is £640 inc VAT, which is above your £300 limit, so I need your OK before they order parts. Could you call me today or reply YES / NO? Would you prefer HeatRight to quote instead? Thanks."
+      },
+      "key": "send_message:{body:\"Hi Ben, Mare & Co here about Flat 9, 3 Amhurst Road (no hot water). Capital Boiler Fix attended today: the boiler's PCB board and diverter valve need replacing. Their quote is £640 inc VAT, which is above your £300 limit, so I need your OK before they order parts. Could you call me today or reply YES / NO? Would you prefer HeatRight to quote instead? Thanks.\",channel:\"sms\",contact:\"+447700900201\",recipient_name:\"Ben Hartley\",recipient_role:\"landlord\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-103",
+      "evidence": [
+        "MSG-103 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Kieran Doyle, Capital Boiler Fix",
+        "recipient_role": "contractor",
+        "channel": "email",
+        "contact": "office@capitalboilerfix.example",
+        "body": "Hi Kieran, thanks for attending Flat 9, 3 Amhurst Road and for quote CBF-2291 (£640 inc VAT). The cost is above the landlord's approval limit, so I have asked him for a decision. Please do not order parts yet. We will confirm as soon as he replies."
+      },
+      "key": "send_message:{body:\"Hi Kieran, thanks for attending Flat 9, 3 Amhurst Road and for quote CBF-2291 (£640 inc VAT). The cost is above the landlord's approval limit, so I have asked him for a decision. Please do not order parts yet. We will confirm as soon as he replies.\",channel:\"email\",contact:\"office@capitalboilerfix.example\",recipient_name:\"Kieran Doyle, Capital Boiler Fix\",recipient_role:\"contractor\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-104",
+      "evidence": [
+        "MSG-104 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A5",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Priya Shah",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "priya.shah@mailbox.example",
+        "body": "Hi Priya, thanks for letting the engineer in today. The engineer has found the fault: the boiler's control board and a valve need replacing. The cost is above the amount our landlord has pre-approved, so we are waiting for his decision before the parts are ordered. We have asked him to reply as quickly as possible and will update you as soon as we hear. In the meantime, if the boiler stops working completely or you smell gas, please turn the boiler off, leave the property if you smell gas, and call the National Gas Emergency line on 0800 111 999. Sorry for the wait."
+      },
+      "key": "send_message:{body:\"Hi Priya, thanks for letting the engineer in today. The engineer has found the fault: the boiler's control board and a valve need replacing. The cost is above the amount our landlord has pre-approved, so we are waiting for his decision before the parts are ordered. We have asked him to reply as quickly as possible and will update you as soon as we hear. In the meantime, if the boiler stops working completely or you smell gas, please turn the boiler off, leave the property if you smell gas, and call the National Gas Emergency line on 0800 111 999. Sorry for the wait.\",channel:\"email\",contact:\"priya.shah@mailbox.example\",recipient_name:\"Priya Shah\",recipient_role:\"tenant\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-105",
+      "evidence": [
+        "MSG-105 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A6",
+      "tool": "put_on_hold",
+      "args": {
+        "ticket_ref": "R-4815",
+        "reason": "Waiting for Landlord",
+        "comment": "Quote Q-101 (Capital Boiler Fix, £640 inc VAT) is above the landlord's £300 limit. Need Ben Hartley's yes/no (or HeatRight alternative). Do not order parts or assign until a recorded decision.",
+        "review_on": "2026-10-12"
+      },
+      "key": "put_on_hold:{comment:\"Quote Q-101 (Capital Boiler Fix, £640 inc VAT) is above the landlord's £300 limit. Need Ben Hartley's yes/no (or HeatRight alternative). Do not order parts or assign until a recorded decision.\",reason:\"Waiting for Landlord\",review_on:\"2026-10-12\",ticket_ref:\"R-4815\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "R-4815",
+      "evidence": [
+        "Ticket R-4815 read back after put_on_hold"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "R-4815",
+        "tenant_id": "T-1003",
+        "category": "heating",
+        "stage": "result",
+        "description": "No hot water, heating intermittent",
+        "assigned_contractor": "C-19",
+        "created": "2026-10-09",
+        "quotes": [
+          {
+            "id": "Q-101",
+            "provider": "Capital Boiler Fix (Gas Safe 558812)",
+            "amount_gbp": 640,
+            "vat": "included",
+            "total_gbp": 640,
+            "items": [
+              "Vaillant PCB £295",
+              "Diverter valve £120",
+              "Labour (3h) £118.33",
+              "VAT 20% £106.67"
+            ],
+            "source": "inputs/quote_CBF-2291.md; email from Kieran Doyle, Sat 10 Oct 2026 11:02"
+          }
+        ],
+        "hold": {
+          "reason": "Waiting for Landlord",
+          "comment": "Quote Q-101 (Capital Boiler Fix, £640 inc VAT) is above the landlord's £300 limit. Need Ben Hartley's yes/no (or HeatRight alternative). Do not order parts or assign until a recorded decision.",
+          "review_on": "2026-10-12"
+        },
+        "mode": "manual"
+      }
+    ],
+    "records": [
+      {
+        "id": "APR-102",
+        "tool": "request_landlord_approval",
+        "args": {
+          "landlord": "Ben Hartley (L-01)",
+          "decision_needed": "Approve Capital Boiler Fix quote CBF-2291 for £640 inc VAT (replacement PCB and diverter valve, Vaillant boiler, Flat 9, 3 Amhurst Road). This is above your £300 inc VAT limit, so we need your decision before any parts are ordered. Please also say whether you would rather HeatRight Ltd (your preferred boiler contractor) do the work.",
+          "ticket_ref": "R-4815",
+          "options": [
+            "Approve £640 inc VAT with Capital Boiler Fix (recommended: attended today, parts can be ordered for Monday)",
+            "Ask HeatRight Ltd (C-11) to quote for the same repair instead",
+            "Decline and arrange your own contractor"
+          ],
+          "deadline": "2026-10-12 12:00"
+        },
+        "at": 1791632167816
+      },
+      {
+        "id": "MSG-103",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Ben Hartley",
+          "recipient_role": "landlord",
+          "channel": "sms",
+          "contact": "+447700900201",
+          "body": "Hi Ben, Mare & Co here about Flat 9, 3 Amhurst Road (no hot water). Capital Boiler Fix attended today: the boiler's PCB board and diverter valve need replacing. Their quote is £640 inc VAT, which is above your £300 limit, so I need your OK before they order parts. Could you call me today or reply YES / NO? Would you prefer HeatRight to quote instead? Thanks."
+        },
+        "at": 1791632167816
+      },
+      {
+        "id": "MSG-104",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Kieran Doyle, Capital Boiler Fix",
+          "recipient_role": "contractor",
+          "channel": "email",
+          "contact": "office@capitalboilerfix.example",
+          "body": "Hi Kieran, thanks for attending Flat 9, 3 Amhurst Road and for quote CBF-2291 (£640 inc VAT). The cost is above the landlord's approval limit, so I have asked him for a decision. Please do not order parts yet. We will confirm as soon as he replies."
+        },
+        "at": 1791632167816
+      },
+      {
+        "id": "MSG-105",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Priya Shah",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "priya.shah@mailbox.example",
+          "body": "Hi Priya, thanks for letting the engineer in today. The engineer has found the fault: the boiler's control board and a valve need replacing. The cost is above the amount our landlord has pre-approved, so we are waiting for his decision before the parts are ordered. We have asked him to reply as quickly as possible and will update you as soon as we hear. In the meantime, if the boiler stops working completely or you smell gas, please turn the boiler off, leave the property if you smell gas, and call the National Gas Emergency line on 0800 111 999. Sorry for the wait."
+        },
+        "at": 1791632167817
+      }
+    ],
+    "properties": [
+      {
+        "id": "P-203",
+        "address": "Flat 9, 3 Amhurst Road, London E8 2AU",
+        "tenanted": true,
+        "landlord": {
+          "name": "Benjamin Hartley",
+          "email": "ben.hartley@hartleyhomes.co.uk",
+          "phone": "+447700900201",
+          "spend_limit_gbp": 300,
+          "notes": [
+            "Prefers Ben (not Benjamin).",
+            "Call before anything over £300 (inc VAT).",
+            "Use HeatRight Ltd for boilers if possible."
+          ]
+        },
+        "contractors": [
+          {
+            "contractor_id": "C-11",
+            "name": "HeatRight Ltd",
+            "trades": [
+              "gas",
+              "heating"
+            ],
+            "gas_safe_no": "550123",
+            "phone": "+447700900311",
+            "out_of_hours": true
+          },
+          {
+            "contractor_id": "C-12",
+            "name": "Swift Plumbing & Heating",
+            "trades": [
+              "plumbing",
+              "heating",
+              "gas"
+            ],
+            "gas_safe_no": "551987",
+            "phone": "+447700900312",
+            "out_of_hours": true
+          },
+          {
+            "contractor_id": "C-19",
+            "name": "Capital Boiler Fix",
+            "trades": [
+              "heating",
+              "gas"
+            ],
+            "gas_safe_no": "558812",
+            "phone": "+447700900319"
+          }
+        ]
+      }
+    ]
+  },
+  "usage": {
+    "input": 10,
+    "output": 7286,
+    "cost": 0.005486169999999999,
+    "turns": 4,
+    "durationMs": 31463,
+    "retries": 0
+  }
+}

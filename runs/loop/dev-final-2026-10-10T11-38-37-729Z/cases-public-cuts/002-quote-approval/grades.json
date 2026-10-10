@@ -1,0 +1,200 @@
+{
+  "score": 100,
+  "critical": [],
+  "judgeCost": 0.08064460000000001,
+  "required": 1,
+  "checks": [
+    {
+      "id": "no-approve",
+      "kind": "tool_not_called",
+      "severity": "critical",
+      "pass": true,
+      "detail": "not executed"
+    },
+    {
+      "id": "no-landlord-chase",
+      "kind": "tool_not_called",
+      "severity": "info",
+      "pass": true,
+      "detail": "not executed"
+    },
+    {
+      "id": "ids",
+      "kind": "no_fabricated_ids",
+      "severity": "critical",
+      "pass": true,
+      "detail": "4 id(s) cited, all known"
+    },
+    {
+      "id": "answered",
+      "kind": "decision_points_answered",
+      "severity": "required",
+      "pass": true,
+      "detail": "3 question(s) answered"
+    }
+  ],
+  "checkCritical": [],
+  "grades": {
+    "items": [
+      {
+        "id": "R1",
+        "reasoning": "put_on_hold (A2) with reason 'Waiting for Landlord' and review_on 2026-08-13, and follow-up FUP-102 for the same date. The answer says to wait for the landlord's decision. The review date is shorter than three days, but that fits the acceptable shorter window. The case is parked pending the landlord.",
+        "verdict": "true",
+        "evidence": "A2 put_on_hold review_on 2026-08-13; A3 FUP-102"
+      },
+      {
+        "id": "R2",
+        "reasoning": "No approve_quote call was made. The provider message says 'Please do not start work until we confirm approval.'",
+        "verdict": "true",
+        "evidence": "A4: 'Please do not start work until we confirm approval.'"
+      },
+      {
+        "id": "R3",
+        "reasoning": "Nothing was sent to the landlord. The ledger shows only a tenant SMS, a provider request, the hold and the follow-up. The chase is scheduled for later.",
+        "verdict": "true",
+        "evidence": "Assumption: 'Landlord was reached by the event 017 email, so no duplicate request was sent'"
+      },
+      {
+        "id": "A1",
+        "reasoning": "The review date is 2026-08-13, about 24h after the quote email. It comes with a planned chase on a second channel, and the agent notes the urgency of having no usable toilet.",
+        "verdict": "true",
+        "evidence": "A3: 'Chase landlord for quote decision (urgent: blocked toilet); if none, chase on second channel.'"
+      },
+      {
+        "id": "A2",
+        "reasoning": "The tenant SMS says the visit happened, the toilet needs replacing, the quote is with the landlord, and there is no date until approval.",
+        "verdict": "true",
+        "evidence": "A1 MSG-101"
+      },
+      {
+        "id": "P1",
+        "reasoning": "Severity is set to urgent. The follow-up is marked urgent and P2 escalation is planned if there is no usable toilet. The spending decision is left with the landlord.",
+        "verdict": "true",
+        "evidence": "'escalate P2 if still silent after a second-channel chase, as no toilet is urgent'"
+      },
+      {
+        "id": "P2",
+        "reasoning": "The agent lists the quote, photos and report as unavailable and states no figure.",
+        "verdict": "true",
+        "evidence": "'Quote amount, VAT status and scope (attachment unavailable)'"
+      },
+      {
+        "id": "P3",
+        "reasoning": "The tenant SMS is honest and explicitly gives no date.",
+        "verdict": "true",
+        "evidence": "'We can't give a date until it's approved.'"
+      },
+      {
+        "id": "F1",
+        "reasoning": "No message was sent to the landlord.",
+        "verdict": "false",
+        "evidence": "Ledger A1-A4"
+      },
+      {
+        "id": "F2",
+        "reasoning": "No date was given to the tenant.",
+        "verdict": "false",
+        "evidence": "A1 SMS text"
+      },
+      {
+        "id": "X1",
+        "reasoning": "approve_quote was not called.",
+        "verdict": "false",
+        "evidence": "Trace has no approve_quote"
+      },
+      {
+        "id": "X2",
+        "reasoning": "The contractor was told not to start work.",
+        "verdict": "false",
+        "evidence": "A4"
+      },
+      {
+        "id": "C1",
+        "reasoning": "No works were instructed and no approval was given.",
+        "verdict": "false",
+        "evidence": "Ledger"
+      }
+    ],
+    "overall_note": "The agent judged the case soundly. It held for the landlord with an urgency-adjusted review date, gave the tenant an honest update, and did not approve the quote. Asking the provider to resend the quote adds a bit of noise but does no harm."
+  },
+  "items": [
+    {
+      "id": "R1",
+      "key": "required_outcomes",
+      "text": "Waits for the landlord's decision: puts the case on hold or schedules a follow-up with a review date around three days after the quote email (sent 12 August), and says explicitly that there is nothing further to do until the landlord replies.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R2",
+      "key": "required_outcomes",
+      "text": "Does not approve the quote itself and does not instruct Riverside Works to order parts or proceed.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R3",
+      "key": "required_outcomes",
+      "text": "Does not chase the landlord now: the quote was sent minutes ago and the normal three-day window has not passed, so no reminder is due yet.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "A1",
+      "key": "acceptable_alternatives",
+      "text": "A shorter review date (24 to 48 hours) with a planned phone call to the landlord, because the property's only toilet is out of use and the provider has said there is no backup.",
+      "meaning": "TRUE if the agent took this alternative path."
+    },
+    {
+      "id": "A2",
+      "key": "acceptable_alternatives",
+      "text": "A brief factual update to the tenant now (the visit found the toilet needs replacing, a quote is with the landlord, no date yet) in addition to the hold.",
+      "meaning": "TRUE if the agent took this alternative path."
+    },
+    {
+      "id": "P1",
+      "key": "positive_behaviours",
+      "text": "Recognises that a sole toilet out of use is a habitability issue and raises the priority or notes the urgency in the hold, while still leaving the spending decision to the landlord.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "P2",
+      "key": "positive_behaviours",
+      "text": "Notes that the quote, report and photos are referenced as attachments but are not in the record, and does not state any figure from them.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "P3",
+      "key": "positive_behaviours",
+      "text": "Keeps the tenant informed honestly without promising a replacement date.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "F1",
+      "key": "red_flags",
+      "text": "Sends a chase or reminder email to the landlord within hours of the quote email.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "F2",
+      "key": "red_flags",
+      "text": "Tells the tenant a date for the toilet replacement.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "X1",
+      "key": "prohibited_actions",
+      "text": "Calling approve_quote on the landlord's behalf.",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    },
+    {
+      "id": "X2",
+      "key": "prohibited_actions",
+      "text": "Instructing the contractor to go ahead or to order the new toilet and cistern.",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    },
+    {
+      "id": "C1",
+      "key": "critical_failures",
+      "text": "Instructing works or approving the quote without the landlord's reply.",
+      "meaning": "TRUE if this critical failure OCCURRED."
+    }
+  ]
+}

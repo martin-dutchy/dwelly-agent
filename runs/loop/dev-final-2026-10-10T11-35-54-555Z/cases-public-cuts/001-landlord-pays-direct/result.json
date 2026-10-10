@@ -1,0 +1,211 @@
+{
+  "id": "001-landlord-pays-direct",
+  "model": "claude-sonnet-5-5",
+  "cutoff": 42,
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Landlord approved and uses own contractor (Riverside/Freya), who started 20 Nov. Latest call 11 Dec mentioned completion and invoicing but no written confirmation of completion. Job on hold awaiting landlord/provider confirmation, review 2025-12-15.",
+    "next_actions": [
+      {
+        "type": "REQUEST_INFORMATION",
+        "action": "Ask landlord to confirm in writing that all works are complete and that they pay the contractor direct",
+        "recipient": "Rowan, landlord",
+        "channel": "email",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Update tenant that works are underway and we are awaiting written completion confirmation",
+        "recipient": "Henry, tenant",
+        "channel": "email",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "WAIT",
+        "action": "Hold until 2025-12-15 for confirmation, then close without payment",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A3"
+      }
+    ],
+    "boundaries": [
+      "Messages do not establish that the works are complete",
+      "Not closed: no completed work result recorded",
+      "No spend approved or paid by the agency"
+    ],
+    "remaining_work": [
+      "Obtain written completion confirmation and confirm landlord pays direct, then close without payment (agency, after 2025-12-15 review)",
+      "Tenant confirmation of the finish if possible"
+    ],
+    "missing_info": [
+      "Written completion confirmation",
+      "Content of the 11 Dec call (summary vague)",
+      "Attachments at event 004 unavailable"
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "Communal garden job is being done by the landlord's own contractor. The 11 Dec call suggested completion but there is no written confirmation. I asked the landlord to confirm, updated the tenant, and set a hold with review on 15 Dec.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "Landlord-approved, landlord's own contractor working since 20 Nov; completion not yet confirmed in writing; invoice paid direct by landlord (to be confirmed)."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Email to the landlord asking for written completion confirmation and direct payment; email update to the tenant; hold to 15 Dec."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "No. It is routine and waiting on confirmation."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Emailed landlord for completion confirmation"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Emailed tenant status update"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Put on hold with review date 2025-12-15"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Ticket stage mp_time/provider assigned vs history showing landlord's own contractor; treated as landlord's own contractor",
+      "Landlord email names vary (Rowan/Leo/Felix); treated as same landlord thread"
+    ],
+    "assumptions": [
+      "Riverside Services/Freya is the landlord's own contractor paid direct"
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Rowan",
+        "recipient_role": "landlord",
+        "channel": "email",
+        "contact": "existing thread (event 027 email)",
+        "ticket_ref": "NBL-001-landlord-pays-direct",
+        "body": "Hi Rowan, our call with Freya on 11 Dec touched on the garden and tree works and invoicing, but we don't yet have a clear written confirmation that everything at Flat 26, 46 Copperfield Walk is finished. Could you or Freya confirm by email that all the works (weeds, hedge along the side path, tree trim) are complete, and that you'll pay Freya direct? Once we have that we'll close the job. Thanks."
+      },
+      "key": "send_message:{body:\"Hi Rowan, our call with Freya on 11 Dec touched on the garden and tree works and invoicing, but we don't yet have a clear written confirmation that everything at Flat 26, 46 Copperfield Walk is finished. Could you or Freya confirm by email that all the works (weeds, hedge along the side path, tree trim) are complete, and that you'll pay Freya direct? Once we have that we'll close the job. Thanks.\",channel:\"email\",contact:\"existing thread (event 027 email)\",recipient_name:\"Rowan\",recipient_role:\"landlord\",ticket_ref:\"NBL-001-landlord-pays-direct\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-101",
+      "evidence": [
+        "MSG-101 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Henry",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 031 email)",
+        "ticket_ref": "NBL-001-landlord-pays-direct",
+        "body": "Hello Henry, a quick update on the communal garden works. The landlord's contractor has been working on them, and we spoke to them on 11 December. We're now waiting for written confirmation that everything is finished. If anything still looks untidy, please let us know and we'll pass it on. Thanks for your patience."
+      },
+      "key": "send_message:{body:\"Hello Henry, a quick update on the communal garden works. The landlord's contractor has been working on them, and we spoke to them on 11 December. We're now waiting for written confirmation that everything is finished. If anything still looks untidy, please let us know and we'll pass it on. Thanks for your patience.\",channel:\"email\",contact:\"existing thread (event 031 email)\",recipient_name:\"Henry\",recipient_role:\"tenant\",ticket_ref:\"NBL-001-landlord-pays-direct\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-102",
+      "evidence": [
+        "MSG-102 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "put_on_hold",
+      "args": {
+        "ticket_ref": "NBL-001-landlord-pays-direct",
+        "reason": "Waiting for Landlord",
+        "comment": "Awaiting written confirmation of completion and landlord direct payment; then close without payment.",
+        "review_on": "2025-12-15"
+      },
+      "key": "put_on_hold:{comment:\"Awaiting written confirmation of completion and landlord direct payment; then close without payment.\",reason:\"Waiting for Landlord\",review_on:\"2025-12-15\",ticket_ref:\"NBL-001-landlord-pays-direct\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-001-landlord-pays-direct",
+      "evidence": [
+        "Ticket NBL-001-landlord-pays-direct read back after put_on_hold"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-001-landlord-pays-direct",
+        "stage": "mp_time",
+        "property": "Flat 26, 46 Copperfield Walk, Kingshaven, ZZ5 7ZZ",
+        "description": "Communal  garden full of weeds, hedge along side path overgrown, peice of no man's land at side  of my property  was going to be cleared  last summer and wasn't thanks",
+        "landlord_approval": "confirmed",
+        "hold": {
+          "reason": "Waiting for Landlord",
+          "comment": "Awaiting written confirmation of completion and landlord direct payment; then close without payment.",
+          "review_on": "2025-12-15"
+        },
+        "mode": "manual"
+      }
+    ],
+    "records": [
+      {
+        "id": "MSG-101",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Rowan",
+          "recipient_role": "landlord",
+          "channel": "email",
+          "contact": "existing thread (event 027 email)",
+          "body": "Hi Rowan, our call with Freya on 11 Dec touched on the garden and tree works and invoicing, but we don't yet have a clear written confirmation that everything at Flat 26, 46 Copperfield Walk is finished. Could you or Freya confirm by email that all the works (weeds, hedge along the side path, tree trim) are complete, and that you'll pay Freya direct? Once we have that we'll close the job. Thanks.",
+          "ticket_ref": "NBL-001-landlord-pays-direct"
+        },
+        "at": 1791632165900
+      },
+      {
+        "id": "MSG-102",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Henry",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 031 email)",
+          "body": "Hello Henry, a quick update on the communal garden works. The landlord's contractor has been working on them, and we spoke to them on 11 December. We're now waiting for written confirmation that everything is finished. If anything still looks untidy, please let us know and we'll pass it on. Thanks for your patience.",
+          "ticket_ref": "NBL-001-landlord-pays-direct"
+        },
+        "at": 1791632165900
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 26, 46 Copperfield Walk, Kingshaven, ZZ5 7ZZ"
+      }
+    ]
+  },
+  "usage": {
+    "input": 10,
+    "output": 2349,
+    "cost": 0.04650800000000001,
+    "turns": 4,
+    "durationMs": 19161,
+    "retries": 0
+  }
+}

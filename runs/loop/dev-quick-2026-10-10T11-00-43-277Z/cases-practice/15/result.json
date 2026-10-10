@@ -1,0 +1,151 @@
+{
+  "id": "15",
+  "model": "claude-haiku-5-5",
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Inbound call handled. Caller identifies as Priya Shah, tenant at P-203 (Flat 9, 3 Amhurst Road). Name and DOB match the CRM tenant record T-1003. Contact number does not match. No maintenance ticket involved. Contact-number discrepancy and legacy record conflict are noted for ops.",
+    "next_actions": [
+      {
+        "type": "OTHER",
+        "action": "Logged the inbound call and its outcome on the record.",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "OTHER",
+        "action": "Recorded a note on the property flagging the legacy Fixflo conflict and the unverified phone number, for ops to confirm the tenant's preferred phone on the next routine contact.",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A2"
+      }
+    ],
+    "boundaries": [
+      "Name and DOB match does not prove the caller's identity beyond the CRM record; the number used does not match the one on file.",
+      "No contact details, tenancy dates or bank details were changed.",
+      "The legacy Fixflo row was not used for any fact given to the caller.",
+      "This does not confirm the tenancy end date. It is periodic with no fixed end date, so the tenant's own written notice governs when they leave."
+    ],
+    "remaining_work": [
+      "Ops to confirm the tenant's preferred phone number and update CRM if it has changed (owner: ops/lettings).",
+      "Ops to clean up the legacy Fixflo row for Flat 9 (P. Shah-Mehta, +447700900166) so it is not used for contact (owner: data quality)."
+    ],
+    "missing_info": [
+      "Confirmation from the tenant of her preferred contact number (the call came from a number not on file).",
+      "Whether the tenancy is periodic from 2026-01-10 or was a fixed term before 1 May 2026 (not in the record)."
+    ],
+    "outcome": "action_taken",
+    "severity": "n/a",
+    "summary": "The caller gave the name Priya Shah and DOB 21/07/1998, both matching the CRM tenant T-1003 at P-203. I logged the call and told her the tenancy is periodic with no fixed end date (2 months' written notice to leave) and her £1,903 deposit is held in DPS, per CRM. The CRM is authoritative over the legacy Fixflo row, which lists a different person who left in 2025, and I flagged the unverified phone number for ops.",
+    "answers": [
+      {
+        "question": "1. Which record do you treat as authoritative and why?",
+        "answer": "The CRM record (dwelly_crm, T-1003). It is the highest-priority source in the data_quality ordering, it is current and active, and its name, DOB and tenancy start agree with the caller. The legacy Fixflo export (imported 2026-03 from an acquisition, not maintained) lists 'P. Shah-Mehta' with a different phone, status ended and move-out 2025-11-30. That row looks like a previous occupant, so I did not use it for any fact."
+      },
+      {
+        "question": "2. Is the caller verified? What can you tell her?",
+        "answer": "Partly. Her name and DOB match the CRM record, which is the identity check the policy requires. But she called from a number that is not on file (caller ID +447700900177, and she said it is a work phone; CRM has +447700900103), so this is a hint, not proof. I shared only general information: the tenancy is periodic with no fixed end date, and she would give 2 months' written notice; the deposit is £1,903 held in DPS per the CRM. I did not give any balance, ticket or personal data beyond that."
+      },
+      {
+        "question": "3. What do you do about the conflicting records?",
+        "answer": "I logged the call and added an internal note on P-203 recording the conflict: the legacy row is treated as a previous occupant and not used for contact or tenancy facts, and the unverified number is flagged. I changed no contact details. Ops should confirm her preferred phone on the next routine contact, and the legacy row should be cleaned up."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Logged inbound call CALL-101 from Priya Shah (tenant) with outcome and summary."
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Added note NOTE-102 on P-203 flagging the legacy Fixflo conflict and the unverified contact number."
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "CRM says tenant is Priya Shah (T-1003), active, phone +447700900103. Legacy Fixflo says P. Shah-Mehta, phone +447700900166, ended 2025-11-30. Trusted CRM (higher priority, current, consistent with DOB and tenancy start).",
+      "Caller ID +447700900177 and her stated work phone match neither record. Treated as an unverified contact, not used for identity."
+    ],
+    "assumptions": [
+      "The legacy Fixflo row is a previous occupant of the same flat, not the same tenant under a different name.",
+      "The 2026-01-10 tenancy start is the current tenancy and the deposit figure is current."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "log_call",
+      "args": {
+        "party_name": "Priya Shah",
+        "party_role": "tenant",
+        "direction": "inbound",
+        "outcome": "connected",
+        "summary": "Caller said she is Priya Shah, tenant at Flat 9, 3 Amhurst Road (P-203). Gave DOB 21/07/1998, which matches CRM T-1003. Caller ID +447700900177 and her stated work phone do not match the CRM number (+447700900103). Asked when tenancy ends and the deposit amount, as she is thinking of moving. Answered: periodic tenancy with no fixed end date, tenant gives 2 months' written notice; deposit £1,903 held in DPS per CRM. No changes made to records."
+      },
+      "key": "log_call:{direction:\"inbound\",outcome:\"connected\",party_name:\"Priya Shah\",party_role:\"tenant\",summary:\"Caller said she is Priya Shah, tenant at Flat 9, 3 Amhurst Road (P-203). Gave DOB 21/07/1998, which matches CRM T-1003. Caller ID +447700900177 and her stated work phone do not match the CRM number (+447700900103). Asked when tenancy ends and the deposit amount, as she is thinking of moving. Answered: periodic tenancy with no fixed end date, tenant gives 2 months' written notice; deposit £1,903 held in DPS per CRM. No changes made to records.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "CALL-101",
+      "evidence": [
+        "CALL-101 found in the log_call log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "add_note",
+      "args": {
+        "entity": "P-203 Flat 9, 3 Amhurst Road",
+        "note": "Record conflict (case 15): legacy Fixflo export (imported 2026-03 from Amhurst Lettings acquisition) lists Flat 9 tenant as \"P. Shah-Mehta\", +447700900166, ended, move-out 2025-11-30. CRM (dwelly_crm, highest priority) lists Priya Shah T-1003, active, tenancy start 2026-01-10, phone +447700900103. Treated CRM as authoritative; legacy row appears to be a previous occupant. Legacy data not maintained: do not use it for contact or tenancy facts. Caller on 2026-10-10 used an unrecorded work phone and caller ID +447700900177; contact details not changed. Ops to confirm the tenant's preferred phone on the next routine contact."
+      },
+      "key": "add_note:{entity:\"P-203 Flat 9, 3 Amhurst Road\",note:\"Record conflict (case 15): legacy Fixflo export (imported 2026-03 from Amhurst Lettings acquisition) lists Flat 9 tenant as \\\"P. Shah-Mehta\\\", +447700900166, ended, move-out 2025-11-30. CRM (dwelly_crm, highest priority) lists Priya Shah T-1003, active, tenancy start 2026-01-10, phone +447700900103. Treated CRM as authoritative; legacy row appears to be a previous occupant. Legacy data not maintained: do not use it for contact or tenancy facts. Caller on 2026-10-10 used an unrecorded work phone and caller ID +447700900177; contact details not changed. Ops to confirm the tenant's preferred phone on the next routine contact.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NOTE-102",
+      "evidence": [
+        "NOTE-102 found in the add_note log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [],
+    "records": [
+      {
+        "id": "CALL-101",
+        "tool": "log_call",
+        "args": {
+          "party_name": "Priya Shah",
+          "party_role": "tenant",
+          "direction": "inbound",
+          "outcome": "connected",
+          "summary": "Caller said she is Priya Shah, tenant at Flat 9, 3 Amhurst Road (P-203). Gave DOB 21/07/1998, which matches CRM T-1003. Caller ID +447700900177 and her stated work phone do not match the CRM number (+447700900103). Asked when tenancy ends and the deposit amount, as she is thinking of moving. Answered: periodic tenancy with no fixed end date, tenant gives 2 months' written notice; deposit £1,903 held in DPS per CRM. No changes made to records."
+        },
+        "at": 1791630055083
+      },
+      {
+        "id": "NOTE-102",
+        "tool": "add_note",
+        "args": {
+          "entity": "P-203 Flat 9, 3 Amhurst Road",
+          "note": "Record conflict (case 15): legacy Fixflo export (imported 2026-03 from Amhurst Lettings acquisition) lists Flat 9 tenant as \"P. Shah-Mehta\", +447700900166, ended, move-out 2025-11-30. CRM (dwelly_crm, highest priority) lists Priya Shah T-1003, active, tenancy start 2026-01-10, phone +447700900103. Treated CRM as authoritative; legacy row appears to be a previous occupant. Legacy data not maintained: do not use it for contact or tenancy facts. Caller on 2026-10-10 used an unrecorded work phone and caller ID +447700900177; contact details not changed. Ops to confirm the tenant's preferred phone on the next routine contact."
+        },
+        "at": 1791630055083
+      }
+    ],
+    "properties": [
+      {
+        "id": "P-203",
+        "address": "Flat 9, 3 Amhurst Road, London E8 2AU",
+        "tenanted": true
+      }
+    ]
+  },
+  "usage": {
+    "input": 6,
+    "output": 3988,
+    "cost": 0.00266687,
+    "turns": 2,
+    "durationMs": 19266
+  }
+}

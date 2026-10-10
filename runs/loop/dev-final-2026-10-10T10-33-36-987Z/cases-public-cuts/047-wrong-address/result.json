@@ -1,0 +1,153 @@
+{
+  "id": "047-wrong-address",
+  "model": "claude-sonnet-5-5",
+  "cutoff": 10,
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "outcome": "escalated",
+    "severity": "routine",
+    "summary": "Tenant's window repair is still awaiting landlord approval. The landlord's reply names a different address (Flat 18, 88 Alder Lane) and a plumber, so it can't count as approval. I logged JOB-101, added a note and escalated to maintenance to clarify with the landlord. I sent no messages because there are no contact details on file.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "The tenant's toilet issue is resolved and only the bedroom window remains. The tenant was acknowledged and the landlord asked for a contractor decision. The landlord's reply concerns a different property and a plumber, so approval for the window is still outstanding. No ticket existed, so JOB-101 was created (routine)."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Email the landlord, Isaac Oakley, to correct the address and issue, cancel the mistaken plumber visit and ask approval to send a window contractor to Flat 24. Then update the tenant with the routine 14-day target. I couldn't send it myself because no contact details are available in my records, so it is routed via the maintenance escalation ESC-102."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "Yes, a low-priority one (P3). A person needs to resolve the landlord's address/issue mismatch and get contractor approval, since I can't confirm the landlord's intent or reach them."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Created routine ticket JOB-101 for bedroom window at Flat 24"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Escalated to maintenance as ESC-102"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Added note NOTE-103 on JOB-101 about the address mismatch"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Landlord email gives Flat 18, 88 Alder Lane, Willowbank and a plumber; the case property is Flat 24, 150 Copperfield Walk and the remaining issue is a window. The tenant says the toilet is fixed. I trusted the case record and the tenant."
+    ],
+    "assumptions": [
+      "The landlord's email was sent in error or relates to another property, so it is not approval.",
+      "No contact details were available in the tools, so no messages were sent."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "create_ticket",
+      "args": {
+        "property": "Flat 24, 150 Copperfield Walk, Kingshaven, ZZ3 7ZZ",
+        "category": "roof",
+        "severity": "routine",
+        "description": "Bedroom window not closing properly. Tenant confirmed toilet issue is fixed (mother repaired it); only window needed. Awaiting landlord approval on contractor. Landlord reply referenced a different address (Flat 18, 88 Alder Lane) and a plumber - needs clarifying."
+      },
+      "key": "create_ticket:{category:\"roof\",description:\"Bedroom window not closing properly. Tenant confirmed toilet issue is fixed (mother repaired it); only window needed. Awaiting landlord approval on contractor. Landlord reply referenced a different address (Flat 18, 88 Alder Lane) and a plumber - needs clarifying.\",property:\"Flat 24, 150 Copperfield Walk, Kingshaven, ZZ3 7ZZ\",severity:\"routine\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "JOB-101",
+      "evidence": [
+        "Ticket JOB-101 read back at stage init"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "escalate_to_human",
+      "args": {
+        "priority": "P3",
+        "team": "maintenance",
+        "reason": "Landlord reply refers to wrong property and obsolete issue; no contact details on file to clarify via tools",
+        "known": "Tenant at Flat 24, 150 Copperfield Walk reported bedroom window not closing (event 001). Toilet issue was fixed by tenant's mother (event 006); only window needed. Landlord Isaac Oakley (event 010) says plumber will visit Flat 18, 88 Alder Lane, Willowbank tomorrow morning - different property, and a plumber is not relevant to a window. Landlord approval for window contractor not given. Job JOB-101 logged (routine).",
+        "missing": "Whether the landlord owns/has a separate issue at Flat 18, 88 Alder Lane; landlord's decision on contractor for Flat 24 window. No landlord/tenant contact details available in my tools' records.",
+        "options": [
+          "Email landlord to correct address/issue and ask approval to send agency glazier/carpenter to Flat 24",
+          "Cancel the plumber visit if sent in error"
+        ],
+        "recommendation": "Contact landlord today, confirm the plumber is not needed for Flat 24, get approval for a window repair contractor, then book within the 14-day routine target and update tenant."
+      },
+      "key": "escalate_to_human:{known:\"Tenant at Flat 24, 150 Copperfield Walk reported bedroom window not closing (event 001). Toilet issue was fixed by tenant's mother (event 006); only window needed. Landlord Isaac Oakley (event 010) says plumber will visit Flat 18, 88 Alder Lane, Willowbank tomorrow morning - different property, and a plumber is not relevant to a window. Landlord approval for window contractor not given. Job JOB-101 logged (routine).\",missing:\"Whether the landlord owns/has a separate issue at Flat 18, 88 Alder Lane; landlord's decision on contractor for Flat 24 window. No landlord/tenant contact details available in my tools' records.\",options:[\"Email landlord to correct address/issue and ask approval to send agency glazier/carpenter to Flat 24\",\"Cancel the plumber visit if sent in error\"],priority:\"P3\",reason:\"Landlord reply refers to wrong property and obsolete issue; no contact details on file to clarify via tools\",recommendation:\"Contact landlord today, confirm the plumber is not needed for Flat 24, get approval for a window repair contractor, then book within the 14-day routine target and update tenant.\",team:\"maintenance\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "ESC-102",
+      "evidence": [
+        "ESC-102 found in the escalate_to_human log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "add_note",
+      "args": {
+        "entity": "JOB-101",
+        "note": "Landlord reply (event 010) names Flat 18, 88 Alder Lane and a plumber: mismatch with Flat 24 window job. Not treated as approval. Escalated to maintenance."
+      },
+      "key": "add_note:{entity:\"JOB-101\",note:\"Landlord reply (event 010) names Flat 18, 88 Alder Lane and a plumber: mismatch with Flat 24 window job. Not treated as approval. Escalated to maintenance.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NOTE-103",
+      "evidence": [
+        "NOTE-103 found in the add_note log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "JOB-101",
+        "stage": "init",
+        "property": "Flat 24, 150 Copperfield Walk, Kingshaven, ZZ3 7ZZ",
+        "category": "roof",
+        "severity": "routine",
+        "description": "Bedroom window not closing properly. Tenant confirmed toilet issue is fixed (mother repaired it); only window needed. Awaiting landlord approval on contractor. Landlord reply referenced a different address (Flat 18, 88 Alder Lane) and a plumber - needs clarifying."
+      }
+    ],
+    "records": [
+      {
+        "id": "ESC-102",
+        "tool": "escalate_to_human",
+        "args": {
+          "priority": "P3",
+          "team": "maintenance",
+          "reason": "Landlord reply refers to wrong property and obsolete issue; no contact details on file to clarify via tools",
+          "known": "Tenant at Flat 24, 150 Copperfield Walk reported bedroom window not closing (event 001). Toilet issue was fixed by tenant's mother (event 006); only window needed. Landlord Isaac Oakley (event 010) says plumber will visit Flat 18, 88 Alder Lane, Willowbank tomorrow morning - different property, and a plumber is not relevant to a window. Landlord approval for window contractor not given. Job JOB-101 logged (routine).",
+          "missing": "Whether the landlord owns/has a separate issue at Flat 18, 88 Alder Lane; landlord's decision on contractor for Flat 24 window. No landlord/tenant contact details available in my tools' records.",
+          "options": [
+            "Email landlord to correct address/issue and ask approval to send agency glazier/carpenter to Flat 24",
+            "Cancel the plumber visit if sent in error"
+          ],
+          "recommendation": "Contact landlord today, confirm the plumber is not needed for Flat 24, get approval for a window repair contractor, then book within the 14-day routine target and update tenant."
+        },
+        "at": 1791628429510
+      },
+      {
+        "id": "NOTE-103",
+        "tool": "add_note",
+        "args": {
+          "entity": "JOB-101",
+          "note": "Landlord reply (event 010) names Flat 18, 88 Alder Lane and a plumber: mismatch with Flat 24 window job. Not treated as approval. Escalated to maintenance."
+        },
+        "at": 1791628429510
+      }
+    ]
+  },
+  "usage": {
+    "input": 10,
+    "output": 2147,
+    "cost": 0.05003180000000001,
+    "turns": 4,
+    "durationMs": 19388
+  }
+}

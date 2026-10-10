@@ -1,0 +1,192 @@
+{
+  "id": "024-gas-smell-in-routine-report",
+  "model": "claude-sonnet-5-5",
+  "cutoff": 6,
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "outcome": "escalated",
+    "severity": "emergency",
+    "summary": "A routine oven complaint now includes a reported gassy smell near the oven, so it is an emergency. I logged emergency gas ticket JOB-102 and sent the tenant gas safety advice with the 0800 111 999 number. I told the landlord and escalated as P1 to maintenance to book a Gas Safe engineer.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "The landlord's settings advice did not fix the oven. The tenant asked for a visit and mentioned a gassy smell. No ticket existed, so JOB-102 is now open at init. A Gas Safe engineer visit still needs booking."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Done: the tenant was emailed safety advice (don't use the oven, ventilate, call 0800 111 999 if the smell is strong, with the aim of a visit within 24h). The landlord was emailed. A P1 escalation went to maintenance to dispatch a gas engineer."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "Yes, as P1. No gas contractor is on record and a possible gas leak is a safety matter. A human should dispatch or confirm the engineer and check on the tenant's safety."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Emailed tenant gas safety advice and timescale"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Created emergency gas ticket JOB-102"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Escalated P1 to maintenance as ESC-103"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Emailed landlord update"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Tenant says the gas smell is 'not urgent', but policy treats any gas smell as an emergency. I followed policy.",
+      "The oven manual attachment was unavailable and its contents are unseen."
+    ],
+    "assumptions": [
+      "The landlord is Oliver and can be reached by email on the case thread.",
+      "No gas contractor was assigned because none is named in the records."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Imogen",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "body": "Hi Imogen, thanks for letting us know. Because you've noticed a gassy smell near the oven, please treat it as a safety issue. Please don't use the oven or hob, and don't use any switches, lighters or flames near it. Open the windows, and if the smell is strong or you feel unwell, leave the property and call the National Gas Emergency line on 0800 111 999 (free, 24 hours). Call 999 if anyone is in immediate danger. We're arranging for a gas engineer to check the oven as an emergency, with the aim of getting someone to you within 24 hours. We'll be in touch with the visit details as soon as they're confirmed. Please let us know if the smell gets stronger."
+      },
+      "key": "send_message:{body:\"Hi Imogen, thanks for letting us know. Because you've noticed a gassy smell near the oven, please treat it as a safety issue. Please don't use the oven or hob, and don't use any switches, lighters or flames near it. Open the windows, and if the smell is strong or you feel unwell, leave the property and call the National Gas Emergency line on 0800 111 999 (free, 24 hours). Call 999 if anyone is in immediate danger. We're arranging for a gas engineer to check the oven as an emergency, with the aim of getting someone to you within 24 hours. We'll be in touch with the visit details as soon as they're confirmed. Please let us know if the smell gets stronger.\",channel:\"email\",recipient_name:\"Imogen\",recipient_role:\"tenant\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-101",
+      "evidence": [
+        "MSG-101 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "create_ticket",
+      "args": {
+        "property": "Flat 6, 56 Juniper Mews, Northbridge, ZZ1 0ZZ",
+        "category": "gas",
+        "severity": "emergency",
+        "tenant": "Imogen",
+        "description": "Tenant reports intermittent gassy smell near the oven, plus oven not cooking properly since move-in (cooking takes more than double the time). Landlord's suggested dial settings did not help. Gas engineer needed to check the appliance and supply; the oven should not be used until it is checked."
+      },
+      "key": "create_ticket:{category:\"gas\",description:\"Tenant reports intermittent gassy smell near the oven, plus oven not cooking properly since move-in (cooking takes more than double the time). Landlord's suggested dial settings did not help. Gas engineer needed to check the appliance and supply; the oven should not be used until it is checked.\",property:\"Flat 6, 56 Juniper Mews, Northbridge, ZZ1 0ZZ\",severity:\"emergency\",tenant:\"Imogen\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "JOB-102",
+      "evidence": [
+        "Ticket JOB-102 read back at stage init"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "escalate_to_human",
+      "args": {
+        "priority": "P1",
+        "team": "maintenance",
+        "reason": "Possible gas leak reported in a routine oven-repair case; emergency gas engineer needed",
+        "known": "Tenant Imogen, Flat 6, 56 Juniper Mews. Email on 2026-08-05 01:12 reports a gassy smell near the oven \"sometimes\", and the oven is still not cooking properly after the landlord's suggested settings. No open tickets existed. I created JOB-102 (emergency, gas) and emailed the tenant gas safety advice (0800 111 999, don't use the oven, ventilate, leave if strong). The tenant described the smell as not urgent; I have treated it as an emergency anyway.",
+        "missing": "No gas contractor or landlord preference is on record. The smell's strength is unknown. The oven manual was unseen. It is unconfirmed whether the tenant has the gas supply isolated.",
+        "options": [
+          "Dispatch a Gas Safe engineer within 24h",
+          "Phone the tenant to check the smell's severity and advise isolating the supply"
+        ],
+        "recommendation": "Book a Gas Safe engineer today for the appliance and supply, and phone the tenant to confirm they are safe. Also inform the landlord (Oliver)."
+      },
+      "key": "escalate_to_human:{known:\"Tenant Imogen, Flat 6, 56 Juniper Mews. Email on 2026-08-05 01:12 reports a gassy smell near the oven \\\"sometimes\\\", and the oven is still not cooking properly after the landlord's suggested settings. No open tickets existed. I created JOB-102 (emergency, gas) and emailed the tenant gas safety advice (0800 111 999, don't use the oven, ventilate, leave if strong). The tenant described the smell as not urgent; I have treated it as an emergency anyway.\",missing:\"No gas contractor or landlord preference is on record. The smell's strength is unknown. The oven manual was unseen. It is unconfirmed whether the tenant has the gas supply isolated.\",options:[\"Dispatch a Gas Safe engineer within 24h\",\"Phone the tenant to check the smell's severity and advise isolating the supply\"],priority:\"P1\",reason:\"Possible gas leak reported in a routine oven-repair case; emergency gas engineer needed\",recommendation:\"Book a Gas Safe engineer today for the appliance and supply, and phone the tenant to confirm they are safe. Also inform the landlord (Oliver).\",team:\"maintenance\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "ESC-103",
+      "evidence": [
+        "ESC-103 found in the escalate_to_human log"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Oliver",
+        "recipient_role": "landlord",
+        "channel": "email",
+        "body": "Hi Oliver, the tenant says the suggested settings didn't help and the oven still isn't cooking. She has also mentioned an occasional gassy smell near it. We're treating that as an emergency: we've told her not to use the oven and to call 0800 111 999 if the smell is strong, and we're arranging a Gas Safe engineer to check (job JOB-102). We'll update you once the visit is confirmed."
+      },
+      "key": "send_message:{body:\"Hi Oliver, the tenant says the suggested settings didn't help and the oven still isn't cooking. She has also mentioned an occasional gassy smell near it. We're treating that as an emergency: we've told her not to use the oven and to call 0800 111 999 if the smell is strong, and we're arranging a Gas Safe engineer to check (job JOB-102). We'll update you once the visit is confirmed.\",channel:\"email\",recipient_name:\"Oliver\",recipient_role:\"landlord\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-104",
+      "evidence": [
+        "MSG-104 found in the send_message log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "JOB-102",
+        "stage": "init",
+        "property": "Flat 6, 56 Juniper Mews, Northbridge, ZZ1 0ZZ",
+        "tenant": "Imogen",
+        "category": "gas",
+        "severity": "emergency",
+        "description": "Tenant reports intermittent gassy smell near the oven, plus oven not cooking properly since move-in (cooking takes more than double the time). Landlord's suggested dial settings did not help. Gas engineer needed to check the appliance and supply; the oven should not be used until it is checked."
+      }
+    ],
+    "records": [
+      {
+        "id": "MSG-101",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Imogen",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "body": "Hi Imogen, thanks for letting us know. Because you've noticed a gassy smell near the oven, please treat it as a safety issue. Please don't use the oven or hob, and don't use any switches, lighters or flames near it. Open the windows, and if the smell is strong or you feel unwell, leave the property and call the National Gas Emergency line on 0800 111 999 (free, 24 hours). Call 999 if anyone is in immediate danger. We're arranging for a gas engineer to check the oven as an emergency, with the aim of getting someone to you within 24 hours. We'll be in touch with the visit details as soon as they're confirmed. Please let us know if the smell gets stronger."
+        },
+        "at": 1791628585988
+      },
+      {
+        "id": "ESC-103",
+        "tool": "escalate_to_human",
+        "args": {
+          "priority": "P1",
+          "team": "maintenance",
+          "reason": "Possible gas leak reported in a routine oven-repair case; emergency gas engineer needed",
+          "known": "Tenant Imogen, Flat 6, 56 Juniper Mews. Email on 2026-08-05 01:12 reports a gassy smell near the oven \"sometimes\", and the oven is still not cooking properly after the landlord's suggested settings. No open tickets existed. I created JOB-102 (emergency, gas) and emailed the tenant gas safety advice (0800 111 999, don't use the oven, ventilate, leave if strong). The tenant described the smell as not urgent; I have treated it as an emergency anyway.",
+          "missing": "No gas contractor or landlord preference is on record. The smell's strength is unknown. The oven manual was unseen. It is unconfirmed whether the tenant has the gas supply isolated.",
+          "options": [
+            "Dispatch a Gas Safe engineer within 24h",
+            "Phone the tenant to check the smell's severity and advise isolating the supply"
+          ],
+          "recommendation": "Book a Gas Safe engineer today for the appliance and supply, and phone the tenant to confirm they are safe. Also inform the landlord (Oliver)."
+        },
+        "at": 1791628591917
+      },
+      {
+        "id": "MSG-104",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Oliver",
+          "recipient_role": "landlord",
+          "channel": "email",
+          "body": "Hi Oliver, the tenant says the suggested settings didn't help and the oven still isn't cooking. She has also mentioned an occasional gassy smell near it. We're treating that as an emergency: we've told her not to use the oven and to call 0800 111 999 if the smell is strong, and we're arranging a Gas Safe engineer to check (job JOB-102). We'll update you once the visit is confirmed."
+        },
+        "at": 1791628591918
+      }
+    ]
+  },
+  "usage": {
+    "input": 10,
+    "output": 2348,
+    "cost": 0.0526806,
+    "turns": 4,
+    "durationMs": 19292
+  }
+}

@@ -1,0 +1,218 @@
+{
+  "id": "019-landlord-own-contractor",
+  "model": "claude-sonnet-5-5",
+  "cutoff": 18,
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Intake/landlord approval gate. No landlord decision recorded. Ticket on hold waiting for landlord until 2025-03-17.",
+    "next_actions": [
+      {
+        "type": "REQUEST_LANDLORD_APPROVAL",
+        "action": "Ask landlord for a clear yes/no: our contractor up to £500+VAT, or own contractor",
+        "recipient": "Jenkins, landlord",
+        "channel": "email",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Update tenant: awaiting landlord, no date yet, review 17 March",
+        "recipient": "Tenant",
+        "channel": "email",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "WAIT",
+        "action": "Hold until 2025-03-17 then chase by phone/escalate",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A3"
+      }
+    ],
+    "boundaries": [
+      "The request does not approve spend or assign a contractor.",
+      "Nothing is booked and no date is promised."
+    ],
+    "remaining_work": [
+      "Landlord decision outstanding (owner: property manager Maya).",
+      "If no reply by 17 March, phone the landlord and escalate P3 to maintenance/management.",
+      "Garden photos were unavailable and have not been seen."
+    ],
+    "missing_info": [
+      "Landlord's written decision",
+      "Garden photos",
+      "Landlord's second contact channel"
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "Garden job stalled since January with the landlord silent. The note of a £500+VAT approval is not backed by the landlord's own words. I re-asked the landlord a clear question, updated the tenant and set a hold to 17 March.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "At the landlord approval gate. No recorded landlord decision. A £500+VAT quote is noted, but approval is hearsay and the later holds contradict it. The landlord has not replied to calls or email."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Written yes/no request to the landlord (Jenkins) by email, plus a status update to the tenant by email. Both done."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "Not yet. It is routine work. If the landlord stays silent past 17 March, a human should consider a P3 escalation."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Approval request sent to landlord"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Tenant update sent"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Hold with review date 2025-03-17"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Event 009 says the landlord approved the £500+VAT quote, but events 010-017 show the agency still chasing the landlord. I treated it as unverified."
+    ],
+    "assumptions": [
+      "The landlord's email contact is on the existing thread (event 012)."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "request_landlord_approval",
+      "args": {
+        "landlord": "Jenkins",
+        "ticket_ref": "NBL-019-landlord-own-contractor",
+        "decision_needed": "Back garden clearance, levelling and gravel at Flat 25, 185 Copperfield Walk. Our notes show a £500 + VAT quote but no written approval from you. Please reply yes or no: may we instruct our contractor (Harbour Compliance) up to £500 + VAT? Or tell us if you will use your own contractor, with their name and a date.",
+        "amount_gbp": 600,
+        "options": [
+          "Yes, instruct our contractor up to £500 + VAT (£600 inc VAT)",
+          "I will arrange my own contractor (please give name and date)",
+          "Decline the works"
+        ],
+        "deadline": "2025-03-17"
+      },
+      "key": "request_landlord_approval:{amount_gbp:600,deadline:\"2025-03-17\",decision_needed:\"Back garden clearance, levelling and gravel at Flat 25, 185 Copperfield Walk. Our notes show a £500 + VAT quote but no written approval from you. Please reply yes or no: may we instruct our contractor (Harbour Compliance) up to £500 + VAT? Or tell us if you will use your own contractor, with their name and a date.\",landlord:\"Jenkins\",options:[\"Yes, instruct our contractor up to £500 + VAT (£600 inc VAT)\",\"I will arrange my own contractor (please give name and date)\",\"Decline the works\"],ticket_ref:\"NBL-019-landlord-own-contractor\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "APR-101",
+      "evidence": [
+        "APR-101 found in the request_landlord_approval log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Tenant",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 004 email)",
+        "ticket_ref": "NBL-019-landlord-own-contractor",
+        "body": "Hello, thank you for chasing today. Sorry for the wait. We still need the landlord's written go-ahead for the garden work, and we have just emailed them again with a clear yes/no question. We can't give a date until they answer. We will update you as soon as we hear, and we will review this again on 17 March."
+      },
+      "key": "send_message:{body:\"Hello, thank you for chasing today. Sorry for the wait. We still need the landlord's written go-ahead for the garden work, and we have just emailed them again with a clear yes/no question. We can't give a date until they answer. We will update you as soon as we hear, and we will review this again on 17 March.\",channel:\"email\",contact:\"existing thread (event 004 email)\",recipient_name:\"Tenant\",recipient_role:\"tenant\",ticket_ref:\"NBL-019-landlord-own-contractor\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-102",
+      "evidence": [
+        "MSG-102 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "put_on_hold",
+      "args": {
+        "ticket_ref": "NBL-019-landlord-own-contractor",
+        "reason": "Waiting for Landlord",
+        "comment": "Awaiting written yes/no from landlord (our contractor up to £500+VAT, or own contractor). Earlier note of approval not backed by landlord's words.",
+        "review_on": "2025-03-17"
+      },
+      "key": "put_on_hold:{comment:\"Awaiting written yes/no from landlord (our contractor up to £500+VAT, or own contractor). Earlier note of approval not backed by landlord's words.\",reason:\"Waiting for Landlord\",review_on:\"2025-03-17\",ticket_ref:\"NBL-019-landlord-own-contractor\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-019-landlord-own-contractor",
+      "evidence": [
+        "Ticket NBL-019-landlord-own-contractor read back after put_on_hold"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-019-landlord-own-contractor",
+        "stage": "init",
+        "property": "Flat 25, 185 Copperfield Walk, Alderwick, ZZ4 0ZZ",
+        "description": "Hi dear Maintenance team,\nAs this garden is part of the house included in our tenancy, we would like it to be cleaned and finished properly. The ground also needs to be levelled and covered with stones (gravel) so that we can use the space safely. We would like to sit there in the afternoon, but at the moment it is not possible due to the condition.\n\nI have attached pictures for your reference. Could you please arrange:\n• Removal of all rubbish and construction waste\n• Levelling of the ground\n• Proper gravel/stone covering\n• Making the garden safe and usable",
+        "landlord_approval": "required",
+        "hold": {
+          "reason": "Waiting for Landlord",
+          "comment": "Awaiting written yes/no from landlord (our contractor up to £500+VAT, or own contractor). Earlier note of approval not backed by landlord's words.",
+          "review_on": "2025-03-17"
+        },
+        "mode": "manual"
+      }
+    ],
+    "records": [
+      {
+        "id": "APR-101",
+        "tool": "request_landlord_approval",
+        "args": {
+          "landlord": "Jenkins",
+          "decision_needed": "Back garden clearance, levelling and gravel at Flat 25, 185 Copperfield Walk. Our notes show a £500 + VAT quote but no written approval from you. Please reply yes or no: may we instruct our contractor (Harbour Compliance) up to £500 + VAT? Or tell us if you will use your own contractor, with their name and a date.",
+          "amount_gbp": 600,
+          "ticket_ref": "NBL-019-landlord-own-contractor",
+          "options": [
+            "Yes, instruct our contractor up to £500 + VAT (£600 inc VAT)",
+            "I will arrange my own contractor (please give name and date)",
+            "Decline the works"
+          ],
+          "deadline": "2025-03-17"
+        },
+        "at": 1791632184799
+      },
+      {
+        "id": "MSG-102",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Tenant",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 004 email)",
+          "body": "Hello, thank you for chasing today. Sorry for the wait. We still need the landlord's written go-ahead for the garden work, and we have just emailed them again with a clear yes/no question. We can't give a date until they answer. We will update you as soon as we hear, and we will review this again on 17 March.",
+          "ticket_ref": "NBL-019-landlord-own-contractor"
+        },
+        "at": 1791632184800
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 25, 185 Copperfield Walk, Alderwick, ZZ4 0ZZ"
+      }
+    ]
+  },
+  "usage": {
+    "input": 8,
+    "output": 2418,
+    "cost": 0.040492700000000006,
+    "turns": 3,
+    "durationMs": 18333,
+    "retries": 0
+  }
+}

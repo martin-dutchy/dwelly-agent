@@ -1,0 +1,225 @@
+{
+  "id": "038-tenant-own-appliance",
+  "model": "claude-haiku-5-5",
+  "cutoff": 2,
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Intake, routine. Tenant reports the LG washing machine (present at move-in) has a power fault and wants to replace it with their own machine that they would own and take on move-out. No landlord decision yet, and the property record has no landlord contact. Ticket is on hold for the landlord, review 2025-07-29.",
+    "next_actions": [
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Tell the tenant the landlord's decision is needed before any purchase or fitting, and ask for a photo, error code and model number",
+        "recipient": "Tenant, Flat 9, 59 Alder Lane",
+        "channel": "email",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "ESCALATE_TO_HUMAN",
+        "action": "Escalate to maintenance (P3) to supply the landlord contact and obtain the landlord's decision on repair versus tenant replacement with written ownership and removal terms",
+        "recipient": "Maintenance team",
+        "channel": "internal",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "WAIT",
+        "action": "Hold the job for the landlord's decision with a review date of 2025-07-29",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A3"
+      }
+    ],
+    "boundaries": [
+      "Nothing has been approved: no landlord consent, no contractor assigned, no spend.",
+      "Tenant replacement is not agreed, and ownership and removal at move-out are not agreed.",
+      "The fault itself is not diagnosed; the tenant's claim it cannot be fixed is unverified.",
+      "No visit is booked."
+    ],
+    "remaining_work": [
+      "Landlord contact and decision (owner: maintenance team via ESC-102).",
+      "Tenant's photo, error code and model number (owner: tenant).",
+      "Once decided: assign a contractor or send written consent terms, then update the tenant (owner: operations).",
+      "Review on 2025-07-29."
+    ],
+    "missing_info": [
+      "Landlord contact details on the property record",
+      "Landlord decision on repair or tenant replacement",
+      "Diagnosis or photo of the fault and machine make/model"
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "The tenant asked to replace the existing washing machine with their own, which needs landlord consent and agreed terms on ownership. The tenant was told in writing to wait for the landlord's decision and asked for a photo, error code and model number. The job is escalated for the missing landlord contact and held for review on 2025-07-29.",
+    "answers": [
+      {
+        "question": "Where does the case stand right now, and what is outstanding?",
+        "answer": "Intake stage, routine. Nothing has been decided. Outstanding: landlord decision (repair versus tenant replacement with ownership and removal terms), landlord contact, tenant's photo and model/error code, and diagnosis."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Reply to the tenant by email on the existing thread (A1). Escalate to maintenance for landlord contact and decision (A2). Hold for landlord with review on 2025-07-29 (A3)."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "Yes. Landlord consent for a tenant-owned replacement of an appliance that was there at move-in is an alteration decision the agency cannot make, and the landlord cannot be contacted because no contact is on the property record. Escalated at P3 (not urgent; no safety risk)."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Email to tenant: landlord decision pending, do not buy or install yet, requested photo, error code and model number"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Escalated ESC-102 (P3, maintenance) for landlord contact and decision"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Ticket on hold, waiting for landlord, review 2025-07-29"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "The tenant says the machine cannot be fixed, but no diagnosis has been done. Treated as unverified."
+    ],
+    "assumptions": [
+      "The washing machine is treated as the landlord's appliance, since it was there at move-in according to the tenant. This is not confirmed by any record.",
+      "Review date 2025-07-29 is the next working day after the weekend (today is Saturday 2025-07-26)."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Tenant, Flat 9, 59 Alder Lane",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 001 request, 2025-07-26)",
+        "ticket_ref": "NBL-038-tenant-own-appliance",
+        "body": "Hello,\n\nThank you for reporting the washing machine at Flat 9, 59 Alder Lane. We have noted that it is not working and that you would like to replace it yourself.\n\nBecause the machine was already at the property when you moved in, we need the landlord's decision before anything is bought or fitted. We are asking them now whether they will repair or replace it, or whether they agree to you replacing it and on what terms (including ownership if you move out). Please do not buy or install a replacement until you have heard from us in writing.\n\nTo help with the diagnosis, could you send us a photo of the washing machine, including any error code shown on the display, and the make and model number from the label inside the door or on the back?\n\nWe will be in touch once the landlord has replied.\n\nKind regards,\nLettings team"
+      },
+      "key": "send_message:{body:\"Hello,\\n\\nThank you for reporting the washing machine at Flat 9, 59 Alder Lane. We have noted that it is not working and that you would like to replace it yourself.\\n\\nBecause the machine was already at the property when you moved in, we need the landlord's decision before anything is bought or fitted. We are asking them now whether they will repair or replace it, or whether they agree to you replacing it and on what terms (including ownership if you move out). Please do not buy or install a replacement until you have heard from us in writing.\\n\\nTo help with the diagnosis, could you send us a photo of the washing machine, including any error code shown on the display, and the make and model number from the label inside the door or on the back?\\n\\nWe will be in touch once the landlord has replied.\\n\\nKind regards,\\nLettings team\",channel:\"email\",contact:\"existing thread (event 001 request, 2025-07-26)\",recipient_name:\"Tenant, Flat 9, 59 Alder Lane\",recipient_role:\"tenant\",ticket_ref:\"NBL-038-tenant-own-appliance\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-101",
+      "evidence": [
+        "MSG-101 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "escalate_to_human",
+      "args": {
+        "priority": "P3",
+        "team": "maintenance",
+        "reason": "Tenant wants to replace a washing machine that was at the property at move-in (LG, power fault) with their own, and keep it as their property. This is an alteration/appliance change that needs landlord consent, and no landlord contact is on the property record, so the landlord cannot be asked.",
+        "known": "Routine, not safety-related (event 002). Tenant reports the LG washing machine has a power failure and cannot be repaired per their online research. Tenant is willing to replace it and says it would be theirs and removable on move-out. No pets, no access issues (event 002). Property record has no landlord contact details. Tenant has been told in writing to wait for the landlord's decision.",
+        "missing": "Landlord contact details and decision on: (a) repair or replace the existing machine; (b) whether the tenant may replace it and on what terms; (c) whether a tenant-owned machine may be removed at tenancy end. Photo and model/error code from tenant not yet received. No diagnosis by a contractor yet.",
+        "options": [
+          "Obtain the landlord's contact, then ask the landlord to decide: arrange repair via our contractor, or consent to tenant replacement with written terms on ownership and removal",
+          "Landlord arranges own contractor to diagnose and repair",
+          "Refuse tenant replacement and keep the existing machine repaired"
+        ],
+        "recommendation": "Get the landlord's contact from the records and ask them for a yes or no on a contractor diagnosis first (cheapest path), and decide tenant replacement only with written consent on ownership and removal.",
+        "deadline": "2025-07-29"
+      },
+      "key": "escalate_to_human:{deadline:\"2025-07-29\",known:\"Routine, not safety-related (event 002). Tenant reports the LG washing machine has a power failure and cannot be repaired per their online research. Tenant is willing to replace it and says it would be theirs and removable on move-out. No pets, no access issues (event 002). Property record has no landlord contact details. Tenant has been told in writing to wait for the landlord's decision.\",missing:\"Landlord contact details and decision on: (a) repair or replace the existing machine; (b) whether the tenant may replace it and on what terms; (c) whether a tenant-owned machine may be removed at tenancy end. Photo and model/error code from tenant not yet received. No diagnosis by a contractor yet.\",options:[\"Obtain the landlord's contact, then ask the landlord to decide: arrange repair via our contractor, or consent to tenant replacement with written terms on ownership and removal\",\"Landlord arranges own contractor to diagnose and repair\",\"Refuse tenant replacement and keep the existing machine repaired\"],priority:\"P3\",reason:\"Tenant wants to replace a washing machine that was at the property at move-in (LG, power fault) with their own, and keep it as their property. This is an alteration/appliance change that needs landlord consent, and no landlord contact is on the property record, so the landlord cannot be asked.\",recommendation:\"Get the landlord's contact from the records and ask them for a yes or no on a contractor diagnosis first (cheapest path), and decide tenant replacement only with written consent on ownership and removal.\",team:\"maintenance\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "ESC-102",
+      "evidence": [
+        "ESC-102 found in the escalate_to_human log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "put_on_hold",
+      "args": {
+        "ticket_ref": "NBL-038-tenant-own-appliance",
+        "reason": "Waiting for Landlord",
+        "comment": "Landlord decision needed: repair existing LG washing machine via contractor, or consent to tenant replacing it (ownership and removal terms). No landlord contact on property record; escalated for contact. Tenant asked for a photo and model/error code.",
+        "review_on": "2025-07-29"
+      },
+      "key": "put_on_hold:{comment:\"Landlord decision needed: repair existing LG washing machine via contractor, or consent to tenant replacing it (ownership and removal terms). No landlord contact on property record; escalated for contact. Tenant asked for a photo and model/error code.\",reason:\"Waiting for Landlord\",review_on:\"2025-07-29\",ticket_ref:\"NBL-038-tenant-own-appliance\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-038-tenant-own-appliance",
+      "evidence": [
+        "Ticket NBL-038-tenant-own-appliance read back after put_on_hold"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-038-tenant-own-appliance",
+        "stage": "init",
+        "property": "Flat 9, 59 Alder Lane, Eastmere, ZZ4 4ZZ",
+        "description": "Request summary with context: The Willow Maintenance washing machine is experiencing a power failure and is not operational.\n\nTenant's original query: Washing machine broken, it’s LG , we have googled it, it has power failure and can’t be fixed, I am willing to replace, this one was here when I moved in, but if I replace it will be mine and not become part of the property, if I ever was to move out I would take it with me.",
+        "hold": {
+          "reason": "Waiting for Landlord",
+          "comment": "Landlord decision needed: repair existing LG washing machine via contractor, or consent to tenant replacing it (ownership and removal terms). No landlord contact on property record; escalated for contact. Tenant asked for a photo and model/error code.",
+          "review_on": "2025-07-29"
+        },
+        "mode": "manual"
+      }
+    ],
+    "records": [
+      {
+        "id": "MSG-101",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Tenant, Flat 9, 59 Alder Lane",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 001 request, 2025-07-26)",
+          "body": "Hello,\n\nThank you for reporting the washing machine at Flat 9, 59 Alder Lane. We have noted that it is not working and that you would like to replace it yourself.\n\nBecause the machine was already at the property when you moved in, we need the landlord's decision before anything is bought or fitted. We are asking them now whether they will repair or replace it, or whether they agree to you replacing it and on what terms (including ownership if you move out). Please do not buy or install a replacement until you have heard from us in writing.\n\nTo help with the diagnosis, could you send us a photo of the washing machine, including any error code shown on the display, and the make and model number from the label inside the door or on the back?\n\nWe will be in touch once the landlord has replied.\n\nKind regards,\nLettings team",
+          "ticket_ref": "NBL-038-tenant-own-appliance"
+        },
+        "at": 1791632080093
+      },
+      {
+        "id": "ESC-102",
+        "tool": "escalate_to_human",
+        "args": {
+          "priority": "P3",
+          "team": "maintenance",
+          "reason": "Tenant wants to replace a washing machine that was at the property at move-in (LG, power fault) with their own, and keep it as their property. This is an alteration/appliance change that needs landlord consent, and no landlord contact is on the property record, so the landlord cannot be asked.",
+          "known": "Routine, not safety-related (event 002). Tenant reports the LG washing machine has a power failure and cannot be repaired per their online research. Tenant is willing to replace it and says it would be theirs and removable on move-out. No pets, no access issues (event 002). Property record has no landlord contact details. Tenant has been told in writing to wait for the landlord's decision.",
+          "missing": "Landlord contact details and decision on: (a) repair or replace the existing machine; (b) whether the tenant may replace it and on what terms; (c) whether a tenant-owned machine may be removed at tenancy end. Photo and model/error code from tenant not yet received. No diagnosis by a contractor yet.",
+          "options": [
+            "Obtain the landlord's contact, then ask the landlord to decide: arrange repair via our contractor, or consent to tenant replacement with written terms on ownership and removal",
+            "Landlord arranges own contractor to diagnose and repair",
+            "Refuse tenant replacement and keep the existing machine repaired"
+          ],
+          "recommendation": "Get the landlord's contact from the records and ask them for a yes or no on a contractor diagnosis first (cheapest path), and decide tenant replacement only with written consent on ownership and removal.",
+          "deadline": "2025-07-29"
+        },
+        "at": 1791632080094
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 9, 59 Alder Lane, Eastmere, ZZ4 4ZZ"
+      }
+    ]
+  },
+  "usage": {
+    "input": 10,
+    "output": 5759,
+    "cost": 0.004634305,
+    "turns": 4,
+    "durationMs": 27583,
+    "retries": 0
+  }
+}

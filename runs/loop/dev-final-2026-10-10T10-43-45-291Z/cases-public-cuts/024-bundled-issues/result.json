@@ -1,0 +1,253 @@
+{
+  "id": "024-bundled-issues",
+  "model": "claude-sonnet-5-5",
+  "cutoff": 32,
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Oven ticket NBL-024 shows completed without payment, but with no evidence of repair or tenant confirmation. Fence and conservatory roof leak were never ticketed. New tickets JOB-101 (roof, urgent) and JOB-102 (fence, routine) are at init. The tenant has been emailed. Escalated as ESC-104.",
+    "next_actions": [
+      {
+        "type": "SPLIT_NEW_REQUEST",
+        "action": "Created JOB-101 (urgent roof leak) and JOB-102 (routine fence) linked to the oven ticket",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Corrected the wrongly sent 'all fixed' email, gave 72h/14-day targets, asked for photos, electrical safety info and oven confirmation",
+        "recipient": "Imogen Clarke, tenant",
+        "channel": "email",
+        "ledger_id": "A3"
+      },
+      {
+        "type": "ESCALATE_TO_HUMAN",
+        "action": "Escalated the erroneous closure and the need for roof contractor and landlord approval",
+        "recipient": "internal maintenance",
+        "channel": "internal",
+        "ledger_id": "A4"
+      }
+    ],
+    "boundaries": [
+      "Creating tickets does not approve spend or assign a contractor",
+      "The tenant message does not confirm any appointment",
+      "Oven repair is not established as done"
+    ],
+    "remaining_work": [
+      "Maintenance: assign roofer and get landlord approval for JOB-101 within 72h",
+      "Fence JOB-102 within 14 days",
+      "Confirm oven status with tenant and reopen if still faulty",
+      "Audit the invoice and closure"
+    ],
+    "missing_info": [
+      "Landlord contact and spend limit not on property record",
+      "Oven repair evidence and invoice details",
+      "Photos of roof and fence"
+    ],
+    "outcome": "escalated",
+    "severity": "urgent",
+    "summary": "The oven job was closed with no evidence of a repair. The tenant was wrongly told the fence and oven were fixed. The tenant is now chasing a leaking conservatory roof. I logged separate roof (urgent) and fence (routine) jobs, corrected the record with the tenant, and escalated for contractor assignment and an audit.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "The oven ticket is marked completed without payment, but there is no evidence of a visit, repair or tenant confirmation. The fence and conservatory roof leak were raised by the tenant but never ticketed. Outstanding: roof (urgent), fence, and oven verification."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Email to the tenant, Imogen Clarke, correcting the earlier message and confirming the new jobs, targets and requests for photos. Internal escalation to maintenance."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "Yes. A human needs to approve or assign the roof contractor and landlord spend, and review the closure and invoice discrepancy. Landlord details and limits are not on file."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Created JOB-101 roof ticket"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Created JOB-102 fence ticket"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Emailed tenant"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Escalated as ESC-104"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Event 016 said fence and oven fixed, but no fence ticket or oven result exists",
+      "Invoice notes cite both the portal and Keystone Solutions, while the provider assigned was Lantern Works",
+      "Event 015 asked about the fence but event 032 asks about the roof, so these are separate issues from the oven"
+    ],
+    "assumptions": [
+      "The roof leak is treated as urgent because it is an active leak",
+      "Events 016 to 030 closed the ticket without real evidence"
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "create_ticket",
+      "args": {
+        "property": "Flat 6, 56 Juniper Mews, Northbridge, ZZ1 0ZZ",
+        "category": "roof",
+        "severity": "urgent",
+        "description": "Tenant reports leaking conservatory roof and is chasing an update (event 032, 2026-08-26). No prior ticket found. Needs inspection within 72h target; check for electrics near leak.",
+        "tenant": "Imogen Clarke",
+        "related_ticket_ref": "NBL-024-bundled-issues"
+      },
+      "key": "create_ticket:{category:\"roof\",description:\"Tenant reports leaking conservatory roof and is chasing an update (event 032, 2026-08-26). No prior ticket found. Needs inspection within 72h target; check for electrics near leak.\",property:\"Flat 6, 56 Juniper Mews, Northbridge, ZZ1 0ZZ\",related_ticket_ref:\"NBL-024-bundled-issues\",severity:\"urgent\",tenant:\"Imogen Clarke\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "JOB-101",
+      "evidence": [
+        "Ticket JOB-101 read back at stage init"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "create_ticket",
+      "args": {
+        "property": "Flat 6, 56 Juniper Mews, Northbridge, ZZ1 0ZZ",
+        "category": "other",
+        "severity": "routine",
+        "description": "Fence repair: tenant asked for an update on 2026-08-05 (event 015); never ticketed. Earlier email claiming fence fixed (event 016) has no supporting evidence.",
+        "tenant": "Imogen Clarke",
+        "related_ticket_ref": "NBL-024-bundled-issues"
+      },
+      "key": "create_ticket:{category:\"other\",description:\"Fence repair: tenant asked for an update on 2026-08-05 (event 015); never ticketed. Earlier email claiming fence fixed (event 016) has no supporting evidence.\",property:\"Flat 6, 56 Juniper Mews, Northbridge, ZZ1 0ZZ\",related_ticket_ref:\"NBL-024-bundled-issues\",severity:\"routine\",tenant:\"Imogen Clarke\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "JOB-102",
+      "evidence": [
+        "Ticket JOB-102 read back at stage init"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Imogen Clarke",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 032 email)",
+        "ticket_ref": "JOB-101",
+        "body": "Hi Imogen, sorry for the confusion. Our earlier email saying the fence and oven were fixed was sent in error, and we can't confirm either is done. We have now logged your leaking conservatory roof as urgent (ref JOB-101); our target is to get someone to look at it within 72 hours. The fence repair is logged separately (ref JOB-102) as routine, with a target of within 14 days. Could you please: 1) send a photo of the roof leak and the fence, 2) tell us if water is near any lights, sockets or appliances (if so, keep clear and switch that circuit off if safe), and 3) tell us whether the oven is now working properly. Thanks, Northbridge Lettings"
+      },
+      "key": "send_message:{body:\"Hi Imogen, sorry for the confusion. Our earlier email saying the fence and oven were fixed was sent in error, and we can't confirm either is done. We have now logged your leaking conservatory roof as urgent (ref JOB-101); our target is to get someone to look at it within 72 hours. The fence repair is logged separately (ref JOB-102) as routine, with a target of within 14 days. Could you please: 1) send a photo of the roof leak and the fence, 2) tell us if water is near any lights, sockets or appliances (if so, keep clear and switch that circuit off if safe), and 3) tell us whether the oven is now working properly. Thanks, Northbridge Lettings\",channel:\"email\",contact:\"existing thread (event 032 email)\",recipient_name:\"Imogen Clarke\",recipient_role:\"tenant\",ticket_ref:\"JOB-101\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-103",
+      "evidence": [
+        "MSG-103 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "escalate_to_human",
+      "args": {
+        "priority": "P2",
+        "team": "maintenance",
+        "reason": "Oven ticket closed without evidence; fence and conservatory roof issues never ticketed; tenant told wrongly that all was fixed",
+        "known": "Oven ticket NBL-024 completed without payment (event 030); no repair/visit result, quote or tenant confirmation in history. Event 016 told tenant fence and oven fixed, though no fence ticket existed. Tenant asked about fence (015) and conservatory roof leak (032). Created JOB-101 (roof, urgent) and JOB-102 (fence, routine). Tenant emailed to correct and request photos. Property record has no landlord contact or spend limit.",
+        "missing": "Whether the oven was actually repaired; who the invoice (Keystone Solutions vs Lantern Works) was from; landlord approval and contractor for roof/fence; landlord contact details.",
+        "options": [
+          "Reopen oven ticket if tenant says not fixed",
+          "Approve contractor for roof now",
+          "Review the erroneous closure"
+        ],
+        "recommendation": "Assign a roofer for JOB-101 within 72h, get landlord approval, and audit the oven closure."
+      },
+      "key": "escalate_to_human:{known:\"Oven ticket NBL-024 completed without payment (event 030); no repair/visit result, quote or tenant confirmation in history. Event 016 told tenant fence and oven fixed, though no fence ticket existed. Tenant asked about fence (015) and conservatory roof leak (032). Created JOB-101 (roof, urgent) and JOB-102 (fence, routine). Tenant emailed to correct and request photos. Property record has no landlord contact or spend limit.\",missing:\"Whether the oven was actually repaired; who the invoice (Keystone Solutions vs Lantern Works) was from; landlord approval and contractor for roof/fence; landlord contact details.\",options:[\"Reopen oven ticket if tenant says not fixed\",\"Approve contractor for roof now\",\"Review the erroneous closure\"],priority:\"P2\",reason:\"Oven ticket closed without evidence; fence and conservatory roof issues never ticketed; tenant told wrongly that all was fixed\",recommendation:\"Assign a roofer for JOB-101 within 72h, get landlord approval, and audit the oven closure.\",team:\"maintenance\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "ESC-104",
+      "evidence": [
+        "ESC-104 found in the escalate_to_human log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-024-bundled-issues",
+        "stage": "completed",
+        "property": "Flat 6, 56 Juniper Mews, Northbridge, ZZ1 0ZZ",
+        "description": "Oven not/cooking warming food\n\nFor reference it takes more than double the amount of time to cook anything than usual\nE.g. nuggets or chips still uncooked after 1.30hrs"
+      },
+      {
+        "ref": "JOB-101",
+        "stage": "init",
+        "property": "Flat 6, 56 Juniper Mews, Northbridge, ZZ1 0ZZ",
+        "tenant": "Imogen Clarke",
+        "category": "roof",
+        "severity": "urgent",
+        "description": "Tenant reports leaking conservatory roof and is chasing an update (event 032, 2026-08-26). No prior ticket found. Needs inspection within 72h target; check for electrics near leak.",
+        "related_ticket_ref": "NBL-024-bundled-issues"
+      },
+      {
+        "ref": "JOB-102",
+        "stage": "init",
+        "property": "Flat 6, 56 Juniper Mews, Northbridge, ZZ1 0ZZ",
+        "tenant": "Imogen Clarke",
+        "category": "other",
+        "severity": "routine",
+        "description": "Fence repair: tenant asked for an update on 2026-08-05 (event 015); never ticketed. Earlier email claiming fence fixed (event 016) has no supporting evidence.",
+        "related_ticket_ref": "NBL-024-bundled-issues"
+      }
+    ],
+    "records": [
+      {
+        "id": "MSG-103",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Imogen Clarke",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 032 email)",
+          "body": "Hi Imogen, sorry for the confusion. Our earlier email saying the fence and oven were fixed was sent in error, and we can't confirm either is done. We have now logged your leaking conservatory roof as urgent (ref JOB-101); our target is to get someone to look at it within 72 hours. The fence repair is logged separately (ref JOB-102) as routine, with a target of within 14 days. Could you please: 1) send a photo of the roof leak and the fence, 2) tell us if water is near any lights, sockets or appliances (if so, keep clear and switch that circuit off if safe), and 3) tell us whether the oven is now working properly. Thanks, Northbridge Lettings",
+          "ticket_ref": "JOB-101"
+        },
+        "at": 1791629061615
+      },
+      {
+        "id": "ESC-104",
+        "tool": "escalate_to_human",
+        "args": {
+          "priority": "P2",
+          "team": "maintenance",
+          "reason": "Oven ticket closed without evidence; fence and conservatory roof issues never ticketed; tenant told wrongly that all was fixed",
+          "known": "Oven ticket NBL-024 completed without payment (event 030); no repair/visit result, quote or tenant confirmation in history. Event 016 told tenant fence and oven fixed, though no fence ticket existed. Tenant asked about fence (015) and conservatory roof leak (032). Created JOB-101 (roof, urgent) and JOB-102 (fence, routine). Tenant emailed to correct and request photos. Property record has no landlord contact or spend limit.",
+          "missing": "Whether the oven was actually repaired; who the invoice (Keystone Solutions vs Lantern Works) was from; landlord approval and contractor for roof/fence; landlord contact details.",
+          "options": [
+            "Reopen oven ticket if tenant says not fixed",
+            "Approve contractor for roof now",
+            "Review the erroneous closure"
+          ],
+          "recommendation": "Assign a roofer for JOB-101 within 72h, get landlord approval, and audit the oven closure."
+        },
+        "at": 1791629061616
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 6, 56 Juniper Mews, Northbridge, ZZ1 0ZZ"
+      }
+    ]
+  },
+  "usage": {
+    "input": 10,
+    "output": 3377,
+    "cost": 0.06175660000000001,
+    "turns": 4,
+    "durationMs": 23594
+  }
+}
