@@ -5,6 +5,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import type { Decision } from './caseAgent.js';
 import { type LoadedCase, loadCase } from './cases.js';
 import type { CriticResult } from './critic/critic.js';
+import type { LedgerEntry } from './ledger.js';
 import { renderAnswer, renderReasoning, renderTranscript } from './report.js';
 
 const usage = { input: 0, output: 0, cost: 0, turns: 1, durationMs: 1000 };
@@ -144,5 +145,187 @@ describe('Checks performed line', () => {
 
   it('never reaches ANSWER.md', () => {
     expect(renderAnswer(c, d, [])).not.toMatch(/critic|review|score|checklist/i);
+  });
+});
+
+const entry = (id: string, tool: string, status: LedgerEntry['status'], args: Record<string, unknown>, evidence: string, attempts = 1): LedgerEntry => ({ id, tool, args, key: `${tool}:${id}`, attempts, status, evidence: [evidence] });
+const ledger: LedgerEntry[] = [
+  entry('A1', 'send_message', 'verified', { recipient_name: 'Ava Kendall', recipient_role: 'landlord', channel: 'email', contact: 'ava@example.com', body: 'Hello Ava,\nThe plumber quoted £180.' }, 'Verified: message MSG-1 found.'),
+  entry('A2', 'escalate_to_human', 'verified', { priority: 'urgent', team: 'property manager', reason: 'Quote above the spend limit', known: 'Quote £420', missing: 'Landlord approval', options: ['Approve', 'Decline'], recommendation: 'Approve', deadline: '2026-10-12' }, 'Verified: escalation E-1 found.'),
+  entry('A3', 'schedule_follow_up', 'failed', { ticket_ref: 'T1', review_on: '2026-10-14' }, 'Follow-up not found after write.', 2),
+  entry('A4', 'request_landlord_approval', 'unverifiable', { landlord: 'Ava Kendall', decision_needed: 'Approve the quote', amount_gbp: 420, options: ['Approve', 'Decline'] }, 'No read-back available.'),
+];
+const full: Decision = {
+  case_state: 'Quote received, landlord approval outstanding.',
+  next_actions: [
+    { type: 'ESCALATE_TO_HUMAN', action: 'Escalate the over-limit quote', recipient: 'internal', channel: 'internal', ledger_id: 'A2' },
+    { type: 'WAIT', action: 'Review on 14 Oct', recipient: 'internal', channel: 'internal', ledger_id: 'A3' },
+    { type: 'OTHER', action: 'Nothing else', recipient: 'internal', channel: 'internal' },
+    { type: 'REPLY_TO_TENANT', action: 'Tell the tenant | update', recipient: 'Sam, tenant', channel: 'sms', ledger_id: 'A9' },
+  ],
+  boundaries: ['Escalating does not approve the quote.'],
+  remaining_work: ['Landlord decision on the quote (property manager).'],
+  missing_info: ['The landlord spend limit for 2026.'],
+  outcome: 'escalated',
+  severity: 'urgent',
+  summary: 'The £420 quote is above the £300 limit, so it went to the property manager.',
+  answers: [{ question: 'Can the quote be approved?', answer: 'Not by the agent: it is above the limit.' }],
+  actions_claimed: [{ ledger_id: 'A2', description: 'Escalated' }],
+  failed_actions: [{ ledger_id: 'A3', handling: 'Recorded in the escalation.' }],
+  conflicts: ['CRM limit £300 vs email £500; trusted the CRM.'],
+  assumptions: ['The quote includes VAT.'],
+};
+const fullChecks = {
+  screen: { severity: 'urgent', severityProb: 0.81, flags: { gas: 0.02 } },
+  gateLog: [{ tool: 'send_message', attempt: 1, block: false, reasons: [], probs: {} }],
+  policyLog: [{ tool: 'approve_quote', reason: 'above the spend limit' }],
+  chaos: { send_message: { mode: 'error' } },
+  critic: results.ok,
+};
+const fullMessages = [
+  { role: 'assistant', content: [{ type: 'text', text: 'Reading the case.' }, call('c1', 'escalate_to_human', { priority: 'urgent' })] },
+  result('c1', 'escalate_to_human', '{"ok":true}'),
+];
+
+describe('rendering without harness v2 fields (R4 baseline)', () => {
+  it('ANSWER.md is unchanged', () => {
+    expect(renderAnswer(c, full, ledger)).toMatchInlineSnapshot(`
+      "# Case t: Leak: ANSWER
+
+      **Decision:** escalated · **Severity:** urgent
+
+      The £420 quote is above the £300 limit, so it went to the property manager.
+
+      ## Where the case stands
+      Quote received, landlord approval outstanding.
+
+      ## Next actions
+      | # | Type | Action | Recipient | Channel | Performed |
+      |---|---|---|---|---|---|
+      | 1 | ESCALATE_TO_HUMAN | Escalate the over-limit quote | internal | internal | A2 ✅ |
+      | 2 | WAIT | Review on 14 Oct | internal | internal | A3 ❌ |
+      | 3 | OTHER | Nothing else | internal | internal | — |
+      | 4 | REPLY_TO_TENANT | Tell the tenant \\| update | Sam, tenant | sms | A9 (not in ledger) |
+
+      ## Messages sent (verbatim)
+      **A1 · send_message → Ava Kendall (landlord) via email, ava@example.com** (verified)
+
+      > Hello Ava,
+      > The plumber quoted £180.
+
+      **A4 · request_landlord_approval → Ava Kendall (landlord)** (unverifiable)
+
+      > Approve the quote (£420)
+      > 
+      > Options: Approve; Decline
+
+      ## Escalation
+      - **urgent → property manager** (verified): Quote above the spend limit
+        - Known: Quote £420
+        - Missing: Landlord approval
+        - Options: Approve; Decline
+        - Recommendation: Approve
+        - Deadline: 2026-10-12
+
+      ## What this does not establish
+      - Escalating does not approve the quote.
+
+      ## Remaining work
+      - Landlord decision on the quote (property manager).
+
+      ## Missing or unavailable information
+      - The landlord spend limit for 2026.
+
+      ## Conflicts between sources
+      - CRM limit £300 vs email £500; trusted the CRM.
+
+      ## Answers to the case questions
+      **1. Can the quote be approved?**
+
+      Not by the agent: it is above the limit.
+
+      ## Actions taken (from the verified action ledger)
+      | # | Action | Key arguments | Attempts | Status | Evidence |
+      |---|---|---|---|---|---|
+      | A1 | \`send_message\` | {"recipient_name":"Ava Kendall","recipient_role":"landlord","channel":"email","contact":"ava@example.com","body":"Hello Ava,\\nThe plumber qu… | 1 | ✅ verified | Verified: message MSG-1 found. |
+      | A2 | \`escalate_to_human\` | {"priority":"urgent","team":"property manager","reason":"Quote above the spend limit","known":"Quote £420","missing":"Landlord approval","op… | 1 | ✅ verified | Verified: escalation E-1 found. |
+      | A3 | \`schedule_follow_up\` | {"ticket_ref":"T1","review_on":"2026-10-14"} | 2 | ❌ failed | Follow-up not found after write. |
+      | A4 | \`request_landlord_approval\` | {"landlord":"Ava Kendall","decision_needed":"Approve the quote","amount_gbp":420,"options":["Approve","Decline"]} | 1 | ⚠️ unverified | No read-back available. |
+
+      ## Failed or unverified actions
+      - A3: Recorded in the escalation.
+      "
+    `);
+    expect(renderAnswer(c, undefined, ledger, 'boom')).toMatchInlineSnapshot(`
+      "# Case t: Leak: ANSWER
+
+      **Decision:** escalated (system fallback)
+
+      The agent did not produce a decision (error: boom). The case is handed to a human with everything below.
+
+      ## Actions taken
+      | # | Action | Key arguments | Attempts | Status | Evidence |
+      |---|---|---|---|---|---|
+      | A1 | \`send_message\` | {"recipient_name":"Ava Kendall","recipient_role":"landlord","channel":"email","contact":"ava@example.com","body":"Hello Ava,\\nThe plumber qu… | 1 | ✅ verified | Verified: message MSG-1 found. |
+      | A2 | \`escalate_to_human\` | {"priority":"urgent","team":"property manager","reason":"Quote above the spend limit","known":"Quote £420","missing":"Landlord approval","op… | 1 | ✅ verified | Verified: escalation E-1 found. |
+      | A3 | \`schedule_follow_up\` | {"ticket_ref":"T1","review_on":"2026-10-14"} | 2 | ❌ failed | Follow-up not found after write. |
+      | A4 | \`request_landlord_approval\` | {"landlord":"Ava Kendall","decision_needed":"Approve the quote","amount_gbp":420,"options":["Approve","Decline"]} | 1 | ⚠️ unverified | No read-back available. |
+      "
+    `);
+  });
+
+  it('REASONING.md is unchanged', () => {
+    expect(renderReasoning(c, full, ledger, fullMessages, usage, 'late', fullChecks as any)).toMatchInlineSnapshot(`
+      "# Case t: REASONING
+
+      ## What the system received
+      - Case brief (14 chars)
+
+      The exact prompt text is in \`TRANSCRIPT.md\`.
+
+      ## Pre-screen (Jev classifier)
+      - Severity: urgent (p=0.81)
+      - gas: 0.02
+
+      ## Pre-send message checks (Jev classifier)
+      - send_message attempt 1: passed
+
+      ## Actions blocked by hard policy rules
+      - \`approve_quote\`: above the spend limit
+
+      ## Injected tool failures (robustness test, --chaos)
+      \`\`\`json
+      {"send_message":{"mode":"error"}}
+      \`\`\`
+
+      ## Checks performed
+      - Pre-submit critic (claude-opus-5-5, 21 s): 16 items checked, 2 findings with evidence (2 addressed in revision), 1 dropped without evidence.
+
+      ## Conflicts between sources
+      - CRM limit £300 vs email £500; trusted the CRM.
+
+      ## Assumptions
+      - The quote includes VAT.
+
+      ## Action ledger (every state change, read back after execution)
+      | # | Action | Key arguments | Attempts | Status | Evidence |
+      |---|---|---|---|---|---|
+      | A1 | \`send_message\` | {"recipient_name":"Ava Kendall","recipient_role":"landlord","channel":"email","contact":"ava@example.com","body":"Hello Ava,\\nThe plumber qu… | 1 | ✅ verified | Verified: message MSG-1 found. |
+      | A2 | \`escalate_to_human\` | {"priority":"urgent","team":"property manager","reason":"Quote above the spend limit","known":"Quote £420","missing":"Landlord approval","op… | 1 | ✅ verified | Verified: escalation E-1 found. |
+      | A3 | \`schedule_follow_up\` | {"ticket_ref":"T1","review_on":"2026-10-14"} | 2 | ❌ failed | Follow-up not found after write. |
+      | A4 | \`request_landlord_approval\` | {"landlord":"Ava Kendall","decision_needed":"Approve the quote","amount_gbp":420,"options":["Approve","Decline"]} | 1 | ⚠️ unverified | No read-back available. |
+
+      ## Trace
+      1. **Agent:** Reading the case.
+      2. **Tool call** \`escalate_to_human\` {"priority":"urgent"}
+         - \`escalate_to_human\` result: {"ok":true}
+
+      **Run error:** late
+
+      ## Run
+      - Model turns: 1 · Tokens in/out: 0/0 · Cost: $0.0000 · Duration: 1.0s
+      - Full untruncated transcript (prompts, model thinking, every tool call and result): \`TRANSCRIPT.md\` · Raw timestamped events: \`trace.jsonl\` · Machine-readable result: \`result.json\`
+      "
+    `);
   });
 });
