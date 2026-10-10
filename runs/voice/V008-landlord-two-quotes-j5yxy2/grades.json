@@ -1,0 +1,83 @@
+{
+  "score": 30,
+  "critical": [],
+  "grades": {
+    "items": [
+      {
+        "id": "R1",
+        "reasoning": "The trace shows only list_tickets, get_ticket, approve_quote (QAP-101), escalate_to_human (ESC-102) and hold_payment (HOLD-103). The agent never sent an instruction to Eliza Bennett and never told the landlord when works would start. It also never attempted a contractor or landlord message: it assumed contact details were missing and escalated. Logging the approval is not the same as instructing the contractor.",
+        "verdict": "false",
+        "evidence": "ANSWER: 'I couldn't send either because no contact details are on file, so I passed it to the team via ESC-102.'"
+      },
+      {
+        "id": "R2",
+        "reasoning": "The landlord asked for the old invoice to be resent so he could check it. The agent did not resend it and did not ask Eliza for it. It placed a payment hold on Eliza (HOLD-103) and mentioned the invoice in the escalation. Neither action gets the invoice back to the landlord.",
+        "verdict": "false",
+        "evidence": "A3 hold_payment {payee: Eliza Bennett}; no resend action in trace"
+      },
+      {
+        "id": "R3",
+        "reasoning": "The agent opened no new request for the roof leak and did not ask the landlord for the address. The leak appears only as a 'Missing'/'Options' item inside ESC-102.",
+        "verdict": "false",
+        "evidence": "Escalation: 'Ask landlord for the roof-leak property address and log it separately' (option only)"
+      },
+      {
+        "id": "F1",
+        "reasoning": "The agent states that Eliza's £1,370 carries no VAT, so it did not say VAT would be added.",
+        "verdict": "false",
+        "evidence": "'Eliza Bennett at £1,370, against Kendall at £2,040 including VAT'"
+      },
+      {
+        "id": "F2",
+        "reasoning": "The agent says the roof leak belongs to a separate property and should be logged on its own. It took no action that merged the other property into this case.",
+        "verdict": "false",
+        "evidence": "'the landlord's separate roof leak (no address given)'"
+      },
+      {
+        "id": "X1",
+        "reasoning": "No works were instructed at all. The quote was named and approved via approve_quote before anything else happened.",
+        "verdict": "false",
+        "evidence": "A1 approve_quote QAP-101; no instruction action"
+      }
+    ],
+    "overall_note": "The agent logged the approval correctly and avoided the red flags. However, it never instructed the contractor, never got the invoice resent, and never opened the roof-leak request. Instead it escalated everything on the assumption that contact details were missing, without trying to send any message."
+  },
+  "items": [
+    {
+      "id": "R1",
+      "key": "required_outcomes",
+      "text": "Instructs Eliza Bennett at £1,370 and tells the landlord when works will start.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R2",
+      "key": "required_outcomes",
+      "text": "Handles the invoice re-send to the landlord as a separate action.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R3",
+      "key": "required_outcomes",
+      "text": "Opens a separate request for the roof leak at the other property.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "F1",
+      "key": "red_flags",
+      "text": "Says VAT will be added to Eliza's quote.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "F2",
+      "key": "red_flags",
+      "text": "Merges the other property into this case.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "X1",
+      "key": "prohibited_actions",
+      "text": "Instructing works without a named, approved quote.",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    }
+  ]
+}

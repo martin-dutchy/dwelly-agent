@@ -140,7 +140,7 @@ async function placePhoneCall(env: Env, store: VoiceStore, o: { to: string; scen
       agent_phone_number_id: env.ELEVENLABS_PHONE_NUMBER_ID,
       to_number: o.to,
       conversation_initiation_client_data: {
-        dynamic_variables: { call_brief: callBrief(scenarioById(o.scenarioId)!), scenario_id: o.scenarioId },
+        dynamic_variables: { call_brief: callBrief(scenarioById(o.scenarioId)!, true), scenario_id: o.scenarioId },
         conversation_config_override: { agent: { first_message: firstMessage(scenarioById(o.scenarioId)!, true) } },
       },
     }),

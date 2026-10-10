@@ -32,6 +32,8 @@ export type Scenario = {
   source?: { case: string; events: string; cutAfterEvent: number; today: string };
   /** Who the agent is talking to, by name, as the agency has them on record. */
   counterparty: string;
+  /** Inbound cases rung by phone open as a call-back about this (e.g. "the dishwasher at Flat 12, 78 Copperfield Walk"). */
+  callbackTopic?: string;
   /** What the agency knows at this point: given to the voice agent and shown in the admin. */
   facts: string[];
   /** What the agent must get out of this call. */
@@ -79,6 +81,7 @@ export const scenarios: Scenario[] = [
     direction: 'inbound',
     source: { case: '026', events: 'e16–e25', cutAfterEvent: 20, today: '2025-08-29' },
     counterparty: 'Clara, the tenant',
+    callbackTopic: 'your oven repair at Flat 3, 3 Willowmere Road',
     facts: [
       'Property: Flat 3, 3 Willowmere Road, Alderwick, ZZ9 6ZZ. Tenant: Clara.',
       'Fan oven: the main element does not heat; the grill works. Landlord Palmer approved the repair.',
@@ -123,6 +126,7 @@ export const scenarios: Scenario[] = [
     direction: 'inbound',
     source: { case: '040', events: 'e05–e13', cutAfterEvent: 6, today: '2026-12-24' },
     counterparty: 'Rowan, the tenant',
+    callbackTopic: 'your washing machine at Flat 15, 55 Alder Lane',
     facts: [
       'Property: Flat 15, 55 Alder Lane, Northbridge, ZZ1 6ZZ. Tenant: Rowan.',
       "Washing machine fills but won't start a cycle; no error code; no isolation valves.",
@@ -282,6 +286,7 @@ export const scenarios: Scenario[] = [
     direction: 'inbound',
     source: { case: '047', events: 'e04–e11', cutAfterEvent: 9, today: '2024-02-22' },
     counterparty: 'Isaac Oakley, the landlord',
+    callbackTopic: 'Flat 24, 150 Copperfield Walk',
     facts: [
       'Property: Flat 24, 150 Copperfield Walk, Kingshaven, ZZ3 7ZZ. Landlord: Isaac Oakley. Tenant: Eliza Jenkins.',
       'Tenant reported two things: a blocked toilet (air freshener flushed) and a bedroom window that will not close.',
@@ -432,6 +437,7 @@ export const scenarios: Scenario[] = [
     direction: 'inbound',
     source: { case: '011', events: 'e18–e25', cutAfterEvent: 20, today: '2026-12-07' },
     counterparty: 'Ashford, the engineer',
+    callbackTopic: 'the dishwasher at Flat 12, 78 Copperfield Walk',
     facts: [
       'Property: Flat 12, 78 Copperfield Walk, Kingshaven, ZZ3 1ZZ. Tenant: Amelia Nolan (has two guinea pigs). Landlord: Turner.',
       'The dishwasher will not finish its cycle. Landlord Turner approved an INSPECTION ONLY.',
@@ -522,12 +528,20 @@ export function worldFor(scenarioId: string | undefined): VoiceWorld {
   return w;
 }
 
-/** The voice agent's per-call briefing ({{call_brief}}): who is on the line, the case facts, the goal. */
-export function callBrief(s: Scenario) {
+const nameOf = (s: Scenario) => (s.counterparty.startsWith('a ') ? s.brief.persona : s.counterparty.split(',')[0].replace(/\s*\(.*\)$/, ''));
+
+/**
+ * The voice agent's per-call briefing ({{call_brief}}): who is on the line, the case facts, the goal.
+ * By phone we always ring the volunteer, so an inbound case becomes a call-back: they got in touch
+ * earlier and we are ringing them back; they explain the rest.
+ */
+export function callBrief(s: Scenario, viaPhone = false) {
   const who =
     s.direction === 'outbound'
       ? `You are calling ${s.counterparty}. Confirm you are speaking to them before discussing the case.`
-      : `${s.counterparty} is calling the maintenance desk.`;
+      : viaPhone
+        ? `${s.counterparty} got in touch earlier${s.callbackTopic ? ` about ${s.callbackTopic}` : ''} and you are ringing them back. You've already greeted them by name and said why you're calling; now let them explain what they need, and help.`
+        : `${s.counterparty} is calling the maintenance desk.`;
   return [
     `Role of the other person: ${s.role}. ${who}`,
     'Case facts on record:',
@@ -538,16 +552,12 @@ export function callBrief(s: Scenario) {
   ].join('\n');
 }
 
-/** What the agent says first. Outbound calls open by naming who it wants to speak to. */
+/** What the agent says first. Whenever we ring someone, greet them by name and say why we're calling. */
 export function firstMessage(s: Scenario, viaPhone: boolean) {
-  if (s.direction === 'outbound') {
-    const name = s.counterparty.split(',')[0].replace(/\s*\(.*\)$/, '');
-    return `Hello, this is the maintenance desk at Northbridge Lettings. I'm an AI assistant. Am I speaking with ${name}?`;
-  }
-  // For an inbound case rung by phone, the volunteer is "calling us": open as if we picked up their call.
-  return viaPhone
-    ? "Hello, Northbridge Lettings maintenance desk. I'm an AI assistant. How can I help?"
-    : "Hello, you're through to the maintenance desk at Northbridge Lettings. I'm an AI assistant. How can I help?";
+  if (s.direction === 'outbound') return `Hello, this is the maintenance desk at Northbridge Lettings. I'm an AI assistant. Am I speaking with ${nameOf(s)}?`;
+  if (viaPhone)
+    return `Hello, is that ${nameOf(s)}? This is the maintenance desk at Northbridge Lettings, I'm an AI assistant, returning your call${s.callbackTopic ? ` about ${s.callbackTopic}` : ''}. How can I help?`;
+  return "Hello, you're through to the maintenance desk at Northbridge Lettings. I'm an AI assistant. How can I help?";
 }
 
 export function buildCallLog(events: EventRow[], transcript?: CallLog['transcript']): CallLog {

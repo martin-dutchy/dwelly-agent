@@ -306,3 +306,16 @@ describe('case-grounded scenarios', () => {
     expect(firstMessage(s, true)).toContain('Am I speaking with Mr Langley?');
   });
 });
+
+describe('greetings when we ring someone', () => {
+  it('opens every phone call by name, and inbound cases as a call-back about their topic', async () => {
+    const { firstMessage, callBrief, scenarioById } = await import('./scenarios.js');
+    const engineer = scenarioById('contractor-extra-part')!;
+    expect(firstMessage(engineer, true)).toBe(
+      "Hello, is that Ashford? This is the maintenance desk at Northbridge Lettings, I'm an AI assistant, returning your call about the dishwasher at Flat 12, 78 Copperfield Walk. How can I help?",
+    );
+    expect(callBrief(engineer, true)).toMatch(/ringing them back/);
+    expect(firstMessage(scenarioById('routine-repair')!, true)).toContain('is that Priya Shah?');
+    expect(firstMessage(scenarioById('contractor-window-unbooked')!, true)).toContain('Am I speaking with Oscar Turner?');
+  });
+});

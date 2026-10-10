@@ -23,7 +23,7 @@ export function whatsappMessage(card: Card | undefined, o: { name?: string; from
           card.situation,
           card.direction === 'outbound'
             ? `👉 The agency calls you and explains why. Answer to the name ${card.persona}.`
-            : "👉 You're \"calling the agency\": when they answer, you start by saying why you're calling.",
+            : "👉 You got in touch with the agency earlier. They ring you back and say hello: then you explain what's going on.",
           '',
           '📝 What you know:',
           ...card.youKnow.map((k) => `• ${k}`),
