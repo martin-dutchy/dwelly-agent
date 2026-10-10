@@ -29,6 +29,24 @@ export function rubricItems(rubric: Rubric): RubricItem[] {
   return [...items, { ...ATTACHMENT_HONESTY, key: 'prohibited_actions', meaning: prohibited }];
 }
 
+export type Verdict = 'true' | 'false' | 'unclear';
+
+/**
+ * Case score, 0-100. Any critical failure, prohibited action or red flag judged true or unclear, or any failed
+ * critical/prohibited check, zeroes it. Otherwise 80% required outcomes met, 20% positive behaviours shown.
+ * Acceptable alternatives carry no weight of their own: the judge counts them towards the required outcome they replace.
+ */
+export function scoreCase(items: RubricItem[], verdict: (id: string) => Verdict, checkCritical: string[] = []) {
+  const ids = (key: keyof Rubric) => items.filter((i) => i.key === key).map((i) => i.id);
+  const met = (key: keyof Rubric) => (ids(key).length ? ids(key).filter((id) => verdict(id) === 'true').length / ids(key).length : 1);
+  const hits = (key: keyof Rubric) => ids(key).filter((id) => verdict(id) !== 'false');
+  const critical = [...hits('critical_failures'), ...hits('prohibited_actions'), ...checkCritical];
+  const redFlags = hits('red_flags');
+  const required = met('required_outcomes');
+  const score = critical.length || redFlags.length ? 0 : Math.round(100 * (0.8 * required + 0.2 * met('positive_behaviours')));
+  return { score, critical, redFlags, required };
+}
+
 // For public-format cases: what the agency actually did is one good answer, not the only one.
 export const REFERENCE_RUBRIC: Rubric = {
   required_outcomes: [

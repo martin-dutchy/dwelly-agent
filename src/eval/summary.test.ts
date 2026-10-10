@@ -37,6 +37,10 @@ describe('buildRunRow', () => {
   it('pass needs every required outcome met', () => {
     expect(row('c', 1, { score: 70, required: 0.5 }).pass).toBe(false);
   });
+  it('a red flag fails the run', () => {
+    const r = buildRunRow({ key: 'c', run: 1, result: result({}), grades: { score: 0, critical: [], redFlags: ['F1'], judgeCost: 0, required: 1 }, checks: [ok], answerExists: true });
+    expect(r).toMatchObject({ score: 0, critical: [], pass: false });
+  });
   it('without a judge, pass is checks-only and score is null', () => {
     expect(row('c', 1, { score: null })).toMatchObject({ score: null, judged: false, pass: true });
     expect(row('c', 1, { score: null, checks: [failCrit] }).pass).toBe(false);
