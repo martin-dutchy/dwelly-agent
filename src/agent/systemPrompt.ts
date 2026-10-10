@@ -3,10 +3,10 @@ import { fileURLToPath } from 'node:url';
 
 const read = (path: string) => readFileSync(fileURLToPath(new URL(path, import.meta.url)), 'utf8');
 const policy = read('../core/policy.md');
-/** The full maintenance policy as on `main`; refresh this copy whenever `main` changes it. */
-const maintenancePolicyV1 = read('./skills/legacy/maintenance-policy-v1.md');
+/** The full maintenance policy: the live prompt reads this file. */
+const maintenancePolicyV1 = read('./maintenance/maintenance-policy.md');
 /** The core maintenance rules; the procedures live in the skill playbooks. */
-const maintenancePolicy = read('./maintenance/maintenance-policy.md');
+const maintenancePolicy = read('./maintenance/maintenance-core.md');
 
 /** Full prompt: the default, and the base the skills are added to. */
 export const CASE_SYSTEM_PROMPT = `You are the operations agent of a London lettings and property management agency.
