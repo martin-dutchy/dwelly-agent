@@ -15,8 +15,9 @@ Node 22+ · TypeScript (strict, ESM) · pnpm · `@earendil-works/pi-agent-core` 
 | `src/run.ts`               | Batch runner: every case folder in, `ANSWERS/<id>/{ANSWER,REASONING}.md` + traces out. Never aborts the batch. |
 | `src/agent/`               | The case agent: pi loop, verified action ledger, Jev gate, decision schema, report renderers, case loaders. |
 | `src/core/`                | Tool definitions, executor, failure injector, shared policy (`policy.md`).                         |
-| `src/eval/`                | Rubric judge (`pnpm eval`).                                                                        |
+| `src/eval/`                | Rubric judge (`pnpm eval`) and the test loop (`pnpm loop`: frozen split, grade, diff vs baseline, chaos). |
 | `cases/practice/`          | Our 22 hand-written practice cases with `rubric.json` and scripted tool failures.                  |
+| `cases/splits.json`        | Frozen `dev` / `holdout` split over practice and public cases. Tune on `dev` only; `holdout` prints aggregates only. |
 | `cases/public-cuts/`       | Organiser-format cases cut at a decision point, with our rubrics (see master plan).                |
 | `HackatonPublicCases/`     | Organisers' 200 public examples. Read-only.                                                        |
 | `research/`                | Background research. Not code.                                                                     |
@@ -32,8 +33,10 @@ cp .env.example .env            # fill in ANTHROPIC_API_KEY
 pnpm typecheck                  # tsc --noEmit
 pnpm test                       # vitest
 pnpm verify                     # done-gate: typecheck + test, must exit 0 before "done"
-pnpm cases --in <dir> --out <dir> [--only 01,06] [--at auto|12|50%] [--concurrency 6]
+pnpm loop [--split dev|holdout] [--chaos 0.15] [--save-baseline]   # run a frozen split, grade, diff vs baseline; exits 1 on regression
+pnpm cases --in <dir> --out <dir> [--only 01,06] [--at auto|12|50%] [--concurrency 6] [--chaos 0.15 --seed 1]
 pnpm eval  --cases <dir> --answers <dir> [--only 01,06]
+bash .claude/skills/submission-check/scripts/check.sh              # submission audit
 ```
 
 ## Non-negotiables
@@ -58,7 +61,11 @@ Skills live in `.agents/skills/` and are symlinked into `.claude/skills/`.
 | Writing a spec or organising `plans/`    | `.agents/skills/spec-and-plan-docs/SKILL.md`                                                                     |
 | Reviewing a design from first principles | `.agents/skills/first-principles-review/SKILL.md` (invoke explicitly)                                            |
 | Understanding the scoring and the data   | [research/pm-case-data-analysis.md](research/pm-case-data-analysis.md), [research/scenarios.md](research/scenarios.md) |
-| Eval harness design                      | [research/evaluation.md](research/evaluation.md)                                                                 |
+| Eval harness design                      | [research/evaluation.md](research/evaluation.md), `src/eval/loop.ts`                                             |
+| What tools the agent needs and the exact system triggers in the data | [research/agent-tools.md](research/agent-tools.md)                                                  |
+| Deciding what to work on next            | `.claude/skills/hackathon-scorecard/SKILL.md`                                                                    |
+| The 16:30 Reality Test window            | `.claude/skills/reality-test-run/SKILL.md`                                                                       |
+| Checking the submission                  | `.claude/skills/submission-check/SKILL.md`                                                                       |
 | UK lettings law the agent must respect   | [research/uk-lettings-rules.md](research/uk-lettings-rules.md), `src/core/policy.md`                             |
 | Voice add-on                             | [research/voice-agent-stack.md](research/voice-agent-stack.md)                                                   |
 | Hackathon rules and submission           | `Real-World Agents Hackathon Rules For Participants.md` (local only, git-ignored), `SUBMISSION.md`               |

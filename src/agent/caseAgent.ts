@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { FailureInjector, type FailurePlan } from '../core/failures.js';
 import { type ToolContext, type ToolResult, executeTool, tools as coreTools } from '../core/tools.js';
 import { type GateResult, checkMessage } from './jev.js';
+import type { CaseMedia } from './cases.js';
 import { ActionLedger } from './ledger.js';
 import type { Toolset } from './opsTools.js';
 import { verify as coreVerify } from './verify.js';
@@ -37,6 +38,8 @@ export type CaseRunOptions = {
   model: Model<Api>;
   streamFn: StreamFn;
   failures?: FailurePlan;
+  /** Images and scanned PDFs, sent as native content blocks after the prompt. */
+  media?: CaseMedia[];
   timeoutMs?: number;
   toolset?: Toolset;
   maxRetries?: number;
@@ -80,6 +83,20 @@ export async function runCase(opts: CaseRunOptions) {
   const trace: AgentEvent[] = [];
   const gateLog: (GateResult & { tool: string; attempt: number })[] = [];
   const gateBlocks = new Map<string, number>(); // recipient -> blocks so far
+  const policyLog: { tool: string; reason: string }[] = [];
+
+  // Hard rules enforced in code, so no amount of persuasive input can talk the model past them.
+  const policyBlock = (tool: string, a: Record<string, unknown>): string | undefined => {
+    if (tool === 'update_bank_details')
+      return 'bank details are never changed on a message or call request (fraud policy). Use hold_payment on the affected payee and escalate_to_human to the fraud team with what was requested and by whom.';
+    if (tool === 'approve_quote') {
+      const ref = String(a.ticket_ref ?? '');
+      const asked = ledger.entries.find((e) => e.tool === 'request_landlord_approval' && e.status === 'verified' && ref && String(e.args.ticket_ref ?? '') === ref);
+      if (asked)
+        return `landlord approval for ${ref} was requested in this run (${asked.id}) and has not been given. Do not wait and do not approve it yourself: tell the parties it is awaiting the landlord, and escalate if it is urgent.`;
+    }
+    return undefined;
+  };
   const agent = new Agent({
     initialState: {
       systemPrompt: opts.systemPrompt,
@@ -96,6 +113,11 @@ export async function runCase(opts: CaseRunOptions) {
       if (getTool(toolCall.name)?.kind === 'write') {
         const done = ledger.findVerified(toolCall.name, a);
         if (done) return { block: true, reason: `Already done and verified as ${done.id} (${done.ref}). Do not repeat it.` };
+      }
+      const policy = policyBlock(toolCall.name, a);
+      if (policy) {
+        policyLog.push({ tool: toolCall.name, reason: policy });
+        return { block: true, reason: `Blocked by policy: ${policy}` };
       }
       // Jev message gate: a fast classifier checks outgoing messages before they leave.
       // Blocks at most twice per recipient so a false positive can never stall the case.
@@ -124,6 +146,13 @@ export async function runCase(opts: CaseRunOptions) {
         for (const e of ledger.unresolved()) {
           if (!handled.has(e.id)) problems.push(`${e.id} (${e.tool}) is ${e.status}: list it in failed_actions with how you handled it.`);
         }
+        // An escalation or open question must actually have been handed to someone, never left waiting.
+        const hasTool = (n: string) => toolset.tools.some((t) => t.name === n);
+        const did = (...names: string[]) => ledger.entries.some((e) => names.includes(e.tool) && e.status === 'verified');
+        if (d.outcome === 'escalated' && hasTool('escalate_to_human') && !did('escalate_to_human'))
+          problems.push('outcome is "escalated" but no escalate_to_human is verified: hand it over with a packet first.');
+        if (d.outcome === 'needs_info' && hasTool('request_information') && !did('request_information', 'escalate_to_human', 'request_landlord_approval'))
+          problems.push('outcome is "needs_info" but nobody was asked: send request_information (or escalate) first. Never just wait.');
         if (problems.length) return { block: true, reason: `Decision rejected:\n- ${problems.join('\n- ')}` };
       }
       return undefined;
@@ -173,12 +202,16 @@ export async function runCase(opts: CaseRunOptions) {
 
   const timer = setTimeout(() => agent.abort(), opts.timeoutMs ?? 4 * 60_000);
   try {
-    await withRetries(() => agent.prompt(opts.prompt));
+    // Attachments go in the same user turn, each labelled so the model can match it to the file list.
+    const first = opts.media?.length
+      ? { role: 'user' as const, timestamp: Date.now(), content: [{ type: 'text' as const, text: opts.prompt }, ...opts.media.flatMap((m) => [{ type: 'text' as const, text: `Attachment "${m.name}":` }, m.media])] }
+      : undefined;
+    await withRetries(() => (first ? agent.prompt(first) : agent.prompt(opts.prompt)));
     // One nudge if the model stopped without a decision.
     if (!decision && !agent.state.errorMessage) await withRetries(() => agent.prompt('You must now call submit_decision.'));
   } finally {
     clearTimeout(timer);
   }
 
-  return { decision, ledger: ledger.entries, state: toolset.state, gateLog, trace, messages: agent.state.messages, error: agent.state.errorMessage };
+  return { decision, ledger: ledger.entries, state: toolset.state, gateLog, policyLog, trace, messages: agent.state.messages, error: agent.state.errorMessage };
 }
