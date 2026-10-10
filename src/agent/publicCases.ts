@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { readAttachment } from './attachments.js';
-import type { CaseInput, CaseMedia } from './cases.js';
+import type { CaseInput, CaseMedia, ParseInfo } from './cases.js';
 
 /**
  * Loader for the organisers' case format (HackatonPublicCases/<Track>/<n>/):
@@ -99,6 +99,14 @@ export function referencedAttachments(events: HistoryEvent[]): string[] {
 
 /** Head clip for attachments and practice-case files, whose important part is at the start. */
 export const clip = (s: string) => (s.length > MAX_FILE_CHARS ? `${s.slice(0, MAX_FILE_CHARS)}\n…[truncated ${s.length - MAX_FILE_CHARS} chars]` : s);
+/** Parse info for `content` read via `method`, with how much `clip` drops. */
+export const parseInfo = (method: ParseInfo['method'], bytes: number, content: string, note?: string): ParseInfo => ({
+  method,
+  bytes,
+  chars: content.length,
+  ...(content.length > MAX_FILE_CHARS ? { truncatedChars: content.length - MAX_FILE_CHARS } : {}),
+  ...(note ? { note } : {}),
+});
 
 const renderEvent = (e: HistoryEvent) => `### ${e.header}\n\n${e.body}`;
 
@@ -264,7 +272,7 @@ export function loadPublicCase(dir: string, at: string = defaultAt(dir)) {
   for (const f of allAtt.filter((f) => !linkedLater.has(f))) {
     const name = `attachments/${f}`;
     const a = readAttachment(join(attDir, f), name);
-    attachments.push({ name, content: clip(a.content) });
+    attachments.push({ name, content: clip(a.content), parse: parseInfo(a.method, a.bytes, a.content) });
     if (a.media) media.push({ name, media: a.media });
   }
   // A prose name such as "attachment-04-document" may stand for "attachment-04-document.pdf".
@@ -303,14 +311,28 @@ ${hidden.slice(0, 3).map(renderEvent).join('\n\n') || '_None: the decision point
 ${parts.filter((p) => ['Overview', 'Next action at escalation', 'Outcome', 'Boundaries and remaining work'].includes(p.name)).map((p) => p.text).join('\n\n')}`;
 
   const historyPreamble = asIs ? preamble : preamble.replace(/Total events: \d+\.?/, `Events shown: ${cutoff}.`);
+  const history = compactHistory(historyPreamble, visible);
+  const shownSpoilers = parts.filter((p) => spoilers.includes(p.name)).map((p) => p.name);
   return {
     id: basename(dir),
     brief,
-    inputs: [{ name: 'history.md', content: compactHistory(historyPreamble, visible) }, ...attachments],
+    inputs: [
+      {
+        name: 'history.md',
+        content: history,
+        parse: { method: 'derived' as const, bytes: Buffer.byteLength(history), chars: history.length, note: `events 1–${cutoff} of ${events.length} from history.md${history.includes("_Compacted:") ? ', compacted to fit' : ''}` },
+      },
+      ...attachments,
+    ],
     media,
     reference,
     cutoff,
     totalEvents: events.length,
     missingAttachments,
+    withheld: [
+      ...(hidden.length ? [{ name: 'history.md', reason: `events ${cutoff + 1}–${events.length} come after the decision point` }] : []),
+      ...(shownSpoilers.length ? [{ name: 'index.md', reason: `sections ${asIs ? 'that summarise the case' : 'that reveal the ending'}: ${shownSpoilers.join(', ')}` }] : []),
+      ...[...linkedLater].map((f) => ({ name: `attachments/${f}`, reason: 'first linked from an event after the decision point' })),
+    ],
   };
 }

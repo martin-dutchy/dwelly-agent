@@ -5,7 +5,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import type { Decision } from './caseAgent.js';
 import { type LoadedCase, loadCase } from './cases.js';
 import type { CriticResult } from './critic/critic.js';
-import { renderAnswer, renderReasoning } from './report.js';
+import { renderAnswer, renderReasoning, renderTranscript } from './report.js';
 
 const usage = { input: 0, output: 0, cost: 0, turns: 1, durationMs: 1000 };
 const practice = { id: 't', brief: '# Case t: Leak', inputs: [], media: [], failures: {} } as unknown as LoadedCase;
@@ -56,8 +56,10 @@ describe('what the system received (AC2)', () => {
     const received = renderReasoning(c, undefined, [], [], usage).split('## What the system received\n')[1].split('\n## ')[0];
     expect(received).toMatch(/^- Case details from `index\.md`, with the task and questions \(\d+ chars\)$/m);
     expect(received).toContain('- Cut point: history events 1–12 of 20 (events 13–20 withheld)');
-    expect(received).toMatch(/^- `history\.md` \(\d+ chars\)$/m);
-    expect(received).toContain('- `attachments/quote.txt` (20 chars)');
+    expect(received).toMatch(/^- `history\.md` \([\d,]+ bytes, [\d,]+ chars parsed\): built by the loader; events 1–12 of 20 from history\.md$/m);
+    expect(received).toContain('- `attachments/quote.txt` (21 bytes, 20 chars parsed): read as text');
+    expect(received).not.toContain('**Withheld from the agent:**');
+    expect(received).toContain('The exact prompt text is in `TRANSCRIPT.md`.');
     expect(received).toContain('- Referenced in the history but not provided: `attachment-07-document`');
     // Named only after the cut: not something the agent was told about.
     expect(received).not.toContain('attachment-99-document');
@@ -69,6 +71,45 @@ describe('what the system received (AC2)', () => {
     expect(received).toContain('- Case brief (14 chars)');
     expect(received).not.toContain('Cut point');
     expect(received).not.toContain('Referenced in the history');
+  });
+
+  it('lists the harness files and later-only attachments it withheld', () => {
+    const pdir = mkdtempSync(join(tmpdir(), 'dwelly-practice-'));
+    writeFileSync(join(pdir, 'case.md'), '# Case p: Leak');
+    writeFileSync(join(pdir, 'email.txt'), 'Water through the ceiling.');
+    writeFileSync(join(pdir, 'rubric.json'), '{}');
+    const p = loadCase(pdir);
+    rmSync(pdir, { recursive: true, force: true });
+    expect(p.inputs.map((i) => i.name)).toEqual(['email.txt']);
+    expect(renderReasoning(p, undefined, [], [], usage)).toContain('- `rubric.json`: grading or test-harness file, never shown to the agent');
+
+    writeFileSync(join(dir, 'attachments', 'invoice.txt'), 'Invoice £420');
+    writeFileSync(join(dir, 'history.md'), `# Case 900 history\n\nTotal events: 20\n\n${Array.from({ length: 20 }, (_, i) => event(i + 1, i === 15 ? 'Invoice: [invoice.txt](attachments/invoice.txt)' : (bodies[i + 1] ?? `Event ${i + 1} note.`))).join('\n')}`);
+    const cut = loadCase(dir, '12');
+    expect(cut.inputs.map((i) => i.name)).not.toContain('attachments/invoice.txt');
+    expect(cut.withheld).toContainEqual({ name: 'attachments/invoice.txt', reason: 'first linked from an event after the decision point' });
+    expect(renderReasoning(cut, undefined, [], [], usage)).toContain('- `attachments/invoice.txt`: first linked from an event after the decision point');
+  });
+});
+
+describe('TRANSCRIPT.md', () => {
+  it('shows the system prompt, the exact user prompt, thinking, tool calls and full results', () => {
+    const messages = [
+      { role: 'user', content: 'CASE PROMPT TEXT', timestamp: 0 },
+      {
+        role: 'assistant',
+        stopReason: 'toolUse',
+        usage: { input: 10, output: 5, reasoning: 3, cost: { total: 0.01 } },
+        content: [
+          { type: 'thinking', thinking: 'The landlord has not answered yet.' },
+          { type: 'toolCall', id: 'c1', name: 'add_note', arguments: { body: 'x' } },
+        ],
+      },
+      { role: 'toolResult', toolCallId: 'c1', toolName: 'add_note', content: [{ type: 'text', text: 'R'.repeat(2000) }] },
+    ];
+    const t = renderTranscript(practice, { model: 'm', thinking: 'medium', systemPrompt: 'SYSTEM PROMPT TEXT', messages, trace: [{ type: 'retry', ts: 't', attempt: 1, delayMs: 5, error: '429' }] });
+    for (const s of ['SYSTEM PROMPT TEXT', 'CASE PROMPT TEXT', 'The landlord has not answered yet.', '### 🔧 Tool call `add_note` (c1)', 'R'.repeat(2000), '(thinking 3)', '## Provider retries']) expect(t).toContain(s);
+    expect(trace(messages)).toContain('💭 **Thinking (summary):** The landlord has not answered yet.');
   });
 });
 
