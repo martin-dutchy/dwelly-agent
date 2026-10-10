@@ -277,6 +277,7 @@ Run from the repo root and show the output.
 - [x] Step 5: AC15 grep over `src/agent/critic src/agent/decisionPoints.ts` is empty; `pnpm verify` green (301 tests after rebasing on #18); self-review of the `caseAgent.ts` and `run.ts` diff done (notes in Decision log).
 - [x] Step 6, done differently: no `loop.ts` change. `loop.ts` spawns `run.ts` as a child process that inherits the environment, so `CRITIC=on pnpm loop ...` switches the arm. The two arms are told apart by their run folders (timestamped) and neither saves a baseline. M4 may later record `process.env.CRITIC` in `summary.json.config`.
 - [x] Step 7 (12:12 to 12:32): A/B at k = 3 on the whole dev split, both arms on `b4a8a83`. Result: off (see Decision log). `run.ts` already defaults to `off`; nothing to flip. The master plan's Decision log entry is left to the orchestrator (this lane does not edit the master plan).
+- [x] Rebased on `main` e252aa7 (M5 runner #19, M1 follow-ups #20) before the PR: `run.ts` conflict resolved by keeping M5's runner and re-adding the critic lines; `b4a8a83` is now `b5e80fc`. `pnpm verify` green (357 tests); live re-check `pnpm cases --in cases/public-cuts --only 040-tenant-resolved --out runs/m3-on2 --critic on` gave `status: ok`, 2 kept, 12 s, and the REASONING line; `--critic maybe` still exits 1. The A/B was not re-run on the rebased commit.
 
 ## Discoveries
 
