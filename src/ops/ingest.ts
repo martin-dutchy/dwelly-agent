@@ -45,7 +45,15 @@ export function callEvents(caseId: string, call: CallRow, voiceEvents: EventRow[
       title: `Phone call ${scenario?.direction === 'outbound' ? 'to' : 'from'} the ${scenario?.role ?? 'caller'}${call.duration_secs ? ` (${Math.round(call.duration_secs / 60)} min)` : ''}`,
       detail: ctx.summary ?? 'No call summary yet.',
       status: call.passed === null ? null : call.passed ? 'checks passed' : 'checks failed',
-      data: { conversation_id: call.conversation_id, scenario: call.scenario_id, transcript: ctx.transcript, flags: call.flags, grade: call.grade },
+      data: {
+        conversation_id: call.conversation_id,
+        scenario: call.scenario_id,
+        transcript: ctx.transcript,
+        // Timed turns, so a replay can follow the recording.
+        turns: (call.transcript ?? []).filter((t) => t.message).map((t) => ({ role: t.role, text: t.message, t: t.time_in_call_secs })),
+        flags: call.flags,
+        grade: call.grade,
+      },
     },
   ];
   const escalations: Record<string, unknown>[] = [];
