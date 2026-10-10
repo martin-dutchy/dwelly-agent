@@ -256,6 +256,7 @@ With a key (Martin's machine, or Marc after `.env`):
 
 ## Progress
 
+- [x] (2026-10-10 12:57 BST) A8 done: `evals/baseline-final-dev-k3.json` saved on `3172ad8` (mean 90.2, 0 critical, pass^3 0.60). Chaos (`--chaos 0.15 --seed 1`, mean 89.0, recovery 38/38) and holdout aggregates (mean 92.0, 0 critical) run on `16adacd`; numbers in the README section 1 and the master plan Discoveries.
 - [x] 2026-10-10 12:40 A1 `checks.ts`: zod `ChecksFile`/`CheckSpec` (strict; tool names validated against `createOpsToolset().tools`), `loadChecks` (throws `CheckSpecError` naming the file), `loadArtefacts`, `evaluateChecks`, `runCaseChecks`, global checks `ids` (`no_fabricated_ids`, critical) and `answered` (`decision_points_answered`, required). Fixtures `src/eval/fixtures/{cases/{alpha,beta,gamma},broken-cases/broken,loop-run}`.
 - [x] 2026-10-10 12:40 A2 `runChecks.ts` (`pnpm checks`), `judge.ts`: checks before the judge, `--no-judge`, `checks-result.json`, `grades.json` gains `required`, `checks`, `checkCritical`; a `Checks` column in the console and report table; exit 1 on a malformed spec (before any judge call) or a failed critical/prohibited check.
 - [x] 2026-10-10 12:40 A3 `summary.ts`: `buildRunRow`, `foldCase`, `summarize` (pass@1, pass^k, stability, escalation P/R, injection, recovery, checks, perCase), unit-tested on a hand-computed 3 × 3 table in `summary.test.ts`.

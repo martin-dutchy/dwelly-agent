@@ -25,7 +25,7 @@ The evaluation harness (`pnpm loop`) is part of the product: a frozen dev/holdou
 
 ### Results on our own evaluation
 
-Both columns come from one run of the whole dev split, the committed baseline `evals/baseline-final-dev.json` (run 11:58 BST, committed in `8fa5414`), measured before the remaining maintenance-policy gates (milestone M1) merged. Agent `claude-sonnet-5-5` (thinking medium, concurrency 8), grader `claude-opus-5-5`, k = 1 run per case, no tool-failure injection, 10 Oct 2026. The 48 cases took 165 s wall time in total.
+Both columns come from one run of the whole dev split with three runs per case, the committed baseline `evals/baseline-final-dev-k3.json` (run 12:57 BST on commit `3172ad8`). Agent `claude-sonnet-5-5` (thinking medium, concurrency 8), grader `claude-opus-5-5`, k = 3 runs per case (144 case-runs), no tool-failure injection, 10 Oct 2026. The 144 case-runs took 445 s wall time in total.
 
 - Left column: 17 hand-written practice cases graded against their own rubric, plus 6 organiser public cases cut halfway through their history and graded against what the agency actually did next.
 - Right column: 25 organiser public cases cut at a hand-picked decision point or mutated with one messy edit (`cases/public-cuts/`), each with a rubric we wrote.
@@ -33,17 +33,20 @@ Both columns come from one run of the whole dev split, the committed baseline `e
 | Metric | Practice + public cases | Public cases cut at a decision point |
 |---|---|---|
 | Cases attempted | 23 | 25 |
-| Coverage (decision submitted / attempted) | 23 / 23 | 25 / 25 |
-| Mean rubric score (0–100, ungraded counts as 0) | 94.0 | 79.0 |
-| Cases with a critical failure | 0 | 1 |
-| Cases scoring below 60 | 0 | 4 |
-| Outcome: escalated / action taken / resolved / no action | 10 / 13 / 0 / 0 | 6 / 19 / 0 / 0 |
-| Mean seconds per case | 23.5 | 22.0 |
-| Agent cost per case (USD) | 0.071 | 0.066 |
+| Coverage (decision submitted / case-runs) | 69 / 69 | 75 / 75 |
+| Mean rubric score (0–100, ungraded counts as 0) | 93.0 | 87.6 |
+| Cases with a critical failure in any run | 0 | 0 |
+| Cases passing in all 3 runs | 17 / 23 | 12 / 25 |
+| Cases with a mean score below 60 | 1 | 1 |
+| Outcome over case-runs: escalated / action taken / needs info / resolved | 27 / 40 / 2 / 0 | 3 / 67 / 3 / 2 |
+| Mean seconds per case-run | 23.1 | 21.2 |
+| Agent cost per case-run (USD) | 0.053 | 0.053 |
 | Tool-failure injection (chaos) | off | off |
-| Runs per case (k) | 1 | 1 |
+| Runs per case (k) | 3 | 3 |
 
-TBD: after 15:45 BST, replace this table with the final-profile dev-split run on the frozen code (`pnpm loop --profile final`, values from `evals/latest-final-dev.json`), and update the label lines above with its time and commit.
+Escalation precision and recall against our expected-escalation labels: 1.00 / 1.00 over 54 labelled case-runs. Two further runs on commit `16adacd` (one change earlier, before the landlord-hearsay check): the dev split with 15 % of tool calls failing at random (`--chaos 0.15 --seed 1`, k = 1) scored a mean of 89.0 with 0 critical failures and recovered from 38 of 38 injected failures; the held-out split (11 cases never used for tuning, aggregates only, k = 1) scored a mean of 92.0 with 0 critical failures.
+
+TBD: after 15:45 BST, re-run on the frozen code (`pnpm loop --profile final --k 3 --save-baseline`, values from `evals/baseline-final-dev-k3.json`) and update this table and the label line above with its time and commit.
 
 **Operational value.** Every completed `pnpm cases` run ends with a value line, also saved in `<out>/RUN_SUMMARY.md` with the per-case table: cases handled without escalation, cases escalated, verified write actions (failed ones are not counted) and the environment they ran in (the local mock unless an organiser API is configured), agent cost and seconds per case, and an estimate of human time. The estimate is verified write actions × 6.5 min, less 3 min of human review per escalated case, never below zero. Both minute figures are Dwelly's own published numbers for its maintenance work (about 30 actions at 6–7 min each per task, about 3 min per escalation; see `research/dwelly-company.md`), so the result is an estimate of routine work moved off a person, not a measured saving.
 
@@ -140,9 +143,10 @@ See `.env.example` for the full list.
 | TypeSafe Jev | Optional fast classifier that pre-screens each case for severity and checks outgoing messages before they are sent (`src/agent/jev.ts`), called through `@earendil-works/pi-ai`. Fails open: if it errors, the agent carries on and the error is logged. | `TYPESAFE_API_KEY`; `USE_JEV=0` to disable; `JEV_BLOCK_THRESHOLD`, `JEV_MODEL` | No |
 | Cursor SDK (`@cursor/sdk`) | Optional rubric grader for our evaluation, billed to a Cursor plan: a judge model id starting with `cursor:` (e.g. `pnpm eval --model cursor:composer-2.5`, or `pnpm loop --profile cursor`) grades through a text-only Cursor agent in an empty temp folder (`src/eval/cursorJudge.ts`). Never used by the case agent or for `ANSWERS/`. | `CURSOR_API_KEY`; optional `CURSOR_JUDGE_MODEL` | No |
 | poppler `pdftotext` (local binary, no network) | Extracts text from PDF attachments that have a text layer. Images and scanned PDFs go to Claude natively. | `brew install poppler` | No: without it every PDF is sent to Claude natively instead |
+| Organiser tool API (only if supplied) | If the organisers provide an HTTP tool API at the Reality Test, mapped tool calls go to it and writes are mirrored on the local mock for read-back; a refusal is recorded as not applied, and the first transport failure switches the run back to the mock (`src/agent/adapters/`). Each REASONING.md has a `Toolset:` line saying which was used. | `ORGANISER_API_URL`; optional `ORGANISER_API_KEY`, `ORGANISER_API_TRANSPORT`, `ORGANISER_TOOL_MAP` (section 4) | No: unset means the local mock |
 | GitHub + Git LFS | Hosting; `demo/demo.mp4` is stored via LFS. | `brew install git-lfs && git lfs install` before cloning if you want the video | Only for the video |
 
-There is no other hosted infrastructure. The case-side tools are a local in-memory mock in `src/agent/opsTools.ts`; the system sends no real e-mail, SMS or payments. Each tool body is written to be swapped for an agency's real API, with the read-back verification kept. The tools are:
+There is no other hosted infrastructure. Unless an organiser tool API is configured, the case-side tools are a local in-memory mock in `src/agent/opsTools.ts`; the system sends no real e-mail, SMS or payments. Each tool body is written to be swapped for an agency's real API, with the read-back verification kept. The tools are:
 
 - **Jobs:** `list_tickets`, `get_ticket`, `create_ticket`, `update_ticket`, `cancel_ticket`, `get_property`, `assign_contractor`, `set_visit`, `put_on_hold`, `resume_auto`, `close_ticket`
 - **Approvals, quotes and money:** `request_landlord_approval`, `record_landlord_decision`, `record_quote`, `approve_quote`, `record_invoice`, `hold_payment`, `update_bank_details` (always blocked by policy)
@@ -166,11 +170,11 @@ There is no other hosted infrastructure. The case-side tools are a local in-memo
 
 - **The tools are mocks.** Decisions and drafted messages are real; delivery is not. Plugging into a real case system means implementing the tool bodies against its API and keeping the read-back verification.
 - **Our evaluation grades against our own rubrics with a Claude model.** It measures consistency with the behaviour we specified. Public cases without a hand-written rubric are graded against their recorded ending, which is one acceptable path, not the only one.
-- **Small dev split, one run per case.** Tuning used 17 practice cases, 6 public cases and 25 public-case cuts. The held-out split is used for aggregates only. The numbers in section 1 are single runs without tool-failure injection; run-to-run consistency and recovery under injected failures are not reported. Unseen cases of a shape we did not anticipate may behave worse.
+- **Small dev split.** Tuning used 17 practice cases, 6 public cases and 25 public-case cuts. The held-out split is used for aggregates only. Decisions are not fully repeatable: across three runs, a case often reaches the same outcome with a different set of next actions, and about 4 in 10 cases do not pass in all three runs. The chaos and held-out figures in section 1 are single runs. Unseen cases of a shape we did not anticipate may behave worse.
 - **Pattern-based checks have blind spots.** The wrong-property check recognises unit addresses written like "Flat 9, 3 Amhurst Road"; other address styles pass through to the model's own judgement. The weekday check only applies when the agreed slot names a day.
 - **No memory across cases.** Each case is processed alone; duplicate requests for the same property in different cases are not linked, and landlord or contractor preferences are not learned.
 - **Attachments.** Images and scanned PDFs go to Claude natively up to the API size limits (5 MB per image, 20 MB per PDF here); larger files are replaced by a note saying so. Every other file type is read as plain text, so binary formats such as Word or Excel files are not understood.
-- **Time and cost.** In the section 1 runs a case took about 17–20 seconds and $0.04–0.05 of agent cost with Sonnet 5.5 at concurrency 8, plus grading cost when evaluating. Rate limits on the Anthropic API are the binding constraint for large batches.
+- **Time and cost.** Per-case time and agent cost are in the section 1 table (Sonnet 5.5 at concurrency 8), plus grading cost when evaluating. Rate limits on the Anthropic API are the binding constraint for large batches.
 - **Identity and verification are policy, not integration.** The agent asks for and records verification; it cannot check anything against an external record.
 - **One model provider.** If the Anthropic API is unavailable the batch still completes, but each case is written as "no decision, handed to a human" instead of a decision.
 
