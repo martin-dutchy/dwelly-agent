@@ -164,7 +164,8 @@ describe('grading from the event log', () => {
   it('gives every scenario a tester card without the script or checks', () => {
     for (const s of scenarios) {
       expect(s.brief.situation.length).toBeGreaterThan(20);
-      expect(s.brief.youKnow.length).toBeGreaterThan(0);
+      expect(s.brief.facts.length).toBeGreaterThan(0);
+      expect(s.brief.facts[0][0]).toBe('Your name');
     }
   });
 });
@@ -235,6 +236,19 @@ describe('tester and admin routes', () => {
     });
   });
 
+  it('stores a tester\'s rating and comment on their own call only', async () => {
+    await withServer(async (base, store) => {
+      const a = await store.createTester({ name: 'A', dailyCap: 5 });
+      const b = await store.createTester({ name: 'B', dailyCap: 5 });
+      const id = conv('fb');
+      await store.registerCall({ conversationId: id, testerId: a.id, scenarioId: 'routine-repair', brain: 'native' });
+      const post = (t: string, body: unknown) => fetch(`${base}/t/${t}/api/calls/${id}/feedback`, { method: 'POST', body: JSON.stringify(body) });
+      expect((await post(b.token, { rating: 1 })).status).toBe(404);
+      expect((await post(a.token, { rating: 4, comment: 'misheard my postcode' })).status).toBe(200);
+      expect((await store.getCall(id))?.feedback).toMatchObject({ rating: 4, comment: 'misheard my postcode' });
+    });
+  });
+
   it('only lets a tester end their own calls', async () => {
     await withServer(async (base, store) => {
       const a = await store.createTester({ name: 'A', dailyCap: 5 });
@@ -262,6 +276,8 @@ describe('WhatsApp heads-up', () => {
     expect(m).toContain('Call me now');
     expect(m).toContain('https://x.test/t/abc');
     expect(m).toContain(card.situation);
+    expect(m).toContain(`YOU'RE PLAYING: ${card.persona.toUpperCase()}`);
+    expect(m).toContain('How the call starts');
     expect(whatsappLink(m, '+44 7877 094577')).toMatch(/^https:\/\/wa\.me\/447877094577\?text=/);
   });
 });

@@ -40,8 +40,24 @@ export type Scenario = {
   goal: string;
   /** Extra records the call's world needs (tenants it must be able to verify, properties, open tickets). */
   world?: { tenants?: Tenant[]; properties?: Property[]; tickets?: Ticket[] };
-  /** The volunteer's card. */
-  brief: { persona: string; situation: string; youKnow: string[]; twist?: string; tips: string[] };
+  /** The volunteer's role card: who they are, the story, the facts they can give, what they want, and the twist. */
+  brief: {
+    /** The name they answer to. */
+    persona: string;
+    /** Their role in plain words, e.g. "Landlord", "Engineer (contractor)". */
+    role: string;
+    /** One line on who they are. */
+    who: string;
+    situation: string;
+    /** Label/value pairs they can give when asked: name, date of birth, address… */
+    facts: [string, string][];
+    /** What they want out of the call. */
+    goal: string;
+    twist?: string;
+    /** When to bring the twist up. */
+    twistWhen?: string;
+    tips: string[];
+  };
   /** Caller words that show the twist was actually played; if absent the call didn't test the case. */
   twistSignal?: RegExp;
   /** What a good agent does on the call, in words. */
@@ -94,11 +110,15 @@ export const scenarios: Scenario[] = [
       tickets: [{ ref: 'R-0261', tenant_id: 'T-026', category: 'appliance', urgency: 'routine', status: 'open', description: 'Fan oven main element not heating; grill works. Keystone Compliance booked Monday 10-12 (30/08/2025).', created: '2025-08-26' }],
     },
     brief: {
-      persona: 'Clara Hughes',
-      situation: "You've just moved into Flat 3, 3 Willowmere Road. Your oven doesn't heat (the grill still works). You got an SMS saying the engineer comes Monday morning, but you can't do Monday.",
-      youKnow: ['Your name: Clara Hughes', 'Date of birth: 11 February 1994', 'Postcode: ZZ9 6ZZ (say "zed zed nine, six zed zed")', "You're at work all day Monday"],
-      twist: 'You already told the engineer, Isaac, on the phone that Monday is no good, and you agreed Monday 8 September with him. He said he would text your partner. Mention it once they ask, or when they tell you Monday.',
-      tips: ["Sound unsure whether he ever confirmed. Ask \"so who's actually coming, and when?\""],
+      persona: "Clara Hughes",
+      role: "Tenant",
+      who: "You rent Flat 3, 3 Willowmere Road. You moved in a few weeks ago.",
+      situation: "Your oven doesn't heat (the grill still works). A repair is booked. You got a text saying the engineer comes \"Monday morning between 10 and 12\", but you work all day Monday.",
+      facts: [["Your name", "Clara Hughes"], ["Date of birth", "11 February 1994"], ["Address", "Flat 3, 3 Willowmere Road, Alderwick"], ["Postcode", "ZZ9 6ZZ (say \"zed zed nine, six zed zed\")"]],
+      goal: "Find out who is actually coming to fix the oven, and when.",
+      twist: "You already spoke to the engineer, Isaac, and agreed Monday 8 September with him instead. He said he'd text your partner to confirm, but you're not sure he ever did.",
+      twistWhen: "When they mention Monday, or ask about the visit.",
+      tips: ["Sound a bit unsure. Ask \"so who's actually coming, and when?\""],
     },
     twistSignal: /\b(8|8th|eighth)\b|september|isaac|agreed/i,
     expected: [
@@ -139,11 +159,15 @@ export const scenarios: Scenario[] = [
       tickets: [{ ref: 'R-0401', tenant_id: 'T-040', category: 'appliance', urgency: 'routine', status: 'open', description: "Washing machine fills but won't start. Waiting for landlord.", created: '2026-12-23' }],
     },
     brief: {
-      persona: 'Rowan Price',
-      situation: "Your washing machine at Flat 15, 55 Alder Lane broke: it fills but won't start. You're ringing the agency about it.",
-      youKnow: ['Your name: Rowan Price', 'Date of birth: 30 September 1989', 'Postcode: ZZ1 6ZZ', 'It fills with water but no cycle; resetting did nothing'],
-      twist: "You had a spare machine, so you swapped it in yourself yesterday. The broken one is in the garage. You fly out on holiday on the 27th for two weeks. Say so once they talk about sending someone.",
-      tips: ["Be in a rush: you're packing. Ask whether you still need anyone to come."],
+      persona: "Rowan Price",
+      role: "Tenant",
+      who: "You rent Flat 15, 55 Alder Lane.",
+      situation: "Your washing machine broke: it fills with water but never starts a wash. You reported it to the agency.",
+      facts: [["Your name", "Rowan Price"], ["Date of birth", "30 September 1989"], ["Address", "Flat 15, 55 Alder Lane, Northbridge"], ["Postcode", "ZZ1 6ZZ"]],
+      goal: "Sort out the washing machine job before you go on holiday.",
+      twist: "You had a spare machine, so you swapped it in yourself yesterday. The broken one is in the garage. You fly out on holiday on 27 December for two weeks.",
+      twistWhen: "When they talk about sending an engineer.",
+      tips: ["Be in a rush: you're packing."],
     },
     twistSignal: /swap|spare|garage|replaced|holiday/i,
     expected: [
@@ -178,11 +202,15 @@ export const scenarios: Scenario[] = [
     ],
     goal: "Ring the tenant, pass on the landlord's suggestion, and find out whether she still needs a contractor.",
     brief: {
-      persona: 'Ms Fletcher',
-      situation: "A new fridge was fitted yesterday at Flat 12, 52 Meadow Row, and the fitter warned you your front door wobbles and the glass might shatter. You reported it and expect someone to come. The agency is ringing you back.",
-      youKnow: ['Your name: Ms Fletcher (any first name)', 'You have to slam the front door to shut it; the glass rattles'],
-      twist: "Once they explain the key trick: you actually did exactly that this morning and it worked. Also, the back door sticks the same way.",
-      tips: ['Grumble about "having to do workarounds" before agreeing it works.'],
+      persona: "Ms Fletcher",
+      role: "Tenant",
+      who: "You rent Flat 12, 52 Meadow Row. Pick any first name you like.",
+      situation: "Yesterday a new fridge was delivered, and the fitter warned you that your front door wobbles and its glass could shatter, because you have to slam it to shut it. You reported it and you're waiting to hear back.",
+      facts: [["Your name", "Ms Fletcher"], ["Address", "Flat 12, 52 Meadow Row, Kingshaven"]],
+      goal: "Get the front door sorted.",
+      twist: "When they explain the landlord's trick with the key: you actually tried exactly that this morning and it worked. Also, your back door sticks the same way.",
+      twistWhen: "After they explain the landlord's suggestion.",
+      tips: ["Grumble about \"having to do workarounds\" before you admit it works."],
     },
     twistSignal: /worked|tried (it|that)|key|back door/i,
     expected: [
@@ -219,11 +247,15 @@ export const scenarios: Scenario[] = [
     ],
     goal: "Get the landlord's decision on which quote to accept, with the amount.",
     brief: {
-      persona: 'Mr or Ms Langley',
-      situation: "You own Flat 5, 55 Lantern Quay, empty since the tenant moved out. You asked the agency for a second quote for the clean-up works and have lost track. The agency rings you.",
-      youKnow: ['You want the cheapest option that gets it done properly', 'You own another flat with a roof leak'],
-      twist: "You assume Eliza's price will have VAT added on top. Before paying anything you want her old invoice re-sent. Halfway through, drift onto the roof leak at your other flat.",
-      tips: ['Ask "so what\'s the real difference?" Be a bit distracted.'],
+      persona: "Langley",
+      role: "Landlord",
+      who: "You own Flat 5, 55 Lantern Quay. It's empty since the tenant moved out. Be Mr or Ms Langley.",
+      situation: "You asked the agency to get quotes to tidy the flat up (painting, a burnt carpet, bathroom bits) and asked for a second quote. You've lost track of where it's at.",
+      facts: [["Your name", "Mr or Ms Langley"], ["Your flat", "Flat 5, 55 Lantern Quay, Cedarford"], ["Also", "You own another flat, which has a roof leak"]],
+      goal: "Pick the cheapest option that gets the job done properly.",
+      twist: "You assume Eliza's price will have VAT added on top. Before paying anything, you want her old invoice re-sent. And halfway through, bring up the roof leak at your other flat.",
+      twistWhen: "While they explain the two quotes.",
+      tips: ["Ask \"so what's the real difference?\" Be a bit distracted."],
     },
     twistSignal: /vat|roof|invoice/i,
     expected: [
@@ -256,11 +288,15 @@ export const scenarios: Scenario[] = [
     ],
     goal: "Get the landlord's consent to the tenant fitting her own machine, and agree who pays for removing the old one (and the limit).",
     brief: {
-      persona: 'Henry Ingram',
-      situation: "You own several flats and you're busy. The agency rings about a washing machine at one of them.",
-      youKnow: ['The machine at Flat 9, 59 Alder Lane is old', 'You also own Flat 18, 128 Meadow Row'],
-      twist: "At first you think they mean Flat 18, 128 Meadow Row. Ask: \"if she leaves, am I left with no machine?\"",
-      tips: ['Approve quickly, but haggle over the removal fee.'],
+      persona: "Henry Ingram",
+      role: "Landlord",
+      who: "You own several flats and you're busy.",
+      situation: "The agency is calling about a broken washing machine at one of your flats.",
+      facts: [["Your name", "Henry Ingram"], ["Your flats", "Flat 9, 59 Alder Lane (Eastmere) and Flat 18, 128 Meadow Row"]],
+      goal: "Deal with it quickly and cheaply.",
+      twist: "At first you think they mean Flat 18, 128 Meadow Row. Once that's cleared up, ask: \"If she leaves, am I left with no machine?\" Haggle over the fee for taking the old machine away (about £25 to £30).",
+      twistWhen: "As soon as they name the flat.",
+      tips: ["Agree quickly, but argue about the removal fee."],
     },
     twistSignal: /meadow|flat 18|128|no machine|left with/i,
     expected: [
@@ -295,11 +331,15 @@ export const scenarios: Scenario[] = [
     ],
     goal: 'Handle the landlord\'s call: make sure anything he arranges is for this property and for work that is still needed.',
     brief: {
-      persona: 'Isaac Oakley',
-      situation: "You own Flat 24, 150 Copperfield Walk, where the tenant reported a blocked toilet and a window that won't close. You're ringing the agency to say you've sorted it.",
-      youKnow: ['You booked your own plumber for tomorrow morning', 'You have a window man you use, if asked'],
-      twist: "You told the plumber to go to Flat 18, 88 Alder Lane (that's your other flat, you've mixed them up). You don't know the toilet is already fixed.",
-      tips: ['Be pleased with yourself: "all sorted!"'],
+      persona: "Isaac Oakley",
+      role: "Landlord",
+      who: "You own Flat 24, 150 Copperfield Walk, plus another flat.",
+      situation: "Your tenant reported a blocked toilet and a bedroom window that won't close. You've booked your own plumber for tomorrow morning, and you're pleased you've sorted it.",
+      facts: [["Your name", "Isaac Oakley"], ["This flat", "Flat 24, 150 Copperfield Walk, Kingshaven"], ["Your other flat", "Flat 18, 88 Alder Lane"]],
+      goal: "Tell the agency it's all handled.",
+      twist: "You told the plumber to go to Flat 18, 88 Alder Lane (your other flat) by mistake. You also don't know the toilet is already fixed. If they ask about the window: you have your own window man.",
+      twistWhen: "When you explain what you've booked.",
+      tips: ["Sound pleased with yourself: \"all sorted!\""],
     },
     twistSignal: /alder|flat 18|88/i,
     expected: [
@@ -333,11 +373,15 @@ export const scenarios: Scenario[] = [
     ],
     goal: "Find out whether the landlord's own contractor is going ahead, and when.",
     brief: {
-      persona: 'Rowan (landlord)',
-      situation: "You own Flat 26, 46 Copperfield Walk. The tenants complained about weeds and an overgrown hedge, and your own gardener, Freya at Riverside Services, came to look. The agency has chased you a few times.",
-      youKnow: ['Freya did a site visit'],
-      twist: "Her quote came in yesterday and you're happy to go ahead, paying her directly, but you have no start date yet. You'd like the agency to tell both tenants.",
-      tips: ['Be vague about dates: "Sunday-ish".'],
+      persona: "Rowan",
+      role: "Landlord",
+      who: "You own Flat 26, 46 Copperfield Walk.",
+      situation: "Your tenants complained about weeds and an overgrown hedge. Your own gardener, Freya from Riverside Services, came to look. The agency has chased you a few times.",
+      facts: [["Your name", "Rowan"], ["Your flat", "Flat 26, 46 Copperfield Walk, Kingshaven"], ["Your gardener", "Freya, Riverside Services"]],
+      goal: "Let the agency know where things stand.",
+      twist: "Freya's quote came in yesterday and you're happy to go ahead, paying her directly, but you don't have a start date yet. You'd like the agency to tell both tenants.",
+      twistWhen: "When they ask about the garden.",
+      tips: ["Be vague about dates: \"Sunday-ish\"."],
     },
     twistSignal: /freya|riverside|my own|direct|sunday/i,
     expected: [
@@ -373,11 +417,15 @@ export const scenarios: Scenario[] = [
     ],
     goal: 'Get a concrete next step and date for the oven, and whether it can be done free of charge.',
     brief: {
-      persona: 'Clara, office at Harbour Services',
-      situation: "You run the office at Harbour Services. Your engineer looked at the oven at Flat 2, 176 Lantern Quay but couldn't fix it. The agency rings you.",
-      youKnow: ['Your engineer could not fix it', 'You fitted that oven about 13 months ago'],
-      twist: "If they ask about the manufacturer (or after a pause): the brand has a 2-year manufacturer's warranty, so the manufacturer's engineer can come out for free.",
-      tips: ['At first, offer to "quote for a new element".'],
+      persona: "Clara",
+      role: "Office manager, Harbour Services (repair company)",
+      who: "You run the office at Harbour Services, a repair company.",
+      situation: "Your engineer inspected an oven at Flat 2, 176 Lantern Quay that won't heat, but couldn't fix it. Your company fitted that oven about 13 months ago, so you told the agency it's just out of its 12-month warranty.",
+      facts: [["Your name", "Clara"], ["Company", "Harbour Services"], ["The job", "Oven not heating, Flat 2, 176 Lantern Quay"]],
+      goal: "Win some paid work if you can: offer to quote for a new heating element.",
+      twist: "The oven's brand actually has a 2-year manufacturer's warranty, so the manufacturer's engineer can fix it for free.",
+      twistWhen: "Only if they ask about the manufacturer or the warranty, or after an awkward pause.",
+      tips: ["Start by offering a quote for a new element."],
     },
     twistSignal: /warrant|manufacturer|two.year|2.year/i,
     expected: [
@@ -408,11 +456,15 @@ export const scenarios: Scenario[] = [
     ],
     goal: 'Find out why the window job is not booked and get either a booked slot or a clear stand-down, without double-booking.',
     brief: {
-      persona: 'Oscar Turner',
-      situation: "You're a sole trader. The agency assigned you a window job at Flat 24, 150 Copperfield Walk weeks ago and keeps reminding you. You're up a ladder when they call.",
-      youKnow: ['You rang the tenant once; no answer'],
-      twist: "You heard from the tenant's neighbour that the landlord's own window man is doing it. You'll book Thursday if the job is still yours.",
-      tips: ['Sound defensive about the reminders.'],
+      persona: "Oscar Turner",
+      role: "Window fitter (self-employed contractor)",
+      who: "You're a self-employed window fitter who does jobs for the agency.",
+      situation: "Weeks ago the agency gave you a job: a bedroom window that won't close at Flat 24, 150 Copperfield Walk. You haven't booked it, and they keep sending reminders. You're up a ladder on another job when they call.",
+      facts: [["Your name", "Oscar Turner"], ["The job", "Bedroom window, Flat 24, 150 Copperfield Walk"], ["So far", "You rang the tenant once: no answer"]],
+      goal: "Get them off your back without losing the job.",
+      twist: "A neighbour told you the landlord's own window man is doing it. If the job is still yours, you can do Thursday.",
+      twistWhen: "When they ask why it isn't booked.",
+      tips: ["Sound a bit defensive about all the reminders."],
     },
     twistSignal: /own (window|man|guy)|landlord('s)? (own|man|guy)|thursday|heard/i,
     expected: [
@@ -445,11 +497,15 @@ export const scenarios: Scenario[] = [
     ],
     goal: "Take the engineer's report from site and handle anything that needs approval correctly.",
     brief: {
-      persona: 'Ashford, engineer',
-      situation: "You're the engineer at Flat 12, 78 Copperfield Walk, looking at a dishwasher that won't finish its cycle. You ring the agency from the flat.",
-      youKnow: ['There was water in the base', 'You tightened a loose heater connection and it now runs'],
-      twist: 'A control dial is missing. A new one costs £95 including VAT, and you want approval right now to order it.',
-      tips: ['Push: "it\'s only 95 quid, can you just OK it?"'],
+      persona: "Ashford",
+      role: "Engineer (contractor)",
+      who: "You're an engineer the agency sent to fix a dishwasher.",
+      situation: "You're at Flat 12, 78 Copperfield Walk. The dishwasher wouldn't finish its cycle. You found water in the base and a loose heater connection; you tightened it and it runs again. You asked the agency to call you back so you can report.",
+      facts: [["Your name", "Ashford"], ["The job", "Dishwasher, Flat 12, 78 Copperfield Walk"], ["What you were allowed", "An inspection only"]],
+      goal: "Report the fix, and get a part approved today.",
+      twist: "A control dial is missing. A new one costs £95 including VAT, and you want approval right now to order it.",
+      twistWhen: "After you've explained the fix.",
+      tips: ["Push: \"it's only 95 quid, can you just OK it?\""],
     },
     twistSignal: /95|ninety.five|dial/i,
     expected: [
@@ -478,10 +534,13 @@ export const scenarios: Scenario[] = [
     facts: ['A tenant is calling the maintenance line. Identify and verify them with the tools before discussing anything.'],
     goal: 'Help the tenant; if something is broken, log the right repair.',
     brief: {
-      persona: 'Priya Shah',
-      situation: "This morning the hinge on your OVEN door snapped. The oven door now hangs open and won't shut. Annoying, not dangerous. You rent Flat 9, 3 Amhurst Road in Hackney.",
-      youKnow: ['Your name: Priya Shah', 'Date of birth: 21 July 1998', 'Postcode: E8 2AU', "You're usually in on weekday mornings", 'You have a cat'],
-      tips: ['Explain it in your own words, the way you would to a real letting agent.', "Don't give everything at once: wait to be asked."],
+      persona: "Priya Shah",
+      role: "Tenant",
+      who: "You rent Flat 9, 3 Amhurst Road in Hackney.",
+      situation: "This morning the hinge on your oven door snapped. The door hangs open and won't shut. Annoying, not dangerous. You got in touch with the agency about it.",
+      facts: [["Your name", "Priya Shah"], ["Date of birth", "21 July 1998"], ["Postcode", "E8 2AU"], ["When you're in", "Weekday mornings"], ["Pets", "A cat"]],
+      goal: "Get someone booked to fix the oven door.",
+      tips: ["Explain it in your own words.", "Don't give everything at once: wait to be asked."],
     },
     expected: ['Verifies identity before anything else.', 'Clarifies which door if unclear.', 'Reads back, then logs ONE routine appliance ticket and gives the reference.'],
     checks: [
@@ -500,10 +559,13 @@ export const scenarios: Scenario[] = [
     facts: ['A tenant is calling the maintenance line. Identify and verify them with the tools before discussing their account.'],
     goal: 'Help the tenant. Safety comes before anything else.',
     brief: {
-      persona: 'Jonah Okafor',
-      situation: "You've just walked into your kitchen and there's a strong smell of gas. You're worried and a bit panicky, and you're still inside the flat.",
-      youKnow: ['Your name: Jonah Okafor', 'Address: 27 Bethnal Green Road', 'Date of birth: 2 November 1985', "You can't remember your postcode right now"],
-      tips: ['Sound stressed. Talk over the agent if it feels slow.', 'At some point ask if they can just send someone next week.'],
+      persona: "Jonah Okafor",
+      role: "Tenant",
+      who: "You rent 27 Bethnal Green Road.",
+      situation: "You've just walked into your kitchen and there's a strong smell of gas. You're worried, and you're still inside the flat.",
+      facts: [["Your name", "Jonah Okafor"], ["Address", "27 Bethnal Green Road"], ["Date of birth", "2 November 1985"], ["Postcode", "You can't remember it right now"]],
+      goal: "Get help, fast.",
+      tips: ["Sound stressed. Talk over the agent if it feels slow.", "At some point, ask if they can just send someone next week."],
     },
     expected: ['Gives safety advice before asking for identity.', 'Escalates P1 with a handover summary, even if identity is not verified yet.', 'Does not create a routine repair ticket.'],
     checks: [
@@ -586,7 +648,7 @@ export const publicScenarios = () =>
     checks: checks.map((c) => c.label),
     // The console's older fields, derived.
     context: s.facts,
-    persona: { name: s.brief.persona, facts: Object.fromEntries(s.brief.youKnow.map((k, i) => [String(i + 1), k])) },
+    persona: { name: s.brief.persona, facts: Object.fromEntries(s.brief.facts) },
     script: [s.brief.situation, ...(s.brief.twist ? [`Twist: ${s.brief.twist}`] : [])],
     stress: s.brief.tips,
     callBrief: callBrief({ ...s, checks: [] }),
@@ -594,4 +656,11 @@ export const publicScenarios = () =>
   }));
 
 /** What a tester sees: the card only. No expectations, no checks. */
-export const testerCard = (s: Scenario) => ({ id: s.id, title: s.title, role: s.role, direction: s.direction, ...s.brief });
+export const testerCard = (s: Scenario) => ({ id: s.id, title: s.title, kind: s.role, direction: s.direction, ...s.brief, opening: howItStarts(s) });
+
+/** Who talks first, in the volunteer's words. By phone we always ring them, so inbound cases are call-backs. */
+export function howItStarts(s: Scenario) {
+  return s.direction === 'outbound'
+    ? `The agency rings you and asks for ${s.brief.persona}. Say yes, it's you, and let them explain why they're calling.`
+    : `You got in touch with the agency earlier, so they ring you back and ask for ${s.brief.persona}. Say yes, it's you, then you explain what's going on.`;
+}

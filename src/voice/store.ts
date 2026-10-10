@@ -35,6 +35,8 @@ export type CallRow = {
   flags: string[] | null;
   transcript: { role: string; message: string | null; time_in_call_secs?: number; interrupted?: boolean }[] | null;
   analysis: Record<string, unknown> | null;
+  /** What the volunteer said afterwards: how natural it felt (1-5) and anything odd. */
+  feedback?: { rating: number | null; comment: string; at: string } | null;
 };
 export type EventRow = { ts: string; type: string } & Record<string, unknown>;
 export type CallResult = Pick<CallRow, 'duration_secs' | 'passed' | 'grade' | 'flags' | 'transcript' | 'analysis'> & { status: CallRow['status'] };
@@ -51,6 +53,7 @@ export interface VoiceStore {
   markEnded(conversationId: string): Promise<void>;
   saveResult(conversationId: string, r: CallResult): Promise<void>;
   getCall(conversationId: string): Promise<CallRow | undefined>;
+  saveFeedback(conversationId: string, f: { rating: number | null; comment: string }): Promise<void>;
   listCalls(limit?: number): Promise<CallRow[]>;
   appendEvent(conversationId: string, e: EventRow): Promise<void>;
   events(conversationId: string): Promise<EventRow[]>;
@@ -98,6 +101,10 @@ export function memoryStore(): VoiceStore {
       const c = calls.get(id);
       if (c) Object.assign(c, r, { ended_at: c.ended_at ?? now() });
     },
+    async saveFeedback(id, f) {
+      const c = calls.get(id);
+      if (c) c.feedback = { ...f, at: now() };
+    },
     async getCall(id) {
       const c = calls.get(id);
       return c && { ...c, tester_name: testers.find((t) => t.id === c.tester_id)?.name ?? null };
@@ -124,6 +131,7 @@ const SCHEMA = [
     conversation_id text primary key, tester_id text references voice_testers(id), scenario_id text not null, brain text not null,
     status text not null default 'live', started_at timestamptz not null default now(), ended_at timestamptz,
     duration_secs int, passed boolean, grade jsonb, flags jsonb, transcript jsonb, analysis jsonb)`,
+  `alter table voice_calls add column if not exists feedback jsonb`,
   `create index if not exists voice_calls_tester_idx on voice_calls (tester_id, started_at)`,
   `create table if not exists voice_events (
     id bigserial primary key, conversation_id text not null, ts timestamptz not null, type text not null, payload jsonb not null)`,
@@ -171,12 +179,15 @@ export function pgStore(url: string): VoiceStore {
         passed = ${r.passed}, grade = ${json(r.grade)}, flags = ${json(r.flags)}, transcript = ${json(r.transcript)}, analysis = ${json(r.analysis)}
         where conversation_id = ${id}`;
     },
+    async saveFeedback(id, f) {
+      await sql`update voice_calls set feedback = ${sql.json({ ...f, at: now() } as never)} where conversation_id = ${id}`;
+    },
     getCall: async (id) => {
       const [c] = await sql`select c.*, t.name as tester_name from voice_calls c left join voice_testers t on t.id = c.tester_id where c.conversation_id = ${id}`;
       return c ? row<CallRow>(c) : undefined;
     },
     listCalls: async (limit = 200) =>
-      (await sql`select c.conversation_id, c.tester_id, c.scenario_id, c.brain, c.status, c.started_at, c.ended_at, c.duration_secs, c.passed, c.grade, c.flags,
+      (await sql`select c.conversation_id, c.tester_id, c.scenario_id, c.brain, c.status, c.started_at, c.ended_at, c.duration_secs, c.passed, c.grade, c.flags, c.feedback,
         t.name as tester_name from voice_calls c left join voice_testers t on t.id = c.tester_id order by c.started_at desc limit ${limit}`).map((r) => row<CallRow>(r)),
     async appendEvent(id, e) {
       const { ts, type, ...payload } = e;

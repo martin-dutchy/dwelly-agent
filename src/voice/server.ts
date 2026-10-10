@@ -174,7 +174,8 @@ async function testerRoutes(token: string, rest: string, req: IncomingMessage, r
     const s = fixed ?? (await nextScenario(store, tester.id, url.searchParams.get('skip') ?? undefined));
     // Only the last digits, so a forwarded link doesn't reveal the whole number.
     const phone = tester.phone && env.ELEVENLABS_PHONE_NUMBER_ID ? `•••• ${tester.phone.slice(-4)}` : null;
-    return send(res, 200, { name: tester.name, card: testerCard(s), phone, fixed: !!fixed, agent: { callBrief: callBrief(s), firstMessage: firstMessage(s, false) } });
+    // Browser calls open the same way as phone calls (the agency "rings back"), so the card is true either way.
+    return send(res, 200, { name: tester.name, card: testerCard(s), phone, fixed: !!fixed, agent: { callBrief: callBrief(s, true), firstMessage: firstMessage(s, true) } });
   }
   if (rest === 'api/phone-call' && req.method === 'POST') {
     const { scenarioId } = await readJson(req);
@@ -183,14 +184,15 @@ async function testerRoutes(token: string, rest: string, req: IncomingMessage, r
     const used = await store.callsToday(tester.id);
     if (used >= tester.daily_cap || !mint(tester.id, tester.daily_cap) || !mint('all', Number(env.VOICE_DAILY_CALL_CAP ?? 200)))
       return send(res, 429, { error: "That's the limit for today. Thank you! Try again tomorrow." });
+    let conversationId: string;
     try {
-      await placePhoneCall(env, store, { to: tester.phone, scenarioId, testerId: tester.id });
+      conversationId = await placePhoneCall(env, store, { to: tester.phone, scenarioId, testerId: tester.id });
     } catch (e) {
       console.error('[voice] call-me', e);
       if (e instanceof BusyNumber) return send(res, 429, { error: "We're already calling you: pick up that call, or wait three minutes and try again." });
       return send(res, 502, { error: "Sorry, we couldn't ring your phone just now. Try again in a minute, or use the browser option." });
     }
-    return send(res, 200, { ok: true });
+    return send(res, 200, { ok: true, conversationId });
   }
   if (rest === 'api/start' && req.method === 'POST') {
     const used = await store.callsToday(tester.id);
@@ -203,6 +205,15 @@ async function testerRoutes(token: string, rest: string, req: IncomingMessage, r
     if (typeof conversationId !== 'string' || !scenarios.some((s) => s.id === scenarioId)) return send(res, 400, { error: 'bad request' });
     registerScenario(conversationId, scenarioId);
     await store.registerCall({ conversationId, testerId: tester.id, scenarioId, brain: brainName(env) });
+    return send(res, 200, { ok: true });
+  }
+  const feedbackFor = rest.match(/^api\/calls\/([\w-]+)\/feedback$/)?.[1];
+  if (feedbackFor && req.method === 'POST') {
+    const call = await store.getCall(feedbackFor);
+    if (call?.tester_id !== tester.id) return send(res, 404, { error: 'not found' });
+    const { rating, comment } = await readJson(req);
+    const r = Number(rating);
+    await store.saveFeedback(feedbackFor, { rating: r >= 1 && r <= 5 ? Math.round(r) : null, comment: String(comment ?? '').slice(0, 2000) });
     return send(res, 200, { ok: true });
   }
   const ended = rest.match(/^api\/calls\/([\w-]+)\/end$/)?.[1];

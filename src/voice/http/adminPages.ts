@@ -63,7 +63,8 @@ export function adminHomePage(testers: Tester[], calls: CallRow[], base: string,
     .map(
       (c) => `<tr><td><a href="/admin/calls/${esc(c.conversation_id)}">${esc(when(c.started_at))}</a></td><td>${esc(c.tester_name ?? 'admin console')}</td>
       <td>${esc(c.scenario_id)}</td><td>${esc(c.brain)}</td><td>${dur(c.duration_secs)}</td><td>${verdict(c)}</td>
-      <td>${c.flags?.length ? `<span class="fail">${c.flags.length}</span>` : ''}</td></tr>`,
+      <td>${c.flags?.length ? `<span class="fail">${c.flags.length}</span>` : ''}</td>
+      <td>${c.feedback?.rating ? `${'★'.repeat(c.feedback.rating)}` : ''}${c.feedback?.comment ? ` <span class="muted" title="${esc(c.feedback.comment)}">💬</span>` : ''}</td></tr>`,
     )
     .join('');
   const passed = calls.filter((c) => c.passed === true).length;
@@ -86,12 +87,12 @@ export function adminHomePage(testers: Tester[], calls: CallRow[], base: string,
       <p class="muted">Each person gets their own link. With a phone number, their page has a "Call me now" button that makes the agent ring them; without one they call from the browser. Calls are tagged with their name and capped per day.</p></div>
     <div class="panel"><h2>Invites</h2><table><tr><th>Name</th><th>Link and case</th><th>Send</th><th>Cap</th><th>Status</th><th></th></tr>${testerRows || '<tr><td colspan="6" class="muted">No invites yet.</td></tr>'}</table>
       <p class="muted">WhatsApp opens your own chat with the message ready (on a Mac it sometimes drops the text: use Copy message and paste).</p></div>
-    <div class="panel"><h2>Calls (${passed}/${graded} passed)</h2><table><tr><th>When (UK)</th><th>Who</th><th>Scenario</th><th>Brain</th><th>Length</th><th>Grade</th><th>Flags</th></tr>
-      ${callRows || '<tr><td colspan="7" class="muted">No calls yet.</td></tr>'}</table></div>`,
+    <div class="panel"><h2>Calls (${passed}/${graded} passed)</h2><table><tr><th>When (UK)</th><th>Who</th><th>Scenario</th><th>Brain</th><th>Length</th><th>Grade</th><th>Flags</th><th>Tester said</th></tr>
+      ${callRows || '<tr><td colspan="8" class="muted">No calls yet.</td></tr>'}</table></div>`,
     `const CARDS = ${JSON.stringify(cards).replace(/</g, '\\u003c')};
     const escH = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
     const phoneForm = document.getElementById('phone');
-    const showCard = (c, note) => { document.getElementById('card').innerHTML = c ? '<div class="panel" style="margin-top:10px"><h2>You are ' + escH(c.persona) + '</h2><p>' + escH(c.situation) + '</p><b>You know</b><ul>' + c.youKnow.map((k) => '<li>' + escH(k) + '</li>').join('') + '</ul>' + (c.twist ? '<b>Twist</b><p>' + escH(c.twist) + '</p>' : '') + '<b>To make it realistic</b><ul>' + c.tips.map((k) => '<li>' + escH(k) + '</li>').join('') + '</ul>' + (note || '') + '</div>' : ''; };
+    const showCard = (c, note) => { document.getElementById('card').innerHTML = c ? '<div class="panel" style="margin-top:10px"><h2>' + escH(c.role) + '</h2><p style="font-size:18px;margin:0"><b>You\'re playing ' + escH(c.persona) + '</b></p><p class="muted">' + escH(c.who) + '</p><p><b>How the call starts:</b> ' + escH(c.opening) + '</p><p><b>The story:</b> ' + escH(c.situation) + '</p><b>Your details</b><ul>' + c.facts.map(([k, v]) => '<li>' + escH(k) + ': <b>' + escH(v) + '</b></li>').join('') + '</ul><p><b>Goal:</b> ' + escH(c.goal) + '</p>' + (c.twist ? '<p><b>Twist</b> (' + escH(c.twistWhen) + '): ' + escH(c.twist) + '</p>' : '') + '<b>Tips</b><ul>' + c.tips.map((k) => '<li>' + escH(k) + '</li>').join('') + '</ul>' + (note || '') + '</div>' : ''; };
     try { phoneForm.to.value = localStorage.getItem('voice-phone') || ''; } catch {}
     phoneForm.scenarioId.addEventListener('change', () => showCard(CARDS.find((c) => c.id === phoneForm.scenarioId.value)));
     showCard(CARDS.find((c) => c.id === phoneForm.scenarioId.value));
@@ -141,6 +142,7 @@ export function adminCallPage(call: CallRow, log: CallLog, scenario: Scenario | 
     <div class="grid">
       <div>
         <div class="panel"><h2>Grade</h2>${(call.grade ?? []).map((r) => `<div>${r.pass ? '<span class="pass">✓</span>' : '<span class="fail">✗</span>'} ${esc(r.label)}</div>`).join('') || '<span class="muted">Not graded yet.</span>'}</div>
+        <div class="panel"><h2>What the tester said</h2>${call.feedback ? `<p>${call.feedback.rating ? `${'★'.repeat(call.feedback.rating)}${'☆'.repeat(5 - call.feedback.rating)} natural` : 'no rating'}</p><p>${esc(call.feedback.comment)}</p>` : '<span class="muted">No feedback.</span>'}</div>
         <div class="panel"><h2>Needs a look</h2>${(call.flags ?? []).map((f) => `<div class="fail">• ${esc(f)}</div>`).join('') || '<span class="muted">Nothing flagged.</span>'}</div>
         <div class="panel"><h2>What a good agent does</h2><ul>${(scenario?.expected ?? []).map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>
         <div class="panel"><h2>What the agent did (server log)</h2>${tools || '<span class="muted">No tool calls.</span>'}</div>

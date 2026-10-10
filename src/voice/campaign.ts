@@ -7,34 +7,40 @@ import type { testerCard } from './scenarios.js';
 
 type Card = ReturnType<typeof testerCard>;
 
+/** The role card as plain text: the same order as the web page, so people see one consistent card. */
+export function cardText(card: Card) {
+  return [
+    `🎭 YOU'RE PLAYING: ${card.persona.toUpperCase()} (${card.role})`,
+    card.who,
+    '',
+    `📞 How the call starts: ${card.opening}`,
+    '',
+    `📖 The story: ${card.situation}`,
+    '',
+    '🪪 Your details (give them when asked):',
+    ...card.facts.map(([k, v]) => `• ${k}: ${v}`),
+    '',
+    `🎯 Your goal: ${card.goal}`,
+    ...(card.twist ? ['', `🤫 Your twist: ${card.twist}`, `   When: ${card.twistWhen}`] : []),
+    '',
+    '💡 Tips:',
+    ...card.tips.map((k) => `• ${k}`),
+  ].join('\n');
+}
+
 export function whatsappMessage(card: Card | undefined, o: { name?: string; from: string; link: string; phone: boolean; sender?: string }) {
   const how = o.phone
-    ? `📞 When you're ready, open this link and press "Call me now". An AI assistant will ring you straight away${o.from ? ` from ${o.from}` : ''}. The call is recorded (just for testing).`
-    : `📞 When you're ready, open this link and press "Start the call" (it uses your browser's microphone). You'll talk to an AI assistant and the call is recorded (just for testing).`;
+    ? `When you're ready, open your link and press "📞 Call me now". The AI assistant rings you straight away${o.from ? ` (from ${o.from})` : ''}. The call is recorded, just for testing.`
+    : `When you're ready, open your link and press "Start the call" (it uses your browser's microphone). The call is recorded, just for testing.`;
   return [
-    `Hi${o.name ? ` ${o.name}` : ''}! It's ${o.sender ?? 'Martin'} 👋 Could you help me test an AI phone assistant for a lettings agency? It takes about 3 minutes.`,
+    `Hi${o.name ? ` ${o.name}` : ''}! It's ${o.sender ?? 'Martin'} 👋 Could you help me test an AI phone assistant for a lettings agency? It's a 3-minute call where you play a character.`,
     '',
     how,
     o.link,
     '',
-    ...(card
-      ? [
-          `🎭 You are ${card.persona} (${card.role === 'tenant' ? 'a tenant' : card.role === 'landlord' ? 'the landlord' : 'the contractor'}):`,
-          card.situation,
-          card.direction === 'outbound'
-            ? `👉 The agency calls you and explains why. Answer to the name ${card.persona}.`
-            : "👉 You got in touch with the agency earlier. They ring you back and say hello: then you explain what's going on.",
-          '',
-          '📝 What you know:',
-          ...card.youKnow.map((k) => `• ${k}`),
-          '',
-          ...(card.twist ? ['🤫 Your twist (bring it up naturally, don\'t lead with it):', card.twist, ''] : []),
-          '💡 To make it realistic:',
-          ...card.tips.map((k) => `• ${k}`),
-          '',
-        ]
-      : ['🎭 The link shows you who to pretend to be and what you know.', '']),
-    'Only use the made-up details, never your real ones. Thank you 🙏',
+    card ? cardText(card) : '🎭 Your link shows who to play and what you know.',
+    '',
+    'Use only these made-up details, never your real ones. Thank you 🙏',
   ].join('\n');
 }
 
