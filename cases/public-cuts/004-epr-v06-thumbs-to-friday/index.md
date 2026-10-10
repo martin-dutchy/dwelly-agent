@@ -1,0 +1,35 @@
+# Case 004: Checkout Clean
+
+## Case details
+
+- **Source role:** Agency manager
+- **Status:** In progress
+- **Created:** 2025-10-23 20:28:07 UTC
+- **Updated:** 2025-11-07 08:12:30 UTC
+- **Property:** Flat 2, 172 Alder Lane, Bellmere, ZZ3 1ZZ
+
+## Initial request
+
+Quote for:
+
+Living space:
+1. Vacuum
+2. Light clean
+
+En-Suite:
+1. Limescale removal
+
+
+
+## Next action at escalation
+
+- **Recorded action:** [History event 026](history.md#event-026)
+
+## History
+
+[Read the complete event history](history.md).
+
+## Attachments
+
+- [attachment-01-checkout-inspection-report.pdf](attachments/attachment-01-checkout-inspection-report.pdf)
+- [attachment-02-cleaning-quotation.pdf](attachments/attachment-02-cleaning-quotation.pdf)
