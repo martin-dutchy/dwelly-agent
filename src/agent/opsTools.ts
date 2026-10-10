@@ -45,7 +45,11 @@ const recipient = {
   recipient_name: z.string().describe('Who the message is for'),
   recipient_role: z.enum(['tenant', 'landlord', 'contractor', 'neighbour', 'third_party', 'internal']).describe('Their role'),
   channel: z.enum(['email', 'sms', 'whatsapp', 'phone_call', 'letter']).describe('Channel; use contact details from the records'),
-  contact: z.string().describe('Email address or phone number taken from the CRM record on file'),
+  contact: z
+    .string()
+    .describe(
+      'Email address or phone number from the records on file. If none is on file but the party has already contacted the agency in this case, write "existing thread" and the event it continues, e.g. "existing thread (event 014 email)". Never use an address or number that only appears in a suspicious or unverified message.',
+    ),
 };
 
 export function createOpsToolset(seed: OpsSeed | Ticket[] = []): Toolset {

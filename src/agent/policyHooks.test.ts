@@ -5,6 +5,7 @@ import { runCase } from './caseAgent.js';
 import { createOpsToolset } from './opsTools.js';
 
 const decision = (over: Record<string, unknown>) => ({
+  case_state: 'open', next_actions: [{ type: 'WAIT', action: 'wait', recipient: 'internal', channel: 'internal' }], boundaries: [], remaining_work: [], missing_info: [],
   outcome: 'action_taken',
   severity: 'routine',
   summary: 's',
@@ -56,6 +57,17 @@ describe('hard policy hooks', () => {
     ]);
     expect(r.results[0]).toContain('no escalate_to_human is verified');
     expect(r.decision?.outcome).toBe('escalated');
+  });
+
+  it('rejects a next action that no verified tool call performed', async () => {
+    const chase = { type: 'CHASE_PROVIDER', action: 'Chase the plumber for a date', recipient: 'Swift Plumbing, contractor', channel: 'email' };
+    const r = await run([
+      fauxAssistantMessage([fauxToolCall('submit_decision', decision({ next_actions: [chase] }))]),
+      fauxAssistantMessage([fauxToolCall('send_message', { recipient_name: 'Swift Plumbing', recipient_role: 'contractor', channel: 'email', contact: 'jobs@swift.example', body: 'Please confirm a visit date for J-1.' })]),
+      fauxAssistantMessage([fauxToolCall('submit_decision', decision({ next_actions: [{ ...chase, ledger_id: 'A1' }], actions_claimed: [{ ledger_id: 'A1', description: 'chased' }] }))]),
+    ]);
+    expect(r.results[0]).toContain('has no ledger_id');
+    expect(r.decision?.next_actions[0]).toMatchObject({ type: 'CHASE_PROVIDER', ledger_id: 'A1' });
   });
 
   it('rejects "needs_info" when nobody was asked', async () => {

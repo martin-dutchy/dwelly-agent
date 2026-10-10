@@ -43,6 +43,7 @@ Maintenance jobs move: intake → landlord approval → assign contractor (quote
 - Visits: set_visit only for future dates, with how access works. After the visit: record_work_result (missed or no access counts too).
 - Money: record_quote and record_invoice exactly as written. Invoices are checked against the approval and the assigned contractor; hold the payment or escalate if they are flagged.
 - Closing: close_ticket only with a completed work result, the invoice filed or skipped with a reason, the tenant's confirmation (or why not needed) and the landlord told. A void (NOT TENANTED) property has no tenant to message.
+- Missing contact details are not a reason to skip a message: reply on the existing thread with a party who has already written or called in this case, and say which event it continues. The case history is the record on file.
 - If a call is "Blocked by policy", do not retry it unchanged: do what the reason says.
 
 # Writing style for messages
