@@ -49,7 +49,7 @@ export function describeAction(tool: string, a: Record<string, unknown>): string
     case 'record_invoice':
       return `Recorded invoice from ${s(a.issuer)}${money(a.amount_gbp)} (${s(a.who_pays)})`;
     case 'hold_payment':
-      return `Held payment to ${s(a.payee)}: ${s(a.reason)}`;
+      return `Held payment to ${s(a.payee)}`;
     case 'schedule_follow_up':
       return `Follow-up on ${s(a.due_on)}: ${s(a.purpose)}`;
     case 'put_on_hold':

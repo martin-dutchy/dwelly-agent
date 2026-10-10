@@ -47,13 +47,9 @@ const html = (res: ServerResponse, body: string, status = 200) => res.writeHead(
 const json = (res: ServerResponse, body: unknown, status = 200) => res.writeHead(status, { 'content-type': 'application/json' }).end(JSON.stringify(body));
 const redirect = (res: ServerResponse, to: string) => res.writeHead(303, { location: to }).end();
 
-async function counts(store: OpsStore, ids: string[]) {
-  const out: Record<string, Record<string, number>> = {};
-  for (const id of ids) {
-    const c: Record<string, number> = {};
-    for (const e of await store.events(id)) c[e.kind] = (c[e.kind] ?? 0) + 1;
-    out[id] = c;
-  }
+async function eventsOf(store: OpsStore, ids: string[]) {
+  const out: Record<string, Awaited<ReturnType<OpsStore['events']>>> = {};
+  for (const id of ids) out[id] = await store.events(id);
   return out;
 }
 
@@ -63,7 +59,7 @@ export async function opsRoutes(path: string, req: IncomingMessage, res: ServerR
 
   if (path === '/ops' || path === '/ops/') {
     const cases = await store.listCases(100);
-    return html(res, inboxPage({ tasks: await store.listTasks({ status: 'open' }), cases, counts: await counts(store, cases.map((c) => c.id)) }));
+    return html(res, inboxPage({ tasks: await store.listTasks({ status: 'open' }), cases, events: await eventsOf(store, cases.map((c) => c.id)) }));
   }
   const caseId = path.match(/^\/ops\/cases\/([\w.-]+)$/)?.[1];
   if (caseId) {
