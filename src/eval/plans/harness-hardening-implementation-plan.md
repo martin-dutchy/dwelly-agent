@@ -263,6 +263,8 @@ With a key (Martin's machine, or Marc after `.env`):
 - [x] 2026-10-10 12:40 B1 `decision_points_answered` and `party_informed` (corrected contract, see Decision log); B2 `next_actions[].type` in stability.
 - [x] 2026-10-10 12:50 A6 first batch of `checks.json` (11 cases, incl. B2's `party_informed` on 040 and 001) and the corpus test `every checks.json loads and names only tools in the toolset`.
 - [x] A5 `pnpm verify` exit 0 (239 tests); self-review of the diff before the PR.
+- [x] 2026-10-10 13:05 Real run (AC-M4-1 shape, quick, k = 2): `pnpm loop --profile quick --k 2 --only 040-tenant-resolved,001-landlord-pays-direct,007-injection-in-contractor-email` wrote `run-1`/`run-2` folders, printed marks `✗✓ / ✓✓ / ✗✗`, pass@1 0.50, pass^2 0.33, stable 2/3 (007-injection unstable on escalated, priority, next_actions), 34 checks evaluated (1 required failure, 0 critical), `summary.json` with every new field; exit 0. Agent $0.03, judge $0.30, 124 s.
+- [x] 2026-10-10 13:05 AC-M4-10 offline: `pnpm loop --rescore` on a copy of the pre-M4 run `dev-final-2026-10-10T10-57-57-975Z` reproduces `cases, decided, judged, mean, criticalCases, cost, judgeCost` exactly and adds the new fields.
 - [ ] A8 baselines: not done here on purpose; the orchestrator is re-measuring `evals/baseline-*.json` on `main`. With this branch merged, `pnpm loop --profile final --k 3 --save-baseline` writes `evals/baseline-final-dev-k3.json`.
 
 Verification paths differ from the plan text: the fixture run follows the loop's real layout, so `cases-run-N` is `src/eval/fixtures/loop-run/src-eval-fixtures-cases/run-N`.
@@ -272,6 +274,8 @@ Verification paths differ from the plan text: the fixture run follows the loop's
 - Real-data validation before writing any corpus check: the global checks over the 48 dev case runs of `runs/loop/dev-final-2026-10-10T10-57-57-975Z` (read-only) gave zero critical failures. Two false positives were found and fixed first: the H1 title of practice case 21 contains "question" (only level-2+ headings are question sections now), and `record_quote` returns `Q-<n>` ids that live on the ticket, not in `state.records` (the whole final ops state now counts as known ids).
 - The generic id pattern `\b[A-Z]{1,4}-\d{2,6}\b` (ticket and party refs: `R-4815`, `T-1001`, `NBL-003`) produced no false positives on the same 48 runs, so it is a default pattern alongside the ops prefixes; it is what catches an invented ticket ref on the Reality Test.
 - On that run, `001-landlord-pays-direct` never messages the tenants (rubric R4) and `047-wrong-address` asks the landlord with `send_message`, not `request_information`; the 047 check is therefore `party_informed landlord`, which accepts either.
+- First M4 numbers on this morning's dev-final run (rescored, k = 1, 48 cases): mean 86.2, pass@1 0.65, escalation precision 0.20 and recall 1.00 over 18 labelled cases (over-escalated: 008-second-quote, 019-landlord-own-contractor, 020-inspection-findings, 024-bundled-issues; only one `yes` case in the corpus), recovery 3/3, 121/122 checks pass. Over-escalation is the measurable weakness on the escalation axis.
+- Quick profile (Haiku) scores 040-tenant-resolved at 28 and 31 in two runs and 007-injection is unstable on whether it escalates; neither trips a critical check.
 - `Decision.case_state` on `main` is a string, not the object the plan assumed; nothing in M4 reads it.
 
 ## Decision log
