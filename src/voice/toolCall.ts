@@ -28,11 +28,11 @@ export const registerScenario = (conversationId: string, scenarioId: string) => 
 // Per call: its own world (concurrent testers never see each other's tickets) and its own ledger
 // (the same read-back discipline as batch cases). Dropped after CALL_TTL_MS.
 const CALL_TTL_MS = 3 * 60 * 60_000;
-const calls = new Map<string, { world: VoiceWorld; ledger: ActionLedger; seen: number }>();
+const calls = new Map<string, { world: VoiceWorld; ledger: ActionLedger; seen: number; found: Set<string> }>();
 function callState(conversationId: string) {
   const now = Date.now();
   for (const [id, c] of calls) if (now - c.seen > CALL_TTL_MS) (calls.delete(id), scenarioOf.delete(id));
-  const c = calls.get(conversationId) ?? { world: seedWorld(scenarioOf.get(conversationId)), ledger: new ActionLedger(), seen: now };
+  const c = calls.get(conversationId) ?? { world: seedWorld(scenarioOf.get(conversationId)), ledger: new ActionLedger(), seen: now, found: new Set<string>() };
   c.seen = now;
   calls.set(conversationId, c);
   return c;
@@ -57,8 +57,17 @@ export async function handleVoiceToolCall(name: string, body: Record<string, unk
   if (typeof args.date === 'string') args.date = normaliseDate(args.date);
   if (typeof args.next_date === 'string') args.next_date = normaliseDate(args.next_date);
 
-  const { world } = callState(conversationId);
+  const state = callState(conversationId);
+  const { world } = state;
   const ctx = { conversationId, channel, world };
+
+  // A tenant id must come from find_tenant in this call: a guessed id checks the caller against
+  // someone else's record and fails a genuine caller (seen 10 Oct: T-1001 used for Jonah Okafor).
+  if (name === 'verify_identity' && !state.found.has(String(args.tenant_id))) {
+    const result = { ok: false, error: 'unknown_tenant_id', say: 'Look the caller up with find_tenant first (name and postcode or phone), then verify with the tenant_id it returns. Never guess a tenant_id.' };
+    audit(conversationId, { type: 'tool_refused', channel, name, args: body, result });
+    return result;
+  }
   const result = await executeWith(
     {
       tools: voiceTools,
@@ -72,6 +81,7 @@ export async function handleVoiceToolCall(name: string, body: Record<string, unk
     args,
     ctx,
   );
+  if (name === 'find_tenant' && Array.isArray(result.matches)) for (const m of result.matches as { tenant_id: string }[]) state.found.add(m.tenant_id);
   if (tool?.kind !== 'write') return { ...result, latency_ms: Date.now() - started };
 
   // Read back every write independently, like the case agent, and only report what verified.

@@ -25,7 +25,9 @@
   .starts { border-left: 4px solid var(--accent); }
   .facts { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; }
   .facts dt { color: var(--muted); } .facts dd { margin: 0; font-weight: 600; }
-  .twist { background: var(--twist); border-color: var(--twist-line); }
+  .steps { padding-left: 22px; margin: 4px 0 0; }
+  .steps li { margin: 8px 0; padding: 2px 0; }
+  .steps li.twiststep { background: var(--twist); border: 1px solid var(--twist-line); border-radius: 10px; padding: 8px 10px; margin-left: -4px; }
   .compact .hero .name { font-size: 26px; }
   .compact .hide-compact { display: none; }
   .btn { display: block; width: 100%; font: inherit; font-weight: 700; font-size: 17px; padding: 14px; border-radius: 12px; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); cursor: pointer; margin-top: 10px; }
@@ -155,6 +157,10 @@ let card, agentSetup, phone, conversation, conversationId, lastCallId, muted = f
 
 /** One role card, everywhere: who you are, how it starts, story, details, goal, twist, tips. */
 function renderCard(c) {
+  const steps = c.beats.map((b) => {
+    const twist = b.startsWith('🤫');
+    return `<li class="${twist ? 'twiststep' : ''}">${twist ? '<b>Twist:</b> ' : ''}${esc(twist ? b.replace(/^🤫\s*/, '') : b)}</li>`;
+  }).join('');
   return `
     <div class="panel hero">
       <div class="playing">You're playing</div>
@@ -162,13 +168,11 @@ function renderCard(c) {
       <span class="chip">${esc(c.role)}</span>
       <p class="who">${esc(c.who)}</p>
     </div>
-    <div class="panel starts"><p class="label">How the call starts</p><p style="margin:0">${esc(c.opening)}</p></div>
-    <div class="panel hide-compact"><p class="label">The story</p><p style="margin:0">${esc(c.situation)}</p></div>
-    <div class="panel"><p class="label">Your details (give them when asked)</p>
-      <dl class="facts">${c.facts.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl></div>
-    <div class="panel"><p class="label">Your goal</p><p style="margin:0">${esc(c.goal)}</p></div>
-    ${c.twist ? `<div class="panel twist"><p class="label">Your twist 🤫</p><p style="margin:0 0 6px">${esc(c.twist)}</p><p class="muted" style="margin:0"><b>When:</b> ${esc(c.twistWhen)}</p></div>` : ''}
-    <div class="panel hide-compact"><p class="label">Tips</p><ul>${c.tips.map((t) => `<li>${esc(t)}</li>`).join('')}<li>Use your own words; hesitations and background noise are welcome.</li></ul></div>`;
+    <div class="panel starts"><p class="label">When the phone rings</p><p style="margin:0">${esc(c.opening)}</p></div>
+    <div class="panel"><p class="label">What to do on the call</p><ol class="steps">${steps}</ol>
+      <p class="muted" style="margin:8px 0 0">Use your own words. Hesitations and background noise are welcome.</p></div>
+    <div class="panel"><p class="label">Details, if they ask</p>
+      <dl class="facts">${c.facts.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl></div>`;
 }
 
 function setMode(usePhone) {
