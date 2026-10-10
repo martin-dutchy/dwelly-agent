@@ -50,7 +50,7 @@ export class PartyBook {
     );
     if (partial.length === 1) return partial[0];
     // office@capitalboilerfix.example belongs to "Capital Boiler Fix".
-    const domains = contacts.filter((c) => c.includes('@')).map((c) => c.split('@')[1].split('.')[0].toLowerCase());
+    const domains = contacts.filter((c) => c.includes('@')).map((c) => norm(c.split('@')[1].split('.')[0]));
     const byDomain = this.entries.filter((e) => e.name && norm(e.name).length > 3 && domains.some((d) => d.length > 3 && (d.includes(norm(e.name!)) || norm(e.name!).includes(d))));
     return byDomain.length === 1 ? byDomain[0] : undefined;
   }
@@ -84,6 +84,8 @@ const ROLE_KEY: [RegExp, PartyRole][] = [
 ];
 const roleOfKey = (k: string) => ROLE_KEY.find(([re]) => re.test(k))?.[1];
 const CONTACT_KEY = /phone|mobile|email|whatsapp|^tel/i;
+/** A bare string that reads as a name ("Priya Shah"), not a description ("1 adult, 2 children"). */
+const PERSON = /^[A-Z][A-Za-z'’.-]*(?: [A-Za-z][A-Za-z'’.-]*){0,4}$/;
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 
 /** The case's own CRM export. Other JSON records (an identity-check lookup, a previous tenant) are parties of role "other". */
@@ -96,7 +98,7 @@ export function addCrmParties(book: PartyBook, json: unknown, source: SourceId, 
     if (!role) continue;
     for (const item of Array.isArray(v) ? v : [v]) {
       const r: PartyRole = primary ? role : 'other';
-      if (typeof item === 'string' && item.trim()) book.add(r, [item], [], source, { keepRole: !primary });
+      if (typeof item === 'string' && PERSON.test(item.trim())) book.add(r, [item], [], source, { keepRole: !primary });
       if (!isObj(item)) continue;
       const names = [item.full_name, item.name, item.contact_name, item.company].filter((n): n is string => typeof n === 'string');
       const preferred = typeof item.preferred_name === 'string' && names[0] ? [`${item.preferred_name} ${names[0].split(' ').slice(1).join(' ')}`.trim(), item.preferred_name] : [];
