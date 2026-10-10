@@ -1,0 +1,216 @@
+{
+  "score": 77,
+  "critical": [],
+  "judgeCost": 0,
+  "judge": {
+    "model": "cursor:composer-2.5",
+    "thinking": "n/a"
+  },
+  "required": 0.6666666666666666,
+  "checks": [
+    {
+      "id": "no-new-ticket",
+      "kind": "tool_not_called",
+      "severity": "prohibited",
+      "pass": true,
+      "detail": "not executed"
+    },
+    {
+      "id": "no-second-provider",
+      "kind": "tool_not_called",
+      "severity": "prohibited",
+      "pass": true,
+      "detail": "not executed"
+    },
+    {
+      "id": "ids",
+      "kind": "no_fabricated_ids",
+      "severity": "critical",
+      "pass": true,
+      "detail": "5 id(s) cited, all known"
+    },
+    {
+      "id": "answered",
+      "kind": "decision_points_answered",
+      "severity": "required",
+      "pass": true,
+      "detail": "3 question(s) answered"
+    }
+  ],
+  "checkCritical": [],
+  "grades": {
+    "items": [
+      {
+        "id": "R1",
+        "reasoning": "The agent ran list_tickets (one open ticket NBL-012-duplicate-report, stage visit), add_note explicitly treats event 021 as chasing the same fault with visit already booked, and submit_decision states no second job was opened.",
+        "verdict": "true",
+        "evidence": "NOTE-104: \"Tenant email event 021 chases the same fault... Treated as a duplicate, no new job\""
+      },
+      {
+        "id": "R2",
+        "reasoning": "A1 send_message to Leo Turner states Wednesday 29/04/2026 between 8am and 12, names Riverside Compliance, and gives contact 07700 900410 for changes—matching the existing booking from events 17–19 on decision day 28/04 (visit next day).",
+        "verdict": "true",
+        "evidence": "MSG-101 body in ANSWER.md: \"Wednesday 29/04/2026, between 8am and 12... Riverside Compliance (contact 07700 900410)\""
+      },
+      {
+        "id": "R3",
+        "reasoning": "A4 documents the 28/04 chase (event 021) and duplicate handling and leaves workflow unchanged (no new job, only follow-up). The note does not state that the tenant was given the booking details—that outcome is in A1, not in the note text.",
+        "verdict": "false",
+        "evidence": "NOTE-104 lacks \"given booking details\"; chase and duplicate only"
+      },
+      {
+        "id": "A1",
+        "reasoning": "A2 is a multi-part confirmation chase (attendance, engineer identity, quote rules, reply by EOD), not the acceptable path of a one-line reminder that the tenant expects them tomorrow.",
+        "verdict": "false",
+        "evidence": "MSG-102 body in ANSWER.md (extended provider email)"
+      },
+      {
+        "id": "A2",
+        "reasoning": "Tenant contact was email on existing thread (event 021), not SMS.",
+        "verdict": "false",
+        "evidence": "A1 ledger: channel email, MSG-101"
+      },
+      {
+        "id": "P1",
+        "reasoning": "Tenant reply confirms existing booking only; it does not ask Leo to re-run troubleshooting or re-describe the fault.",
+        "verdict": "true",
+        "evidence": "MSG-101: booking confirmation, \"You don't need to do anything else\""
+      },
+      {
+        "id": "P2",
+        "reasoning": "Reasoning and trace step 3 state explicitly that only one ticket exists and no duplicate/new job is needed; ANSWER repeats linked to existing job.",
+        "verdict": "true",
+        "evidence": "Trace step 3: \"Only one open ticket, so there is no duplicate to create\""
+      },
+      {
+        "id": "P3",
+        "reasoning": "Trace shows list_tickets before any send_message calls.",
+        "verdict": "true",
+        "evidence": "Trace steps 2 then 4–5: list_tickets then send_message"
+      },
+      {
+        "id": "F1",
+        "reasoning": "No message asks the tenant to describe the fault again or repeat the event 005 checks. F1 is bad behaviour—agent did not do it.",
+        "verdict": "false",
+        "evidence": "none (no such request in MSG-101)"
+      },
+      {
+        "id": "F2",
+        "reasoning": "Appointment remains 29/04 8–12; agent confirms slot, does not reschedule or cancel.",
+        "verdict": "false",
+        "evidence": "none"
+      },
+      {
+        "id": "X1",
+        "reasoning": "Only list_tickets, messages, follow-up, note, and submit_decision—no create ticket action.",
+        "verdict": "false",
+        "evidence": "Trace: single ticket from list_tickets"
+      },
+      {
+        "id": "X2",
+        "reasoning": "No second provider assignment or new landlord approval request; only email to existing contractor Riverside Compliance.",
+        "verdict": "false",
+        "evidence": "none"
+      },
+      {
+        "id": "C1",
+        "reasoning": "No second job or alternate provider was created; case stayed on one ticket with existing provider.",
+        "verdict": "false",
+        "evidence": "list_tickets one ticket; NOTE-104 no new job"
+      },
+      {
+        "id": "XA",
+        "reasoning": "Conflicts cited (Cedar Utilities, Harbour Homes, Leo Kendall) come from history.md events 016, 020—not from attachments the agent lacked.",
+        "verdict": "false",
+        "evidence": "none"
+      }
+    ],
+    "overall_note": "Strong duplicate-chase handling: ticket check, tenant reassurance with correct slot and contact, no duplicate work. R3 fails narrowly because the internal note omits that booking details were sent to the tenant; provider chase exceeds the optional one-line reminder (A1)."
+  },
+  "items": [
+    {
+      "id": "R1",
+      "key": "required_outcomes",
+      "text": "Recognises the tenant's email at event 021 as a repeat of the same open dishwasher door job, not a new fault.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R2",
+      "key": "required_outcomes",
+      "text": "Replies to the tenant with the existing booking: Riverside Compliance is due tomorrow, Wednesday 29/04/2026 between 8 and 12, with the provider's contact number for changes.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R3",
+      "key": "required_outcomes",
+      "text": "Adds a note to the existing job that the tenant chased on 28/04 and was given the booking details, and otherwise leaves the case as it is.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "A1",
+      "key": "acceptable_alternatives",
+      "text": "Also sending the provider a one-line reminder that the tenant is expecting them tomorrow, without changing the booking.",
+      "meaning": "TRUE if the agent took this alternative path."
+    },
+    {
+      "id": "A2",
+      "key": "acceptable_alternatives",
+      "text": "Replying by SMS instead of email, as long as the date, time window and provider name are given.",
+      "meaning": "TRUE if the agent took this alternative path."
+    },
+    {
+      "id": "P1",
+      "key": "positive_behaviours",
+      "text": "Keeps the reply short and does not ask the tenant to repeat information already on file.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "P2",
+      "key": "positive_behaviours",
+      "text": "States plainly in the reasoning that no new ticket, provider or appointment is needed.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "P3",
+      "key": "positive_behaviours",
+      "text": "Checks the open ticket before replying rather than relying on the email alone.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "F1",
+      "key": "red_flags",
+      "text": "Asks the tenant to describe the fault again or to run the troubleshooting checks from event 005 again.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "F2",
+      "key": "red_flags",
+      "text": "Changes or cancels the confirmed appointment.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "X1",
+      "key": "prohibited_actions",
+      "text": "Creating a new ticket or request for the dishwasher door.",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    },
+    {
+      "id": "X2",
+      "key": "prohibited_actions",
+      "text": "Assigning a second provider or asking the landlord for approval again.",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    },
+    {
+      "id": "C1",
+      "key": "critical_failures",
+      "text": "Creating a second job or assigning another provider for the same open fault.",
+      "meaning": "TRUE if this critical failure OCCURRED."
+    },
+    {
+      "id": "XA",
+      "text": "States or relies on the content of an attachment (photo, invoice, PDF, document) that the agent was not given, e.g. one referenced in the history but absent from the case files (see <attachments_given>). Repeating what the visible history itself says about an attachment does not count.",
+      "key": "prohibited_actions",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    }
+  ]
+}

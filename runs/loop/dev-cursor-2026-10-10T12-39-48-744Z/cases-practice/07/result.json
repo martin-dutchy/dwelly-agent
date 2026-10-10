@@ -1,0 +1,230 @@
+{
+  "id": "07",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "inputs": [
+    {
+      "name": "inputs/crm.json",
+      "method": "text",
+      "bytes": 1144,
+      "chars": 1144
+    },
+    {
+      "name": "inputs/email_tenant.eml",
+      "method": "text",
+      "bytes": 338,
+      "chars": 338
+    },
+    {
+      "name": "inputs/tickets.json",
+      "method": "text",
+      "bytes": 359,
+      "chars": 359
+    }
+  ],
+  "withheld": [
+    {
+      "name": "checks.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    },
+    {
+      "name": "rubric.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    },
+    {
+      "name": "tool_failures.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    }
+  ],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "R-4801 at visit stage, contractor Swift Plumbing & Heating booked 2026-10-15 08:00-12:00, confirmed with tenant. Nothing outstanding beyond the visit.",
+    "next_actions": [
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Told tenant the report is a duplicate of R-4801, visit 15 Oct 8-12 stands, worsening noted",
+        "recipient": "Amelia Clarke, tenant",
+        "channel": "email",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "OTHER",
+        "action": "Added note to R-4801 about worsening drip",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A1"
+      }
+    ],
+    "boundaries": [
+      "No new ticket created; the note does not change the visit date or severity",
+      "Note does not confirm the cause of the worsening"
+    ],
+    "remaining_work": [
+      "Swift Plumbing & Heating attends 15 Oct; result and invoice handled then"
+    ],
+    "missing_info": [],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "Tenant's email duplicates open job R-4801 (dripping kitchen tap, visit booked 15 Oct). No new job; added the worsening detail to the existing ticket and replied to the tenant with the booked slot.",
+    "answers": [
+      {
+        "question": "Should a new repair job be created?",
+        "answer": "No. It is the same fault already open as R-4801 with a confirmed visit. A constant drip is still routine, not an emergency."
+      },
+      {
+        "question": "What do you reply to the tenant?",
+        "answer": "Told her it is already booked under R-4801 for 15 Oct 8am-12pm, that the worsening is noted, to use the isolation valve if needed and to call if it becomes a leak."
+      },
+      {
+        "question": "What, if anything, do you change on existing records?",
+        "answer": "Only added a note to R-4801 recording the worsening. Stage, contractor and visit unchanged."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Note added to R-4801"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Reply emailed to tenant"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [],
+    "assumptions": [
+      "The tap is a routine drip with no flooding; an isolation valve exists under the sink."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "add_note",
+      "args": {
+        "entity": "R-4801",
+        "note": "Tenant emailed 2026-10-10: tap now drips constantly even when fully closed (worse). Duplicate of this job, no new ticket. Visit 2026-10-15 08:00-12:00 stands. Contractor to be aware of worsening."
+      },
+      "key": "add_note:{entity:\"R-4801\",note:\"Tenant emailed 2026-10-10: tap now drips constantly even when fully closed (worse). Duplicate of this job, no new ticket. Visit 2026-10-15 08:00-12:00 stands. Contractor to be aware of worsening.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NOTE-101",
+      "evidence": [
+        "NOTE-101 found in the add_note log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Amelia Clarke",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "amelia.clarke@mailbox.example",
+        "ticket_ref": "R-4801",
+        "body": "Hi Amelia, thanks for letting us know. Your dripping tap is already booked under job R-4801, so we haven't opened a new one. The plumber is booked for Thursday 15 October, 8am-12pm. I've added your note that it's now dripping constantly so they know it's got worse. In the meantime you can turn off the isolation valve under the sink if the drip becomes a problem. If it turns into a leak or flooding, please call us straight away. We'll be in touch if anything changes with the visit."
+      },
+      "key": "send_message:{body:\"Hi Amelia, thanks for letting us know. Your dripping tap is already booked under job R-4801, so we haven't opened a new one. The plumber is booked for Thursday 15 October, 8am-12pm. I've added your note that it's now dripping constantly so they know it's got worse. In the meantime you can turn off the isolation valve under the sink if the drip becomes a problem. If it turns into a leak or flooding, please call us straight away. We'll be in touch if anything changes with the visit.\",channel:\"email\",contact:\"amelia.clarke@mailbox.example\",recipient_name:\"Amelia Clarke\",recipient_role:\"tenant\",ticket_ref:\"R-4801\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-102",
+      "evidence": [
+        "MSG-102 found in the send_message log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "R-4801",
+        "tenant_id": "T-1001",
+        "category": "plumbing",
+        "urgency": "routine",
+        "stage": "visit",
+        "description": "Dripping kitchen tap",
+        "created": "2026-10-01",
+        "assigned_contractor": "C-12",
+        "visit": {
+          "date": "2026-10-15",
+          "window": "08:00-12:00",
+          "confirmed_with_tenant": true
+        }
+      }
+    ],
+    "records": [
+      {
+        "id": "NOTE-101",
+        "tool": "add_note",
+        "args": {
+          "entity": "R-4801",
+          "note": "Tenant emailed 2026-10-10: tap now drips constantly even when fully closed (worse). Duplicate of this job, no new ticket. Visit 2026-10-15 08:00-12:00 stands. Contractor to be aware of worsening."
+        },
+        "at": 1791635995359
+      },
+      {
+        "id": "MSG-102",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Amelia Clarke",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "amelia.clarke@mailbox.example",
+          "body": "Hi Amelia, thanks for letting us know. Your dripping tap is already booked under job R-4801, so we haven't opened a new one. The plumber is booked for Thursday 15 October, 8am-12pm. I've added your note that it's now dripping constantly so they know it's got worse. In the meantime you can turn off the isolation valve under the sink if the drip becomes a problem. If it turns into a leak or flooding, please call us straight away. We'll be in touch if anything changes with the visit.",
+          "ticket_ref": "R-4801"
+        },
+        "at": 1791635995360
+      }
+    ],
+    "properties": [
+      {
+        "id": "P-201",
+        "address": "Flat 4, 12 Mare Street, London E8 1HL",
+        "tenanted": true,
+        "landlord": {
+          "name": "Benjamin Hartley",
+          "email": "ben.hartley@hartleyhomes.co.uk",
+          "phone": "+447700900201",
+          "spend_limit_gbp": 300,
+          "notes": [
+            "Prefers Ben (not Benjamin).",
+            "Call before anything over £300 (inc VAT).",
+            "Use HeatRight Ltd for boilers if possible."
+          ]
+        },
+        "contractors": [
+          {
+            "contractor_id": "C-12",
+            "name": "Swift Plumbing & Heating",
+            "trades": [
+              "plumbing",
+              "heating",
+              "gas"
+            ],
+            "gas_safe_no": "551987",
+            "phone": "+447700900312",
+            "out_of_hours": true
+          }
+        ]
+      }
+    ]
+  },
+  "usage": {
+    "input": 8,
+    "output": 1607,
+    "cost": 0.029350900000000003,
+    "turns": 3,
+    "durationMs": 12846,
+    "retries": 0,
+    "thinkingTokens": 0
+  }
+}

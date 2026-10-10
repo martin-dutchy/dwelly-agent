@@ -1,0 +1,277 @@
+{
+  "id": "038-tenant-own-appliance",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "cutoff": 2,
+  "totalEvents": 13,
+  "inputs": [
+    {
+      "name": "history.md",
+      "method": "derived",
+      "bytes": 1744,
+      "chars": 1729,
+      "note": "events 1–2 of 13 from history.md"
+    }
+  ],
+  "withheld": [
+    {
+      "name": "history.md",
+      "reason": "events 3–13 come after the decision point"
+    },
+    {
+      "name": "index.md",
+      "reason": "sections that reveal the ending: Overview, Outcome, Next action at escalation, History, Attachments"
+    },
+    {
+      "name": "rubric.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    }
+  ],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Intake stage. Landlord consent requested (APR-101); tenant informed; waiting on landlord, follow-up 2025-07-29.",
+    "next_actions": [
+      {
+        "type": "REQUEST_LANDLORD_APPROVAL",
+        "action": "Ask landlord to consent to tenant's own washing machine, who pays removal/fitting, and what happens to the LG",
+        "recipient": "Landlord",
+        "channel": "internal",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Tell tenant landlord consent is needed, not to swap anything yet, update by 29 July",
+        "recipient": "Tenant",
+        "channel": "email",
+        "ledger_id": "A3"
+      },
+      {
+        "type": "WAIT",
+        "action": "Wait for landlord; chase 2025-07-29",
+        "recipient": "Landlord",
+        "channel": "internal",
+        "ledger_id": "A4"
+      }
+    ],
+    "boundaries": [
+      "Does not approve the tenant's replacement or any spend",
+      "Does not establish the LG is beyond repair (tenant's own web search)",
+      "No contractor assigned"
+    ],
+    "remaining_work": [
+      "Landlord decision on consent, cost of removal/fitting and fate of LG (owner: landlord, chase 29 July)",
+      "Then update tenant and, if chosen, arrange inspection"
+    ],
+    "missing_info": [
+      "Landlord decision",
+      "Photo/error code of machine",
+      "Landlord contact details not shown in case"
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "Tenant wants to replace the landlord's broken LG washer with their own. This is a consent request, not a repair. I asked the landlord for consent, payment for removal/fitting and the LG's fate, told the tenant to wait, noted the record and set a chase for 29 July.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "At intake, routine. Outstanding: landlord consent and decisions on cost and the LG's disposal."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Landlord approval request (APR-101) to the landlord via the agency record; tenant update by email; follow-up 29 July."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "No escalation; the decision belongs to the landlord, who has been asked."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Landlord approval request"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Ticket note"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Tenant message"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Follow-up 29 July"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [],
+    "assumptions": [
+      "Tenant's email thread is the reply route"
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "request_landlord_approval",
+      "args": {
+        "landlord": "Landlord",
+        "ticket_ref": "NBL-038-tenant-own-appliance",
+        "decision_needed": "The tenant reports the LG washing machine (here when they moved in) has a power failure and, per their own web search, can't be fixed. They offer to buy a replacement at their own cost, which would remain their property and be taken with them when they leave. This needs your consent. Please tell us: (1) do you agree to the tenant fitting their own machine; (2) who pays to disconnect and remove the existing LG and fit the new one; (3) what should happen to the LG (inspect, repair, dispose, keep); (4) or would you prefer we send our contractor to inspect/repair it first? Please reply by 2025-07-29.",
+        "options": [
+          "Agree to tenant's own machine; state who pays for removal/fitting and what happens to the LG",
+          "Our contractor inspects the LG first",
+          "Landlord arranges own contractor/replacement",
+          "Decline"
+        ]
+      },
+      "key": "request_landlord_approval:{decision_needed:\"The tenant reports the LG washing machine (here when they moved in) has a power failure and, per their own web search, can't be fixed. They offer to buy a replacement at their own cost, which would remain their property and be taken with them when they leave. This needs your consent. Please tell us: (1) do you agree to the tenant fitting their own machine; (2) who pays to disconnect and remove the existing LG and fit the new one; (3) what should happen to the LG (inspect, repair, dispose, keep); (4) or would you prefer we send our contractor to inspect/repair it first? Please reply by 2025-07-29.\",landlord:\"Landlord\",options:[\"Agree to tenant's own machine; state who pays for removal/fitting and what happens to the LG\",\"Our contractor inspects the LG first\",\"Landlord arranges own contractor/replacement\",\"Decline\"],ticket_ref:\"NBL-038-tenant-own-appliance\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "APR-101",
+      "evidence": [
+        "APR-101 found in the request_landlord_approval log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "add_note",
+      "args": {
+        "entity": "NBL-038-tenant-own-appliance",
+        "note": "Tenant wants to replace landlord's LG washer with own machine. Not a repair: needs landlord consent. Tenant's machine stays theirs, is not on the inventory and leaves with them. Landlord asked about payment for disconnect/removal/fitting and disposal of existing LG. Tenant's claim of unrepairable is unverified (own web search). Cat: appliance, routine."
+      },
+      "key": "add_note:{entity:\"NBL-038-tenant-own-appliance\",note:\"Tenant wants to replace landlord's LG washer with own machine. Not a repair: needs landlord consent. Tenant's machine stays theirs, is not on the inventory and leaves with them. Landlord asked about payment for disconnect/removal/fitting and disposal of existing LG. Tenant's claim of unrepairable is unverified (own web search). Cat: appliance, routine.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NOTE-102",
+      "evidence": [
+        "NOTE-102 found in the add_note log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Tenant",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 001)",
+        "body": "Hi, thanks for letting us know about the washing machine. Because the LG belongs to the landlord, fitting your own needs their agreement, so we've asked them. We've also asked who covers removing the old machine and fitting the new one, and what happens to the LG. Please don't remove or replace anything until we confirm. If you can, send a photo of the machine and any error code. We'll update you by 29 July."
+      },
+      "key": "send_message:{body:\"Hi, thanks for letting us know about the washing machine. Because the LG belongs to the landlord, fitting your own needs their agreement, so we've asked them. We've also asked who covers removing the old machine and fitting the new one, and what happens to the LG. Please don't remove or replace anything until we confirm. If you can, send a photo of the machine and any error code. We'll update you by 29 July.\",channel:\"email\",contact:\"existing thread (event 001)\",recipient_name:\"Tenant\",recipient_role:\"tenant\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-103",
+      "evidence": [
+        "MSG-103 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "schedule_follow_up",
+      "args": {
+        "ticket_ref": "NBL-038-tenant-own-appliance",
+        "due_on": "2025-07-29",
+        "purpose": "Chase landlord for decision on tenant's own washing machine",
+        "party": "Landlord"
+      },
+      "key": "schedule_follow_up:{due_on:\"2025-07-29\",party:\"Landlord\",purpose:\"Chase landlord for decision on tenant's own washing machine\",ticket_ref:\"NBL-038-tenant-own-appliance\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "FUP-104",
+      "evidence": [
+        "FUP-104 found in the schedule_follow_up log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-038-tenant-own-appliance",
+        "stage": "init",
+        "property": "Flat 9, 59 Alder Lane, Eastmere, ZZ4 4ZZ",
+        "description": "Request summary with context: The Willow Maintenance washing machine is experiencing a power failure and is not operational.\n\nTenant's original query: Washing machine broken, it’s LG , we have googled it, it has power failure and can’t be fixed, I am willing to replace, this one was here when I moved in, but if I replace it will be mine and not become part of the property, if I ever was to move out I would take it with me."
+      }
+    ],
+    "records": [
+      {
+        "id": "APR-101",
+        "tool": "request_landlord_approval",
+        "args": {
+          "landlord": "Landlord",
+          "decision_needed": "The tenant reports the LG washing machine (here when they moved in) has a power failure and, per their own web search, can't be fixed. They offer to buy a replacement at their own cost, which would remain their property and be taken with them when they leave. This needs your consent. Please tell us: (1) do you agree to the tenant fitting their own machine; (2) who pays to disconnect and remove the existing LG and fit the new one; (3) what should happen to the LG (inspect, repair, dispose, keep); (4) or would you prefer we send our contractor to inspect/repair it first? Please reply by 2025-07-29.",
+          "ticket_ref": "NBL-038-tenant-own-appliance",
+          "options": [
+            "Agree to tenant's own machine; state who pays for removal/fitting and what happens to the LG",
+            "Our contractor inspects the LG first",
+            "Landlord arranges own contractor/replacement",
+            "Decline"
+          ]
+        },
+        "at": 1791638493070
+      },
+      {
+        "id": "NOTE-102",
+        "tool": "add_note",
+        "args": {
+          "entity": "NBL-038-tenant-own-appliance",
+          "note": "Tenant wants to replace landlord's LG washer with own machine. Not a repair: needs landlord consent. Tenant's machine stays theirs, is not on the inventory and leaves with them. Landlord asked about payment for disconnect/removal/fitting and disposal of existing LG. Tenant's claim of unrepairable is unverified (own web search). Cat: appliance, routine."
+        },
+        "at": 1791638493070
+      },
+      {
+        "id": "MSG-103",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Tenant",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 001)",
+          "body": "Hi, thanks for letting us know about the washing machine. Because the LG belongs to the landlord, fitting your own needs their agreement, so we've asked them. We've also asked who covers removing the old machine and fitting the new one, and what happens to the LG. Please don't remove or replace anything until we confirm. If you can, send a photo of the machine and any error code. We'll update you by 29 July."
+        },
+        "at": 1791638493070
+      },
+      {
+        "id": "FUP-104",
+        "tool": "schedule_follow_up",
+        "args": {
+          "ticket_ref": "NBL-038-tenant-own-appliance",
+          "due_on": "2025-07-29",
+          "party": "Landlord",
+          "purpose": "Chase landlord for decision on tenant's own washing machine"
+        },
+        "at": 1791638493071
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 9, 59 Alder Lane, Eastmere, ZZ4 4ZZ",
+        "landlord": {
+          "contact": "agency landlord record",
+          "notes": [
+            "Contact details are held in the agency system and not shown in this case file; messages to the landlord go through it. Use contact \"agency landlord record\".",
+            "No landlord message is visible in this case yet."
+          ]
+        }
+      }
+    ]
+  },
+  "usage": {
+    "input": 8,
+    "output": 2298,
+    "cost": 0.03877710000000001,
+    "turns": 3,
+    "durationMs": 16309,
+    "retries": 0,
+    "thinkingTokens": 0
+  }
+}

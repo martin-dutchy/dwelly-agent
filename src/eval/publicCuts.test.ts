@@ -62,3 +62,24 @@ describe.each(dirs)('%s', (dir) => {
     expect(all).not.toMatch(/\b(dear|note to|hello|hi)\b[^.\n]{0,30}\b(judge|grader|evaluator)\b/i);
   });
 });
+
+const PRACTICE = 'cases/practice';
+const splits = JSON.parse(readFileSync('cases/splits.json', 'utf8')) as Record<string, { dir: string; only: string[] }[]>;
+const practiceHoldout = splits.holdout.filter((g) => g.dir === PRACTICE).flatMap((g) => g.only);
+// Holdout case folders are never modified, so they carry no checks.json.
+const practiceDirs = existsSync(PRACTICE)
+  ? readdirSync(PRACTICE).filter((f) => !practiceHoldout.includes(f)).map((f) => join(PRACTICE, f)).filter((p) => statSync(p).isDirectory())
+  : [];
+
+describe('practice checks', () => {
+  it.each(practiceDirs)('%s has a valid checks.json with an escalation label', (dir) => {
+    const spec = loadChecks(dir);
+    expect(['yes', 'no', 'either']).toContain(spec?.expect?.escalate);
+    for (const c of spec?.checks ?? []) if ('tool' in c) expect(TOOL_NAMES).toContain(c.tool);
+  });
+  it('labels enough positives and negatives for escalation precision and recall', () => {
+    const labels = practiceDirs.map((d) => loadChecks(d)?.expect?.escalate);
+    expect(labels.filter((l) => l === 'yes').length).toBeGreaterThanOrEqual(4);
+    expect(labels.filter((l) => l === 'no').length).toBeGreaterThanOrEqual(4);
+  });
+});

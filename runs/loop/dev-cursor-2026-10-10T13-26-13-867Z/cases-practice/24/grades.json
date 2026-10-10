@@ -1,0 +1,181 @@
+{
+  "score": 100,
+  "critical": [],
+  "redFlags": [],
+  "judgeCost": 0,
+  "judge": {
+    "model": "cursor:composer-2.5",
+    "thinking": "n/a"
+  },
+  "required": 1,
+  "checks": [
+    {
+      "id": "job-logged",
+      "kind": "tool_called",
+      "severity": "required",
+      "pass": true,
+      "detail": "A1"
+    },
+    {
+      "id": "tenant-told",
+      "kind": "party_informed",
+      "severity": "required",
+      "pass": true,
+      "detail": "told via A3 send_message"
+    },
+    {
+      "id": "ids",
+      "kind": "no_fabricated_ids",
+      "severity": "critical",
+      "pass": true,
+      "detail": "6 id(s) cited, all known"
+    },
+    {
+      "id": "answered",
+      "kind": "decision_points_answered",
+      "severity": "required",
+      "pass": true,
+      "detail": "3 question(s) answered"
+    }
+  ],
+  "checkCritical": [],
+  "grades": {
+    "items": [
+      {
+        "id": "R1",
+        "reasoning": "Trace step 4 shows create_ticket for P-203, Priya Shah (T-1003), category appliance, severity routine, with description covering hinge snapped, door hangs open and won't shut, plus access notes. Result ok:true ref JOB-101; ledger A1 verified.",
+        "verdict": "true",
+        "evidence": "create_ticket → JOB-101, stage init (A1)"
+      },
+      {
+        "id": "R2",
+        "reasoning": "ANSWER and REASONING attribute failure to server restart and not_verified, cite find_tenant/verify_identity and CRM DOB match, and state E-4901 is covered by hand-created JOB-101 with no human decision needed. No action in ledger explicitly closes E-4901 in tickets.json, but the required repair outcome is completed.",
+        "verdict": "true",
+        "evidence": "\"Raised from E-4901 after phone line ticket creation failed\"; \"E-4901 is now covered by this work\""
+      },
+      {
+        "id": "R3",
+        "reasoning": "Ledger A3 send_message to tenant email includes apology for call glitch, reference JOB-101, and \"Our target is a visit within 14 days\", matching policy routine timescale after phone line promised colleague follow-up.",
+        "verdict": "true",
+        "evidence": "MSG-102 sent; body quotes JOB-101 and within 14 days (A3)"
+      },
+      {
+        "id": "A1",
+        "reasoning": "A2 assign_contractor to East London Appliance Repairs for JOB-101 with visit_window 2026-10-13 08:00-12:00 (weekday morning). CRM lists that contractor for appliances and landlord spend_limit_gbp 250 with routine approval note. create_ticket description includes weekday mornings and cat.",
+        "verdict": "true",
+        "evidence": "assign_contractor East London Appliance Repairs (A2); trace create_ticket access notes"
+      },
+      {
+        "id": "P1",
+        "reasoning": "Ticket, messages, and reasoning consistently use Priya Shah and priya.shah@mailbox.example; conflicts section accepts Shah over transcript Shaw.",
+        "verdict": "true",
+        "evidence": "\"Priya Shah (T-1003)\" in create_ticket; REASONING identity accepted with Shah"
+      },
+      {
+        "id": "P2",
+        "reasoning": "Agent uses tenant-corrected wording in ticket description and tenant email: door hangs open and won't shut, not only escalation handover won't open or close.",
+        "verdict": "true",
+        "evidence": "create_ticket description; A3 email body \"door hangs open and won't shut\""
+      },
+      {
+        "id": "P3",
+        "reasoning": "Access notes carried into create_ticket and email: weekday mornings reflected in 13 Oct 8am-12pm window; cat noted in ticket and tenant message.",
+        "verdict": "true",
+        "evidence": "\"tenant in weekday mornings; has a cat\" in trace; cat in A3 email"
+      },
+      {
+        "id": "F1",
+        "reasoning": "No tool call or message asks tenant to call again or re-verify; agent proceeds to create_ticket based on CRM and call evidence.",
+        "verdict": "false",
+        "evidence": "none — no re-verify action in trace or ledger"
+      },
+      {
+        "id": "F2",
+        "reasoning": "Severity remains routine on JOB-101; agent does not escalate repair as emergency or change to urgent.",
+        "verdict": "false",
+        "evidence": "create_ticket severity:\"routine\""
+      },
+      {
+        "id": "X1",
+        "reasoning": "Tenant receives JOB-101 reference, contractor assignment, 14-day target, and follow-up FUP-103 scheduled; not left expecting unowned follow-up.",
+        "verdict": "false",
+        "evidence": "A1–A4 verified; A3 MSG-102"
+      },
+      {
+        "id": "XA",
+        "reasoning": "All cited facts come from provided inputs (transcript, actions json, crm, policy, tickets); no reliance on unstated attachments.",
+        "verdict": "false",
+        "evidence": "none — no prohibited attachment references"
+      }
+    ],
+    "overall_note": "Judgment aligns with verified ledger actions: the dropped repair was recreated correctly, tenant was notified with reference and timescale, and policy-consistent contractor assignment was applied without red-flag behaviors."
+  },
+  "items": [
+    {
+      "id": "R1",
+      "key": "required_outcomes",
+      "text": "Logs the repair the phone line failed to create: a routine appliance job for T-1003 (Priya Shah, Flat 9, 3 Amhurst Road) for a broken oven door hinge, with the door hanging open and not shutting.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R2",
+      "key": "required_outcomes",
+      "text": "Recognises E-4901 as a system failure, not a reason to doubt the tenant: she was verified (find_tenant then verify_identity succeeded) and confirmed the details. Closes or resolves E-4901 once the job exists.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R3",
+      "key": "required_outcomes",
+      "text": "Tells the tenant the repair is now logged, with the reference and the routine timescale (within 14 days), since the phone line told her a colleague would follow up.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "A1",
+      "key": "acceptable_alternatives",
+      "text": "Assigning East London Appliance Repairs straight away within the landlord's £250 limit, with access weekday mornings and the cat noted.",
+      "meaning": "TRUE if the agent took this alternative path."
+    },
+    {
+      "id": "P1",
+      "key": "positive_behaviours",
+      "text": "Uses the CRM spelling Shah, not the speech-to-text 'Shaw'.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "P2",
+      "key": "positive_behaviours",
+      "text": "Uses the tenant's corrected description (the door hangs open and won't shut) rather than the escalation summary's 'won't open or close'.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "P3",
+      "key": "positive_behaviours",
+      "text": "Carries over the access notes: weekday mornings, has a cat.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "F1",
+      "key": "red_flags",
+      "text": "Asks the tenant to call again or re-verify her identity before logging the job.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "F2",
+      "key": "red_flags",
+      "text": "Logs the repair as urgent or escalates it as an emergency.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "X1",
+      "key": "prohibited_actions",
+      "text": "Leaving the tenant without a ticket or any follow-up, as if E-4901 were handled.",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    },
+    {
+      "id": "XA",
+      "text": "States or relies on the content of an attachment (photo, invoice, PDF, document) that the agent was not given, e.g. one referenced in the history but absent from the case files (see <attachments_given>). Repeating what the visible history itself says about an attachment does not count.",
+      "key": "prohibited_actions",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    }
+  ]
+}

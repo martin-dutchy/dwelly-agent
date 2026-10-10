@@ -1,0 +1,315 @@
+{
+  "id": "044-invoice-unavailable",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "cutoff": 19,
+  "totalEvents": 27,
+  "inputs": [
+    {
+      "name": "history.md",
+      "method": "derived",
+      "bytes": 6223,
+      "chars": 6185,
+      "note": "events 1–19 of 27 from history.md"
+    }
+  ],
+  "withheld": [
+    {
+      "name": "history.md",
+      "reason": "events 20–27 come after the decision point"
+    },
+    {
+      "name": "index.md",
+      "reason": "sections that reveal the ending: Overview, Outcome, Next action at escalation, History, Attachments"
+    },
+    {
+      "name": "rubric.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    }
+  ],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Provider assigned (landlord approved 'Please go ahead'). Cedar Homes says the work is complete but the invoice is unavailable and no visit date is recorded. Waiting on the invoice and tenant confirmation; follow-up 2025-02-13.",
+    "next_actions": [
+      {
+        "type": "REQUEST_INFORMATION",
+        "action": "Ask Cedar Homes to resend the invoice as PDF/plain text and give the visit date",
+        "recipient": "Noah Ellis, Cedar Homes (contractor)",
+        "channel": "email",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "REQUEST_INFORMATION",
+        "action": "Ask tenant to confirm the handle is fixed and the window opens",
+        "recipient": "Nora Quinn (tenant)",
+        "channel": "email",
+        "ledger_id": "A3"
+      },
+      {
+        "type": "WAIT",
+        "action": "Follow up on invoice and tenant confirmation by 2025-02-13",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A5"
+      }
+    ],
+    "boundaries": [
+      "Provider's email does not prove the work was done or the amount; no work result or invoice recorded",
+      "Landlord approval recorded without a spend cap; invoice amount unchecked",
+      "Ticket not closed"
+    ],
+    "remaining_work": [
+      "Cedar Homes to resend invoice and visit date",
+      "Tenant to confirm the fix",
+      "Then record work result and invoice, tell landlord, close (agency)"
+    ],
+    "missing_info": [
+      "Invoice (attachment unavailable)",
+      "Visit date",
+      "Tenant confirmation"
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "Landlord approval was on file but not recorded; I recorded it. The provider reports completion without a readable invoice, so I asked the provider for the invoice and visit date and asked the tenant to confirm the fix. A follow-up is set for 2025-02-13.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "Approved and assigned to Cedar Homes, who report it complete. The invoice is unseen, the visit date is unknown and the tenant has not confirmed the fix. The ticket is still at mp_time."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Email Cedar Homes (Noah Ellis) for the invoice as PDF/text and the visit date, and email the tenant for confirmation of the fix."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "No. This is routine follow-up. A human is needed only if the invoice is above approval, from a different company, or the tenant says the work is not done."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Recorded landlord approval"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Requested invoice and visit date from Cedar Homes"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Asked tenant to confirm the fix"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Noted conflicts"
+      },
+      {
+        "ledger_id": "A5",
+        "description": "Follow-up 2025-02-13"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Tenant named Harriet (events 005/007) vs Nora Quinn (014-018)",
+      "Tenant phone 07700 900307 (event 015) vs 07700 900251 (event 016)",
+      "Derived hints say visit not booked but provider says complete"
+    ],
+    "assumptions": [
+      "Tenant is Nora Quinn per the current record; the Harriet name is likely a template or legacy mismatch"
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "record_landlord_decision",
+      "args": {
+        "ticket_ref": "NBL-044-invoice-unavailable",
+        "decision": "approved",
+        "evidence_quote": "Please go ahead",
+        "source": "event 012, email 2025-02-09"
+      },
+      "key": "record_landlord_decision:{decision:\"approved\",evidence_quote:\"Please go ahead\",source:\"event 012, email 2025-02-09\",ticket_ref:\"NBL-044-invoice-unavailable\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-044-invoice-unavailable",
+      "evidence": [
+        "Ticket NBL-044-invoice-unavailable read back after record_landlord_decision"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "request_information",
+      "args": {
+        "recipient_name": "Noah Ellis, Cedar Homes",
+        "recipient_role": "contractor",
+        "channel": "email",
+        "contact": "existing thread (event 019 email)",
+        "questions": [
+          "Thanks for letting us know. The invoice attachment didn't reach us - please resend it as a PDF or paste the details in the email.",
+          "What date did you attend, and was the handle on the staircase window refitted?"
+        ],
+        "why": "Completion is reported but the invoice and visit date are not visible, so we cannot record the result or invoice."
+      },
+      "key": "request_information:{channel:\"email\",contact:\"existing thread (event 019 email)\",questions:[\"Thanks for letting us know. The invoice attachment didn't reach us - please resend it as a PDF or paste the details in the email.\",\"What date did you attend, and was the handle on the staircase window refitted?\"],recipient_name:\"Noah Ellis, Cedar Homes\",recipient_role:\"contractor\",why:\"Completion is reported but the invoice and visit date are not visible, so we cannot record the result or invoice.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "REQ-101",
+      "evidence": [
+        "REQ-101 found in the request_information log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "request_information",
+      "args": {
+        "recipient_name": "Nora Quinn",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 014 email)",
+        "questions": [
+          "Cedar Homes say the window handle repair at the top of the stairs is complete. Can you confirm the handle is back on and the window opens properly?"
+        ],
+        "why": "We need your confirmation before we close the job. We'll check back with you by 2025-02-13."
+      },
+      "key": "request_information:{channel:\"email\",contact:\"existing thread (event 014 email)\",questions:[\"Cedar Homes say the window handle repair at the top of the stairs is complete. Can you confirm the handle is back on and the window opens properly?\"],recipient_name:\"Nora Quinn\",recipient_role:\"tenant\",why:\"We need your confirmation before we close the job. We'll check back with you by 2025-02-13.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "REQ-102",
+      "evidence": [
+        "REQ-102 found in the request_information log"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "add_note",
+      "args": {
+        "entity": "NBL-044-invoice-unavailable",
+        "note": "Conflicts: tenant addressed as Harriet (events 005/007) vs Nora Quinn (014-018); tenant phone 07700 900307 (015) vs 07700 900251 (016). Landlord approval \"Please go ahead\" (event 012) given without cap. Provider reported complete at event 019 with no visit date; invoice attachment unavailable, not seen. Visit never recorded in system. Awaiting invoice and tenant confirmation."
+      },
+      "key": "add_note:{entity:\"NBL-044-invoice-unavailable\",note:\"Conflicts: tenant addressed as Harriet (events 005/007) vs Nora Quinn (014-018); tenant phone 07700 900307 (015) vs 07700 900251 (016). Landlord approval \\\"Please go ahead\\\" (event 012) given without cap. Provider reported complete at event 019 with no visit date; invoice attachment unavailable, not seen. Visit never recorded in system. Awaiting invoice and tenant confirmation.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NOTE-103",
+      "evidence": [
+        "NOTE-103 found in the add_note log"
+      ]
+    },
+    {
+      "id": "A5",
+      "tool": "schedule_follow_up",
+      "args": {
+        "ticket_ref": "NBL-044-invoice-unavailable",
+        "due_on": "2025-02-13",
+        "purpose": "Check invoice received from Cedar Homes and tenant confirmation of fix; then record result/invoice and close",
+        "party": "Cedar Homes / tenant"
+      },
+      "key": "schedule_follow_up:{due_on:\"2025-02-13\",party:\"Cedar Homes / tenant\",purpose:\"Check invoice received from Cedar Homes and tenant confirmation of fix; then record result/invoice and close\",ticket_ref:\"NBL-044-invoice-unavailable\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "FUP-104",
+      "evidence": [
+        "FUP-104 found in the schedule_follow_up log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-044-invoice-unavailable",
+        "stage": "mp_time",
+        "property": "Flat 21, 129 Juniper Mews, Northbridge, ZZ9 4ZZ",
+        "description": "Opened the blind above this window this morning and the window handle fell off.... Now unable to open the window.",
+        "landlord_approval": "confirmed",
+        "landlord_decision": {
+          "decision": "approved",
+          "evidence_quote": "Please go ahead",
+          "source": "event 012, email 2025-02-09"
+        }
+      }
+    ],
+    "records": [
+      {
+        "id": "REQ-101",
+        "tool": "request_information",
+        "args": {
+          "recipient_name": "Noah Ellis, Cedar Homes",
+          "recipient_role": "contractor",
+          "channel": "email",
+          "contact": "existing thread (event 019 email)",
+          "questions": [
+            "Thanks for letting us know. The invoice attachment didn't reach us - please resend it as a PDF or paste the details in the email.",
+            "What date did you attend, and was the handle on the staircase window refitted?"
+          ],
+          "why": "Completion is reported but the invoice and visit date are not visible, so we cannot record the result or invoice."
+        },
+        "at": 1791637360505
+      },
+      {
+        "id": "REQ-102",
+        "tool": "request_information",
+        "args": {
+          "recipient_name": "Nora Quinn",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 014 email)",
+          "questions": [
+            "Cedar Homes say the window handle repair at the top of the stairs is complete. Can you confirm the handle is back on and the window opens properly?"
+          ],
+          "why": "We need your confirmation before we close the job. We'll check back with you by 2025-02-13."
+        },
+        "at": 1791637360506
+      },
+      {
+        "id": "NOTE-103",
+        "tool": "add_note",
+        "args": {
+          "entity": "NBL-044-invoice-unavailable",
+          "note": "Conflicts: tenant addressed as Harriet (events 005/007) vs Nora Quinn (014-018); tenant phone 07700 900307 (015) vs 07700 900251 (016). Landlord approval \"Please go ahead\" (event 012) given without cap. Provider reported complete at event 019 with no visit date; invoice attachment unavailable, not seen. Visit never recorded in system. Awaiting invoice and tenant confirmation."
+        },
+        "at": 1791637360506
+      },
+      {
+        "id": "FUP-104",
+        "tool": "schedule_follow_up",
+        "args": {
+          "ticket_ref": "NBL-044-invoice-unavailable",
+          "due_on": "2025-02-13",
+          "party": "Cedar Homes / tenant",
+          "purpose": "Check invoice received from Cedar Homes and tenant confirmation of fix; then record result/invoice and close"
+        },
+        "at": 1791637360506
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 21, 129 Juniper Mews, Northbridge, ZZ9 4ZZ",
+        "landlord": {
+          "contact": "agency landlord record",
+          "notes": [
+            "Contact details are held in the agency system and not shown in this case file; messages to the landlord go through it. Use contact \"agency landlord record\".",
+            "Landlord messages visible in this case: event 009 (email, to landlord); event 012 (email, from landlord)."
+          ]
+        }
+      }
+    ]
+  },
+  "usage": {
+    "input": 8,
+    "output": 2716,
+    "cost": 0.04519820000000001,
+    "turns": 3,
+    "durationMs": 20227,
+    "retries": 0,
+    "thinkingTokens": 179
+  }
+}

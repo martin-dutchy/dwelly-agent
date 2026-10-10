@@ -1,0 +1,296 @@
+{
+  "id": "24",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "inputs": [
+    {
+      "name": "inputs/ai_phone_line_actions.json",
+      "method": "text",
+      "bytes": 1144,
+      "chars": 1144
+    },
+    {
+      "name": "inputs/call_transcript.txt",
+      "method": "text",
+      "bytes": 2975,
+      "chars": 2963
+    },
+    {
+      "name": "inputs/crm.json",
+      "method": "text",
+      "bytes": 896,
+      "chars": 895
+    },
+    {
+      "name": "inputs/policy_extract.md",
+      "method": "text",
+      "bytes": 518,
+      "chars": 518
+    },
+    {
+      "name": "inputs/tickets.json",
+      "method": "text",
+      "bytes": 514,
+      "chars": 514
+    }
+  ],
+  "withheld": [
+    {
+      "name": "checks.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    },
+    {
+      "name": "rubric.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    },
+    {
+      "name": "tool_failures.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    }
+  ],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "JOB-101 at visit stage, assigned to East London Appliance Repairs with a proposed 13 Oct morning window awaiting contractor confirmation. Tenant told. Follow-up set for 12 Oct.",
+    "next_actions": [
+      {
+        "type": "WAIT",
+        "action": "Confirm contractor accepts the 13 Oct window, then update tenant",
+        "recipient": "East London Appliance Repairs / Priya Shah",
+        "channel": "internal",
+        "ledger_id": "A4"
+      },
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Told tenant the ticket reference, target timescale, unconfirmed window and cat note",
+        "recipient": "Priya Shah, tenant",
+        "channel": "email",
+        "ledger_id": "A3"
+      },
+      {
+        "type": "ASSIGN_PROVIDER",
+        "action": "Assigned usual appliance contractor within the landlord's £250 limit",
+        "recipient": "East London Appliance Repairs",
+        "channel": "internal",
+        "ledger_id": "A2"
+      }
+    ],
+    "boundaries": [
+      "The window is not a confirmed booking until the contractor confirms.",
+      "No cost is approved or quoted; any quote over £250 must go to the landlord.",
+      "Landlord has not been messaged: routine job within his standing approval."
+    ],
+    "remaining_work": [
+      "Confirm the visit with the contractor (ops, 12 Oct)",
+      "Get work result and invoice, then close"
+    ],
+    "missing_info": [],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "The phone line verified Priya but lost the verification when its server restarted, so ticket creation failed and E-4901 was raised with no ticket. I created JOB-101 by hand, assigned the usual contractor within the landlord's limit, and emailed Priya the reference and timescale.",
+    "answers": [
+      {
+        "question": "What does the tenant need, and what did the phone line actually get done?",
+        "answer": "She needs her oven door hinge repaired (door hangs open, won't shut). The phone line verified her and confirmed details, but ticket creation failed, so no ticket existed."
+      },
+      {
+        "question": "Why was E-4901 raised, and what do you do about it?",
+        "answer": "The server restarted mid-call, which lost the verification and caused a 'not_verified' rejection. Her identity matches the CRM (name and DOB), so I completed the ticket myself as JOB-101. E-4901 needs no human decision."
+      },
+      {
+        "question": "What actions do you take, and what do you tell the tenant?",
+        "answer": "I created JOB-101 (routine), assigned East London Appliance Repairs, and set a follow-up. I emailed Priya the reference, the 14-day target, and the unconfirmed 13 Oct morning window. I also noted the cat and advised her not to use the oven."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Created JOB-101"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Assigned East London Appliance Repairs"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Emailed tenant"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Follow-up 12 Oct"
+      }
+    ],
+    "failed_actions": [
+      {
+        "ledger_id": "phone-line create_repair_ticket",
+        "handling": "Redone by hand as JOB-101 (A1). The phone line's escalate_to_human raised E-4901, which is now covered by this work."
+      }
+    ],
+    "conflicts": [
+      "Caller first said 'Shaw', then confirmed 'Shah'. The CRM name and DOB match, so identity is accepted.",
+      "The ticket's 'routine' urgency matches the policy, since the oven is an appliance with no safety hazard."
+    ],
+    "assumptions": [
+      "Email is acceptable because the CRM holds her email and she has no stated channel preference.",
+      "Tuesday 13 October morning is only a proposed window."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "create_ticket",
+      "args": {
+        "property": "P-203",
+        "tenant": "Priya Shah (T-1003)",
+        "category": "appliance",
+        "severity": "routine",
+        "description": "Oven door hinge snapped this morning (10 Oct); door hangs open and won't shut. Tenant advises don't use oven. Access: tenant in weekday mornings; has a cat. Raised from E-4901 after phone line ticket creation failed."
+      },
+      "key": "create_ticket:{category:\"appliance\",description:\"Oven door hinge snapped this morning (10 Oct); door hangs open and won't shut. Tenant advises don't use oven. Access: tenant in weekday mornings; has a cat. Raised from E-4901 after phone line ticket creation failed.\",property:\"P-203\",severity:\"routine\",tenant:\"Priya Shah (T-1003)\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "JOB-101",
+      "evidence": [
+        "Ticket JOB-101 read back at stage init"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "assign_contractor",
+      "args": {
+        "ticket_ref": "JOB-101",
+        "contractor": "East London Appliance Repairs",
+        "visit_window": "2026-10-13 08:00-12:00"
+      },
+      "key": "assign_contractor:{contractor:\"East London Appliance Repairs\",ticket_ref:\"JOB-101\",visit_window:\"2026-10-13 08:00-12:00\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "JOB-101",
+      "evidence": [
+        "Ticket JOB-101 read back at stage visit"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Priya Shah",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "priya.shah@mailbox.example",
+        "ticket_ref": "JOB-101",
+        "body": "Hi Priya, sorry about the glitch on our call. Your oven repair is now logged: reference JOB-101 (door hinge broken, door hangs open and won't shut). We've passed it to East London Appliance Repairs, our usual appliance contractor. Our target is a visit within 14 days. We've pencilled in Tuesday 13 October, 8am-12pm, since you're in weekday mornings, but the contractor hasn't confirmed it yet, so please don't treat it as booked. We'll confirm or give you a new time by Monday. We've noted you have a cat, so please keep it away from the oven and the contractor when they arrive. Please avoid using the oven until it's fixed."
+      },
+      "key": "send_message:{body:\"Hi Priya, sorry about the glitch on our call. Your oven repair is now logged: reference JOB-101 (door hinge broken, door hangs open and won't shut). We've passed it to East London Appliance Repairs, our usual appliance contractor. Our target is a visit within 14 days. We've pencilled in Tuesday 13 October, 8am-12pm, since you're in weekday mornings, but the contractor hasn't confirmed it yet, so please don't treat it as booked. We'll confirm or give you a new time by Monday. We've noted you have a cat, so please keep it away from the oven and the contractor when they arrive. Please avoid using the oven until it's fixed.\",channel:\"email\",contact:\"priya.shah@mailbox.example\",recipient_name:\"Priya Shah\",recipient_role:\"tenant\",ticket_ref:\"JOB-101\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-102",
+      "evidence": [
+        "MSG-102 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "schedule_follow_up",
+      "args": {
+        "due_on": "2026-10-12",
+        "purpose": "Confirm East London Appliance Repairs has accepted the 13 Oct 08:00-12:00 window for JOB-101; update tenant",
+        "ticket_ref": "JOB-101",
+        "party": "East London Appliance Repairs"
+      },
+      "key": "schedule_follow_up:{due_on:\"2026-10-12\",party:\"East London Appliance Repairs\",purpose:\"Confirm East London Appliance Repairs has accepted the 13 Oct 08:00-12:00 window for JOB-101; update tenant\",ticket_ref:\"JOB-101\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "FUP-103",
+      "evidence": [
+        "FUP-103 found in the schedule_follow_up log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "JOB-101",
+        "stage": "visit",
+        "property": "P-203",
+        "tenant": "Priya Shah (T-1003)",
+        "category": "appliance",
+        "severity": "routine",
+        "description": "Oven door hinge snapped this morning (10 Oct); door hangs open and won't shut. Tenant advises don't use oven. Access: tenant in weekday mornings; has a cat. Raised from E-4901 after phone line ticket creation failed.",
+        "contractor": "East London Appliance Repairs",
+        "visit_window": "2026-10-13 08:00-12:00"
+      }
+    ],
+    "records": [
+      {
+        "id": "MSG-102",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Priya Shah",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "priya.shah@mailbox.example",
+          "body": "Hi Priya, sorry about the glitch on our call. Your oven repair is now logged: reference JOB-101 (door hinge broken, door hangs open and won't shut). We've passed it to East London Appliance Repairs, our usual appliance contractor. Our target is a visit within 14 days. We've pencilled in Tuesday 13 October, 8am-12pm, since you're in weekday mornings, but the contractor hasn't confirmed it yet, so please don't treat it as booked. We'll confirm or give you a new time by Monday. We've noted you have a cat, so please keep it away from the oven and the contractor when they arrive. Please avoid using the oven until it's fixed.",
+          "ticket_ref": "JOB-101"
+        },
+        "at": 1791638788483
+      },
+      {
+        "id": "FUP-103",
+        "tool": "schedule_follow_up",
+        "args": {
+          "ticket_ref": "JOB-101",
+          "due_on": "2026-10-12",
+          "party": "East London Appliance Repairs",
+          "purpose": "Confirm East London Appliance Repairs has accepted the 13 Oct 08:00-12:00 window for JOB-101; update tenant"
+        },
+        "at": 1791638788484
+      }
+    ],
+    "properties": [
+      {
+        "id": "P-203",
+        "address": "Flat 9, 3 Amhurst Road, London E8 2AU",
+        "tenanted": true,
+        "landlord": {
+          "name": "Daniel Price",
+          "email": "daniel.price@example.co.uk",
+          "spend_limit_gbp": 250,
+          "notes": [
+            "Approves routine repairs up to £250 without asking."
+          ]
+        },
+        "contractors": [
+          {
+            "contractor_id": "C-08",
+            "name": "East London Appliance Repairs",
+            "trades": [
+              "appliances"
+            ],
+            "phone": "+447700900308",
+            "out_of_hours": false
+          }
+        ]
+      }
+    ]
+  },
+  "usage": {
+    "input": 12,
+    "output": 2756,
+    "cost": 0.06176110000000001,
+    "turns": 5,
+    "durationMs": 23740,
+    "retries": 0,
+    "thinkingTokens": 248
+  }
+}
