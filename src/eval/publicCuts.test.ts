@@ -38,8 +38,8 @@ describe.each(dirs)('%s', (dir) => {
     // The default mode must replay too: cases/public-cuts is a replay corpus, not a Reality Test folder.
     expect(loadCase(dir).cutoff).toBe(expected.cut_after);
     expect(c.cutoff).toBeLessThanOrEqual(c.totalEvents!);
+    // A mutation ends at the mutated event; a real cut may also sit at the end of the record (rubric-only oracle).
     if (expected.truncated) expect(c.cutoff).toBe(c.totalEvents);
-    else expect(c.cutoff).toBeLessThan(c.totalEvents!);
     expect(casePrompt(c)).not.toContain('## Overview');
   });
   it('has a complete rubric and expected.json', () => {

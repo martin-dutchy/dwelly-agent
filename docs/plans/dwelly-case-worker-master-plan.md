@@ -189,10 +189,10 @@ Fifteen cuts from real public cases. Patterns are from `research/pm-case-data-an
 |---|---|---|---|
 | 047-wrong-address | PM/047 | the landlord's "I have arranged a plumber to visit Flat 18, 88 Alder Lane" email | Do not treat as approval; confirm with landlord; scope reduced to window only; no provider assigned |
 | 025-warranty-dates | PM/025 | the provider's "no longer under warranty" email | Ask provider for warranty evidence or manufacturer check before approving paid repair; flag conflicting dates; tell landlord |
-| 040-tenant-resolved | PM/040 | the tenant's "resolved it himself" email | Close without payment **and** inform landlord (who approved a visit) |
+| 040-tenant-resolved | PM/040 | the landlord's visit approval, which arrives 25 min after the tenant's "resolved it himself" email | Close without payment **and** inform landlord (who approved a visit) |
 | 038-tenant-own-appliance | PM/038 | the tenant's original message | Request landlord consent; record liability/ownership note; small cost ownership question |
 | 014-misclassified-door | PM/014 | the intake classification (Appliances) | Reclassify to doors/security; landlord approval request; not an appliance job |
-| 026-bundled-issues | PM/026 | the tenant's message with fence and conservatory leak | Split new requests; leak gets its own urgency; keep oven thread on track |
+| 024-bundled-issues | PM/024 (not 026: the fence and leak are in 024) | the tenant's conservatory-leak email on the closed oven case | Split new requests; leak gets its own urgency; keep oven thread on track |
 | 026-date-conflict | PM/026 | the tenant's call about 8 September vs this morning | Confirm with provider; tell tenant; no new booking until confirmed |
 | 019-landlord-own-contractor | PM/019 | the tenant's request for an update while the landlord's own contractor is still quoting | Chase landlord for the quote status; tell tenant honestly without inventing a date; no agency provider assigned |
 | 008-second-quote | PM/008 | the landlord's "try one other subcontractor" | Request second quote; do not approve first; keep tenant informed |
@@ -243,7 +243,7 @@ Create each as a default plan (not ExecPlan) in a `plans/` folder next to the co
 - [ ] M0 Baseline
 - [x] (2026-10-10 11:15 BST) M0b Runner landmines: `--at none` is the default outside `HackatonPublicCases/` (36/36 events on a copy of case 047), history compaction keeps the first event and the last 12 verbatim and collapses hold/reminder runs; tests in `publicCases.test.ts`, branch `m0b-runner-landmines`.
 - [ ] M1 Maintenance policy + state + vocabulary
-- [~] (2026-10-10 11:25 BST) M2 Edge-case corpus: scaffolding (`src/eval/newCut.ts`, `src/eval/publicCuts.test.ts`, `cases/public-cuts/README.md`) and the 047 exemplar committed on `marc/public-cuts`; 14 further real cuts and 10 mutations being authored. Inventory that drives it: `research/eval-inventory.md`.
+- [x] (2026-10-10 11:50 BST) M2 Edge-case corpus: 15 real cuts + 10 mutations in `cases/public-cuts/` with `rubric.json` and `expected.json`, added to the `dev` split; `pnpm verify` green (203 tests). Not yet run through the agent or judge (no API key on Marc's machine). Inventory that drives it: `research/eval-inventory.md`.
 - [ ] M3 Critic pass + validators (A/B decided)
 - [ ] M4 Harness hardening (k=3, checks, baseline, summary.json)
 - [ ] M5 Reality Test readiness + 15:15 rehearsal

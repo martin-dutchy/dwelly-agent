@@ -32,6 +32,7 @@ pnpm exec tsx src/eval/newCut.ts --src 012 --slug emoji-approval --after 14 --tr
 Rules:
 - A real cut keeps the whole history so the judge sees what the agency really did. Where the agency itself erred, the rubric overrides the recorded ending (say so in `expected.json.notes`).
 - A mutation uses `--truncate`, then edits one event in place (keep the `<a id="event-NNN">` anchor, the header line and the numbering continuous). If you append an event, update `Total events:` and the marker to point one past the last visible event.
+- A `--truncate` mutation on a source with attachments must delete from `attachments/` (and the index list) every file that only a dropped event linked. With no hidden tail the loader treats every unlinked attachment as having come with the request, and a later quote or invoice would leak.
 - Rubric items describe behaviour and outcomes, not wording. 2 to 4 required outcomes, 1 to 2 alternatives, 1 to 3 positives, 1 to 2 red flags, 1 to 2 prohibited, 1 critical. Write at least one case per expected outcome class, including RESUME (nothing to do) and CLOSE_WITH_PAYMENT.
 - Never write text addressed to a judge or grader anywhere in a case (rules section 13 of the hackathon).
 - Verify: `pnpm exec tsx -e "import {loadCase} from './src/agent/cases.ts'; const c=loadCase('cases/public-cuts/<dir>','auto'); console.log(c.cutoff, c.totalEvents, c.inputs[0].content.slice(-400))"`
