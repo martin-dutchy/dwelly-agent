@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { ingestPublicCase } from './ingest.js';
 import { type Batch, type CaseGrade, type OpsStore, newId } from './store.js';
 import type { Worker } from './worker.js';
@@ -12,9 +12,14 @@ import type { Worker } from './worker.js';
 
 export const CASE_SETS: Record<string, { name: string; dir: () => string }> = {
   'pm-public': { name: 'Public Property Management cases', dir: () => join(process.cwd(), 'HackatonPublicCases', 'Property Management') },
+  // Any other folder of organiser-format cases (e.g. the Reality Test cases), set by the operator.
+  ...(process.env.OPS_IMPORT_DIR ? { custom: { name: `Cases in ${process.env.OPS_IMPORT_DIR.split('/').filter(Boolean).at(-1)}`, dir: () => resolve(process.env.OPS_IMPORT_DIR!) } } : {}),
 };
 
-export async function startBatch(store: OpsStore, worker: Worker, set: keyof typeof CASE_SETS, only?: string[], answersRoot = process.env.OPS_RUNS_DIR ?? join(process.cwd(), 'runs', 'ops')) {
+/** Batches started from the live page carry this name, so the page finds its latest run again after a restart. */
+export const LIVE_LABEL = 'Live import';
+
+export async function startBatch(store: OpsStore, worker: Worker, set: keyof typeof CASE_SETS, only?: string[], answersRoot = process.env.OPS_RUNS_DIR ?? join(process.cwd(), 'runs', 'ops'), label?: string) {
   const spec = CASE_SETS[set];
   if (!spec) throw new Error(`unknown case set ${String(set)}`);
   const casesDir = spec.dir();
@@ -23,7 +28,7 @@ export async function startBatch(store: OpsStore, worker: Worker, set: keyof typ
     .sort();
   const id = newId('eval').replace('_', '-').slice(0, 13);
   const stamp = new Date().toLocaleString('en-GB', { timeZone: 'Europe/London', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-  const batch = await store.addBatch({ id, name: `${spec.name}, ${stamp}`, case_set: set, total: ids.length, answers_dir: join(answersRoot, id), cases_dir: casesDir, grading: 'not_started' });
+  const batch = await store.addBatch({ id, name: `${label ? `${label}: ` : ''}${spec.name}, ${stamp}`, case_set: set, total: ids.length, answers_dir: join(answersRoot, id), cases_dir: casesDir, grading: 'not_started' });
   // Ingest them all first (status "queued"), then the worker's pool works through them.
   for (const caseNo of ids) await ingestPublicCase(store, worker, caseNo, undefined, casesDir, batch.id);
   return batch;
