@@ -81,6 +81,10 @@ describe('runner (offline)', () => {
     expect(resumed.out).toMatch(/B CRASH/);
     expect(resumed.out).toMatch(/decisions 1\/2 · resumed 1 · budget-skipped 0/);
     for (const [f, body] of Object.entries(seeded)) expect(readFileSync(join(d, 'out/A', f), 'utf8')).toBe(body);
+    expect(resumed.out).toMatch(/Value \(estimate\): 0 autonomous · 1 escalated · 1 without a decision/);
+    const summary = readFileSync(join(d, 'out/RUN_SUMMARY.md'), 'utf8');
+    expect(summary).toContain('| A | escalated | 0 | 0 | 0.000 | 0 | resumed |');
+    expect(summary).toMatch(/\| B \| CRASH \|/);
 
     const fresh = run(['--in', inDir, '--out', join(d, 'out'), '--only', 'A']);
     expect(fresh.code).toBe(0);

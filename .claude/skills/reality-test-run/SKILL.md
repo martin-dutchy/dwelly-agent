@@ -131,10 +131,10 @@ If an HTTP tool API URL (and maybe a key) is supplied: set `ORGANISER_API_URL` (
 5. Verify:
    ```bash
    bash .claude/skills/submission-check/scripts/check.sh
-   ls ANSWERS | wc -l; find ANSWERS -name ANSWER.md | wc -l; find ANSWERS -name REASONING.md | wc -l
+   find ANSWERS -mindepth 1 -maxdepth 1 -type d | wc -l; find ANSWERS -name ANSWER.md | wc -l; find ANSWERS -name REASONING.md | wc -l
    pnpm checks --cases "$CASES" --answers ANSWERS | tail -1
    ```
-   Pass: the three counts are equal to N, and the last line reads `Checks: N case(s) evaluated · 0 critical/prohibited failure(s)`. `pnpm checks` is read-only (no `--write`, no API key) and runs the deterministic checks (cited ids exist, case questions answered). If it reports a failure, leave ANSWERS as they are (hand edits are forbidden) and note it for the demo. Spot-read 2-3 for formatting only, not content edits.
+   Pass: the three counts are equal to N (the first counts case folders only; `run.log` and `RUN_SUMMARY.md` sit next to them), and the last line reads `Checks: N case(s) evaluated · 0 critical/prohibited failure(s)`. `pnpm checks` is read-only (no `--write`, no API key) and runs the deterministic checks (cited ids exist, case questions answered). If it reports a failure, leave ANSWERS as they are (hand edits are forbidden) and note it for the demo. Spot-read 2-3 for formatting only, not content edits.
 6. **By 16:55**, commit and push:
    ```bash
    git add ANSWERS cases/reality-converted 2>/dev/null; git commit -m "chore: reality test results" && git push
