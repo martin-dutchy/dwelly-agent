@@ -219,19 +219,20 @@ The `holdout` split in `cases/splits.json` is the rehearsal set and is never use
 
 ## 9. Sub-plan index
 
-Create each as a default plan (not ExecPlan) in a `plans/` folder next to the code, following [docs/plans/README.md](README.md), before starting the milestone. Each links back here.
+Create each as a default plan (not ExecPlan) in `docs/plans/`, named with the milestone prefix, following [docs/plans/README.md](README.md), before starting the milestone. Each links back here.
 
-| Milestone | Sub-plan path | Owner |
+| Milestone | Sub-plan | Owner |
 |---|---|---|
-| Review | [docs/plans/master-plan-review-2026-10-10.md](master-plan-review-2026-10-10.md): agent tree, invariant table, permission tiers, escalation contract, scope ladder | Claude for Marc |
+| Review | [master-plan-review-2026-10-10.md](master-plan-review-2026-10-10.md): agent tree, invariant table, permission tiers, escalation contract, scope ladder | Claude for Marc |
 | M0b | executed directly (two loader changes with tests), no sub-plan | Marc |
-| M1 | `src/agent/maintenance/plans/maintenance-policy-and-state-implementation-plan.md` | Marc |
-| M2 | `cases/plans/public-cuts-corpus-plan.md` | Marc |
-| M3 | `src/agent/plans/critic-pass-implementation-plan.md` | Marc |
-| M4 | `src/eval/plans/harness-hardening-implementation-plan.md` | Marc |
-| M5 | `.claude/skills/reality-test-run/SKILL.md` (the runbook, extend in place) and `src/agent/adapters/plans/organiser-api-adapter-plan.md` | Both |
-| M6 | `src/voice/plans/voice-landlord-approval-plan.md` | Marc |
-| M7 | `docs/plans/submission-package-plan.md` | Marc |
+| M1 | [M1-maintenance-policy-and-state-implementation-plan.md](M1-maintenance-policy-and-state-implementation-plan.md) | Marc |
+| M2 | executed directly from section 7 and `research/eval-inventory.md`, no sub-plan | Marc |
+| M3 | [M3-critic-pass-implementation-plan.md](M3-critic-pass-implementation-plan.md) | Marc |
+| M4 | [M4-harness-hardening-implementation-plan.md](M4-harness-hardening-implementation-plan.md) | Marc |
+| M5 | [M5-reality-runner-implementation-plan.md](M5-reality-runner-implementation-plan.md), [M5-organiser-api-adapter-plan.md](M5-organiser-api-adapter-plan.md), and the runbook `.claude/skills/reality-test-run/SKILL.md` (extend in place) | Marc |
+| M6 | `M6-voice-landlord-approval-plan.md`: not written | Marc |
+| M7 | [M7-submission-package-plan.md](M7-submission-package-plan.md) | Marc |
+| M8 | the runbook `.claude/skills/reality-test-run/SKILL.md`, no sub-plan | Marc |
 
 ---
 
@@ -240,7 +241,7 @@ Create each as a default plan (not ExecPlan) in a `plans/` folder next to the co
 - [x] (2026-10-10 10:30 BST) Repo cloned, research imported (`research/pm-case-data-analysis.md`), branch `marc/master-plan`.
 - [x] (2026-10-10 10:45 BST) AirDojo planning guide and skills brought in (`docs/plans/README.md`, `.agents/skills/spec-and-plan-docs`, `.agents/skills/first-principles-review`), `AGENTS.md`, `CLAUDE.md`, `pnpm verify` script.
 - [x] (2026-10-10 11:10 BST) Plan reviewed (agent tree, approach, stop/escalate rules); amendments applied, see `master-plan-review-2026-10-10.md`.
-- [x] (2026-10-10 11:40 BST) M1 sub-plan written: `src/agent/maintenance/plans/maintenance-policy-and-state-implementation-plan.md` (steps 1–7 are the milestone, 8–9 cut first if behind).
+- [x] (2026-10-10 11:40 BST) M1 sub-plan written: `docs/plans/M1-maintenance-policy-and-state-implementation-plan.md` (steps 1–7 are the milestone, 8–9 cut first if behind).
 - [ ] M0 Baseline
 - [x] (2026-10-10 11:15 BST) M0b Runner landmines: `--at none` is the default outside `HackatonPublicCases/` (36/36 events on a copy of case 047), history compaction keeps the first event and the last 12 verbatim and collapses hold/reminder runs; tests in `publicCases.test.ts`, branch `m0b-runner-landmines`.
   - [x] (2026-10-10 11:45 BST) Pre-M1 baselines on the dev split as it stood before public-cuts (practice + public examples, 23 cases): `evals/baseline-quick-dev.json` (Haiku, mean 73.9, 1 critical) and `evals/baseline-final-dev.json` (Sonnet, mean 93.4, 0 critical), all 23 decided. Public-cuts has its own `evals/baseline-final-dev-partial.json`.
@@ -252,10 +253,10 @@ Create each as a default plan (not ExecPlan) in a `plans/` folder next to the co
   - [x] (2026-10-10 12:20 BST, PR #20) Follow-ups: `set_visit` needs `confirmed_by` and, for a provider or landlord, a quote from that party's own event that names the date (the 026 critical); "Do not escalate" list and narrower escalation trigger in `policy.md`; relay contact numbers passed on with their calling instructions.
 - [x] (2026-10-10 11:50 BST) M2 Edge-case corpus: 15 real cuts + 10 mutations in `cases/public-cuts/` with `rubric.json` and `expected.json`, added to the `dev` split; `pnpm verify` green (150 tests; earlier counts of 203 and 275 included duplicate copies of tests from `.claude/worktrees`, now excluded in `vitest.config.ts`). Not yet run through the agent or judge (no API key on Marc's machine). Inventory that drives it: `research/eval-inventory.md`.
 - [x] M3 Critic pass + validators (A/B decided)
-  - [x] (2026-10-10 12:06 BST, PR #15) Sub-plan `src/agent/plans/critic-pass-implementation-plan.md` approved by Marc.
+  - [x] (2026-10-10 12:06 BST, PR #15) Sub-plan `docs/plans/M3-critic-pass-implementation-plan.md` approved by Marc.
   - [x] (2026-10-10 12:35 BST, PR #21) Critic call, `--critic on|off` (default off, `CRITIC` env fallback), deterministic pre-review checks (case questions answered, escalation packet complete) active in every run, "Checks performed" line in REASONING. A/B decided off (Decision log). Also fixed: a case timeout during a retry backoff now stops the run.
 - [x] M4 Harness hardening (k=3, checks, baseline, summary.json)
-  - [x] (2026-10-10 11:45 BST) Sub-plan `src/eval/plans/harness-hardening-implementation-plan.md`.
+  - [x] (2026-10-10 11:45 BST) Sub-plan `docs/plans/M4-harness-hardening-implementation-plan.md`.
   - [x] (2026-10-10 12:09 BST, PRs #17 and #18) `--k`, pass^k and stability, `checks.json`, `summary.json` (escalation precision/recall, recovery, cost), `--rescore`, `--no-judge`, `--baseline`; a partial run compares against the newer of the full and partial baselines.
 - [ ] M5 Reality Test readiness + 15:15 rehearsal
   - [x] (2026-10-10 12:06 BST, PR #15) Runner and adapter sub-plans approved by Marc; runner built on `main` first, PR #11 rebases on top.
@@ -265,7 +266,7 @@ Create each as a default plan (not ExecPlan) in a `plans/` folder next to the co
   - [x] (2026-10-10 11:45 BST, Marc) Runbook half: `.claude/skills/reality-test-run/SKILL.md` has the 5-minute format-triage checklist (organiser / practice / third format / API-MCP), every step a command with a pass signal; `scripts/convert-to-organiser.ts` converts loose files per case to `index.md` + `history.md` + `attachments/` with `--dry-run`, `--check` and a loader `--probe`; 8 Vitest tests next to it. Runner flags and the adapter are Martin's and listed as pending in the skill; rehearsal table left as placeholders.
 - [ ] M6 Voice (gated)
 - [ ] M7 Submission package
-  - [x] (2026-10-10 11:45 BST) Sub-plan `docs/plans/submission-package-plan.md`.
+  - [x] (2026-10-10 11:45 BST) Sub-plan `docs/plans/M7-submission-package-plan.md`.
   - [x] (2026-10-10 12:04 BST, PR #12) README sections, `SUBMISSION.md`, LFS attributes, demo storyboard, post drafts. README metrics table still cites the 11:58 baseline; replace after the rehearsal.
   - [ ] Human steps: repo public, `brew install git-lfs ffmpeg`, record video, team name and Martin's surname in `SUBMISSION.md`, post URLs, final hash.
 - [ ] M8 Reality Test run, freeze, submit
@@ -299,7 +300,7 @@ Create each as a default plan (not ExecPlan) in a `plans/` folder next to the co
 - Observation: Martin's open voice PR #10 builds a tenant phone line; M6 as planned is a landlord approval call. Resolve at the 14:00 voice gate. His PR #11 (run logs, TRANSCRIPT.md, `--thinking`) conflicts with `main` in `src/run.ts` and four other files and must land or be dropped before the M5 runner flags start.
 - Observation: M1 follow-ups (PR #20) on the 48-case dev split, final profile: mean 88.9 vs 86.2, critical 1 → 0 (026-date-conflict 0 → 58), escalation precision 1.00 and recall 1.00; 025-warranty-dates 34 → 97, 047-three-chases 48 → 79. Its first wording of the "provider asks for the tenant's number" row ("our job email already carries it") made the agent resend a code-protected relay number as the tenant's own in public 021 (100 → 65 on two runs); passing the contact on as written with its calling instructions restored 100 on k=2. Evidence: `runs/loop/dev-final-2026-10-10T11-16-10-982Z`, PR #20 comment.
 - Observation: organiser history `From:` lines are almost always a role, not a person: 1,473 of 1,505 read "Agency / system", "Northbridge Lettings", "Contractor", "Maintenance provider", "Landlord" or "Tenant"; only 2 are bare company names. The `set_visit` speaker check can rely on the role word. Evidence: `rg --no-filename -e '^- \*\*From:\*\*' HackatonPublicCases/Property\ Management/*/history.md | sort | uniq -c`.
-- Observation: the critic A/B (dev split, final, k=3, before PR #20) was negative: mean 86.9 off vs 86.2 on, required-met 87.2 % vs 86.5 %, over-escalated cases 2 vs 3, escalation precision 0.50 vs 0.38, stable cases 21 vs 13, cost $0.051 vs $0.105 per case-run, 22 s vs 33 s. Findings were mostly real but low value (ledger labels). Evidence: `src/agent/plans/critic-pass-implementation-plan.md` Decision log; run folders `dev-final-k3-2026-10-10T11-12-22-629Z` (off) and `…11-20-18-058Z` (on).
+- Observation: the critic A/B (dev split, final, k=3, before PR #20) was negative: mean 86.9 off vs 86.2 on, required-met 87.2 % vs 86.5 %, over-escalated cases 2 vs 3, escalation precision 0.50 vs 0.38, stable cases 21 vs 13, cost $0.051 vs $0.105 per case-run, 22 s vs 33 s. Findings were mostly real but low value (ledger labels). Evidence: `docs/plans/M3-critic-pass-implementation-plan.md` Decision log; run folders `dev-final-k3-2026-10-10T11-12-22-629Z` (off) and `…11-20-18-058Z` (on).
 - Observation: `withRetries` in `caseAgent.ts` ignored the case timeout when it fired during a retry backoff (the abort had nothing to cancel), so a case could run past its budget; `run.ts` only survived it through `bounded()`. Fixed in PR #21 with a `timedOut` flag that stops the retry and the nudge.
 - Observation: with critic off and the two deterministic pre-review checks on, `main` 4cfac5a scores mean 91.0 final (practice, public examples and public-cuts, 48/48 decided, 0 critical, escalation P/R 1.00/1.00, $2.49 agent, 157 s) and 83.6 quick (Haiku, escalation precision 0.25). Evidence: `evals/baseline-final-dev.json`, `evals/baseline-quick-dev.json`.
 

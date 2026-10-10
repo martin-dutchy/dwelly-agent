@@ -2,7 +2,7 @@
 
 Status: approved by Marc 12:06 BST (see Decision log) · Shape: default plan · Owner: Marc · Written 2026-10-10 12:20 BST by Claude for Marc · Window: steps 1 and 2 are new files and can be built in parallel from 12:45 by whoever is free; step 3 (the `run.ts` wiring) waits for the runner plan's step 3 and lands by 14:30. Time box 45 minutes for steps 1 to 3; step 4 only if time is left; hard stop 15:05.
 
-Parent: [docs/plans/dwelly-case-worker-master-plan.md](../../../../docs/plans/dwelly-case-worker-master-plan.md) (M5 row; section 6 "Format fallback at 16:30": "If an organiser API is supplied, the adapter is switched on by env var; if it fails in the first case, fall back to the mock toolset and say so in REASONING"; section 8 "Are tools supplied?"). Runbook: [.claude/skills/reality-test-run/SKILL.md](../../../../.claude/skills/reality-test-run/SKILL.md) Step 6. Sibling: [src/plans/reality-runner-implementation-plan.md](../../../plans/reality-runner-implementation-plan.md). Conventions: `AGENTS.md`, `docs/plans/README.md`.
+Parent: [docs/plans/dwelly-case-worker-master-plan.md](dwelly-case-worker-master-plan.md) (M5 row; section 6 "Format fallback at 16:30": "If an organiser API is supplied, the adapter is switched on by env var; if it fails in the first case, fall back to the mock toolset and say so in REASONING"; section 8 "Are tools supplied?"). Runbook: [.claude/skills/reality-test-run/SKILL.md](../../.claude/skills/reality-test-run/SKILL.md) Step 6. Sibling: [docs/plans/M5-reality-runner-implementation-plan.md](M5-reality-runner-implementation-plan.md). Conventions: `AGENTS.md`, `docs/plans/README.md`.
 
 ---
 

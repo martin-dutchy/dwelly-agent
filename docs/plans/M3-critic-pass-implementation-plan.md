@@ -2,7 +2,7 @@
 
 Status: done, A/B decided off at 12:32 BST; approved by Marc 12:06 BST (see Decision log) · Shape: default plan · Owner: Marc · Written 2026-10-10 12:10 BST by Claude for Marc · Window: 12:45 to 14:00 BST (A/B decision by 15:00 at the latest).
 
-Parent: [docs/plans/dwelly-case-worker-master-plan.md](../../../docs/plans/dwelly-case-worker-master-plan.md) (M3 row, AC12, section 6 "Critic gate" and the 15:00 scope-ladder row). Design source: [research/evaluation.md](../../../research/evaluation.md) section 4. Architecture: [docs/plans/master-plan-review-2026-10-10.md](../../../docs/plans/master-plan-review-2026-10-10.md) section 1 ("the critic is a call, not an agent") and section 3 (tool tiers T0 to T3). Sibling plans it depends on: [M1](../maintenance/plans/maintenance-policy-and-state-implementation-plan.md) (validators, `quoteAppears`) and [M4](../../eval/plans/harness-hardening-implementation-plan.md) (`--k`, `summary.json`). Conventions: `AGENTS.md`, `docs/plans/README.md`.
+Parent: [docs/plans/dwelly-case-worker-master-plan.md](dwelly-case-worker-master-plan.md) (M3 row, AC12, section 6 "Critic gate" and the 15:00 scope-ladder row). Design source: [research/evaluation.md](../../research/evaluation.md) section 4. Architecture: [docs/plans/master-plan-review-2026-10-10.md](master-plan-review-2026-10-10.md) section 1 ("the critic is a call, not an agent") and section 3 (tool tiers T0 to T3). Sibling plans it depends on: [M1](M1-maintenance-policy-and-state-implementation-plan.md) (validators, `quoteAppears`) and [M4](M4-harness-hardening-implementation-plan.md) (`--k`, `summary.json`). Conventions: `AGENTS.md`, `docs/plans/README.md`.
 
 ---
 

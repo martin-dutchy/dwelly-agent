@@ -2,7 +2,7 @@
 
 Status: approved by Marc 12:06 BST (see Decision log) · Shape: default plan · Owner: Marc · Written 2026-10-10 12:15 BST by Claude for Marc · Window: pure modules from 12:45 in parallel; `run.ts` wiring 13:30 to 15:00 after PR #11 lands (13:00 to 13:30); rehearsal 15:15.
 
-Parent: [docs/plans/dwelly-case-worker-master-plan.md](../../docs/plans/dwelly-case-worker-master-plan.md) (M5 row, AC1, AC2, AC13, section 6 "Time fallback at 16:50" and the 15:15 scope-ladder row). Runbook this plan must match: [.claude/skills/reality-test-run/SKILL.md](../../.claude/skills/reality-test-run/SKILL.md) (section "Runner flags still to come" and "Rehearsal record"). Sibling: the adapter half, [src/agent/adapters/plans/organiser-api-adapter-plan.md](../agent/adapters/plans/organiser-api-adapter-plan.md). Conventions: `AGENTS.md`, `docs/plans/README.md`.
+Parent: [docs/plans/dwelly-case-worker-master-plan.md](dwelly-case-worker-master-plan.md) (M5 row, AC1, AC2, AC13, section 6 "Time fallback at 16:50" and the 15:15 scope-ladder row). Runbook this plan must match: [.claude/skills/reality-test-run/SKILL.md](../../.claude/skills/reality-test-run/SKILL.md) (section "Runner flags still to come" and "Rehearsal record"). Sibling: the adapter half, [docs/plans/M5-organiser-api-adapter-plan.md](M5-organiser-api-adapter-plan.md). Conventions: `AGENTS.md`, `docs/plans/README.md`.
 
 ---
 

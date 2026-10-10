@@ -20,12 +20,12 @@ Feature **specs** (contracts before code) are separate: see the `spec-and-plan-d
 
 | Shape            | When                                                                                                                              |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| **Default plan** | Normal implementation plans. One markdown file under a `plans/` directory next to the code it changes.                            |
+| **Default plan** | Normal implementation plans. One markdown file in `docs/plans/`, named `<milestone>-<topic>-plan.md` (e.g. `M3-critic-pass-implementation-plan.md`). |
 | **ExecPlan**     | Long-running work: multi-hour, multi-package, high ambiguity, cold resume or handoff, or the user says "ExecPlan" or "living plan." |
 
 If the user says "create a plan" without naming ExecPlan, use the **default** shape.
 
-Placement and naming: `spec-and-plan-docs` skill (`*-implementation-plan.md`, `*-plan.md`). Cross-cutting plans live under `docs/plans/`. The orchestrating plan for this project is [dwelly-case-worker-master-plan.md](dwelly-case-worker-master-plan.md); every sub-plan links back to it. When the work completes or is abandoned, mark the plan `superseded` and promote durable lessons into `research/` or `README.md`.
+Placement and naming: every plan lives in `docs/plans/`. A plan that belongs to a master-plan milestone starts with the milestone id (`M1-`, `M5-`, …) so its milestone is visible in the file list; cross-cutting plans have no prefix. This overrides the `spec-and-plan-docs` skill's "plans/ next to the code" placement for this repo; its `*-implementation-plan.md` / `*-plan.md` suffixes still apply. The orchestrating plan for this project is [dwelly-case-worker-master-plan.md](dwelly-case-worker-master-plan.md); every sub-plan links back to it. When the work completes or is abandoned, mark the plan `superseded` and promote durable lessons into `research/` or `README.md`.
 
 ## Interview first (required)
 
