@@ -2,16 +2,17 @@
 
 | Field | Value |
 |---|---|
-| Team name | TBD (Marc: the name registered at the 9:30 onboarding) |
+| Team name | Agents of Estate |
 | Track | Property Management |
 | Team members | Marc Fluvià (GitHub `mfluviag`), Martin van der Heijden (GitHub `martin-dutchy`) |
 | Repository | https://github.com/martin-dutchy/dwelly-agent |
-| Commit hash at 17:00 freeze | TBD (filled at 16:55 after the ANSWERS commit: `git rev-parse HEAD`) |
-| Code freeze (16:30 form) | TBD (`git rev-parse HEAD` when the 16:30 form is submitted) |
-| Reality Test results | [`ANSWERS/`](ANSWERS/) |
+| Commit hash at 17:00 freeze | `d55b3e4be1add18e52662458a448f6c0725e96e3` |
+| Code freeze (16:30 form) | `68387876` |
+| Reality Test results | [`ANSWERS/`](ANSWERS/) (30 cases, run log in [`ANSWERS/RUN_SUMMARY.md`](ANSWERS/RUN_SUMMARY.md)) |
+| Reality Test input | [DwellyOrg/HackatonChallenges](https://github.com/DwellyOrg/HackatonChallenges) at `ce84e8c0`, folder `Property Management` |
 | Demo video | [`demo/demo.mp4`](demo/demo.mp4) (Git LFS, ≤ 60 s) |
-| LinkedIn post | TBD (URL after posting) |
-| X post | TBD (URL after posting) |
+| LinkedIn post | https://lnkd.in/p/gYszcG7d |
+| X post | https://x.com/maartie0/status/2108943707739193613 |
 
 ## Launch posts
 
