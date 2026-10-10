@@ -87,7 +87,10 @@ const recipient = {
     ),
 };
 
-export function createOpsToolset(seed: OpsSeed | Ticket[] = []): Toolset {
+/** Tools and fields added with harness v2; hidden unless `v2` so a flags-off run sees the toolset it was tuned on. */
+const V2_TOOLS = new Set(['verify_identity', 'share_tenant_contact']);
+
+export function createOpsToolset(seed: OpsSeed | Ticket[] = [], { v2 = true }: { v2?: boolean } = {}): Toolset {
   const { tickets: seedTickets = [], properties = [], today, evidence, mediaNames = [] }: OpsSeed = Array.isArray(seed) ? { tickets: seed } : seed;
   const state: OpsState = { tickets: structuredClone(seedTickets), records: [], properties: structuredClone(properties) };
   let seq = 100;
@@ -148,13 +151,15 @@ export function createOpsToolset(seed: OpsSeed | Ticket[] = []): Toolset {
     }),
     def({
       name: 'update_ticket',
-      description: 'Move a ticket to another stage, raise its priority, and/or add a note (e.g. a tenant changed the access window).',
+      description: v2
+        ? 'Move a ticket to another stage, raise its priority, and/or add a note (e.g. a tenant changed the access window).'
+        : 'Move a ticket to another stage and/or add a note (e.g. a tenant changed the access window).',
       kind: 'write',
       parameters: z.object({
         ref: z.string(),
         stage: z.enum(STAGES).optional(),
         note: z.string().optional(),
-        priority: z.enum(PRIORITIES).optional().describe('Raise the priority when the fault is more serious than recorded. It can only go up (routine < urgent < emergency).'),
+        ...(v2 && { priority: z.enum(PRIORITIES).optional().describe('Raise the priority when the fault is more serious than recorded. It can only go up (routine < urgent < emergency).') }),
       }),
       run: ({ ref, stage, note, priority }) => {
         const t = ticket(ref);
@@ -485,7 +490,7 @@ export function createOpsToolset(seed: OpsSeed | Ticket[] = []): Toolset {
     def({
       name: 'share_tenant_contact',
       description:
-        "Give the tenant's phone or email to the contractor on a job. Only with the tenant's consent quoted from the case; without it, the contractor arranges access through the agency.",
+        "Record that the tenant agreed to the contractor on a job contacting them directly, when the records say not to share their details. Passing the contact on file to the assigned contractor needs no record.",
       kind: 'write',
       parameters: z.object({
         ...ticketRef,
@@ -663,11 +668,12 @@ export function createOpsToolset(seed: OpsSeed | Ticket[] = []): Toolset {
     return undefined;
   };
 
+  const visible = v2 ? tools : tools.filter((t) => !V2_TOOLS.has(t.name));
   const toolset: Toolset = {
-    tools,
+    tools: visible,
     state,
     guard,
-    execute: (name, args, ctx) => executeWith({ tools, state }, name, args, ctx),
+    execute: (name, args, ctx) => executeWith({ tools: visible, state }, name, args, ctx),
     verify: (name, args, result) => {
       // Read back independently of what the write returned.
       if (readBack[name]) {

@@ -211,16 +211,21 @@ const emergency = (call: ToolCall, ctx: GuardContext) =>
   ctx.state.tickets.some((t) => [t.severity, t.priority, t.urgency].some((v) => /^(?:emergency|p1)$/i.test(String(v ?? '')))) ||
   EMERGENCY.test(messageText(call));
 
+/** Passing the tenant's details to the assigned contractor is normal practice; only a record saying not to share stops it. */
+const DO_NOT_SHARE =
+  /\bno consent\b[^.\n]{0,40}\bshar(e|ing)\b|\b(do not|don't|not to) (share|pass on|give out|disclose)\b[^.\n]{0,40}\b(number|contact|details|phone|mobile|email)|\b(withhold|keep) (his|her|their|the tenant'?s) (number|contact details)\b/i;
+
 export const tenantContactToProvider: Guard = {
   id: 'message.tenant_contact_to_provider',
   tools: ['send_message', 'request_information'],
   check(call: ToolCall, ctx) {
     if (call.args.recipient_role !== 'contractor' || emergency(call, ctx)) return undefined;
     const shared = tenantContactsIn(messageText(call), ctx);
-    if (!shared.length || ctx.ledger.some((e) => e.tool === 'share_tenant_contact' && e.status === 'verified')) return undefined;
+    if (!shared.length || !DO_NOT_SHARE.test(caseText(ctx))) return undefined;
+    if (ctx.ledger.some((e) => e.tool === 'share_tenant_contact' && e.status === 'verified')) return undefined;
     return {
       rule: 'message.tenant_contact_to_provider',
-      reason: `The message gives the tenant's contact details (${shared.join(', ')}) to a contractor, and no share_tenant_contact is verified. Record the tenant's consent with share_tenant_contact first, or remove the details and let the contractor arrange access through the agency.`,
+      reason: `The message gives the tenant's contact details (${shared.join(', ')}) to a contractor, but the case records say not to share them. Record the tenant's agreement with share_tenant_contact first, or remove the details and let the contractor arrange access through the agency.`,
     };
   },
 };

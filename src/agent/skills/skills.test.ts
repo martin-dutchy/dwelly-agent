@@ -82,6 +82,20 @@ describe('classify precision', () => {
     expect(tags).not.toContain('water');
   });
 
+  it('does not read checklist lines in inspection reports or agreements as live situations', () => {
+    const report = 'Check-out inspection report\nSmoke and carbon monoxide detectors: tested — Yes. Damp: none. At the end of the tenancy the deposit is returned.';
+    const tags = classify(bundle('Second quote for the bathroom', [{ path: 'attachments/attachment-01-check-out-inspection-report.pdf', text: report, kind: 'pdf' }]));
+    expect(tags.filter((t) => ['co', 'deposit', 'tenancy_lifecycle', 'damp_mould'].includes(t))).toEqual([]);
+    const cert = classify(bundle('Case', [{ path: 'inputs/gas_safety_record.md', text: 'Gas safety record (CP12) expired on 01/09/2026.' }]));
+    expect(cert).toContain('compliance');
+    expect(classify(bundle('Case', [{ path: 'inputs/tickets.json', text: JSON.stringify([{ description: 'Inspection found a CO alarm sounding.' }]) }]))).toContain('co');
+  });
+
+  it('reads a hypothetical move-out as no tenancy change', () => {
+    expect(classify(bundle('The washing machine is mine; if I ever was to move out I would take it with me.'))).not.toContain('tenancy_lifecycle');
+    expect(classify(bundle('We are moving out at the end of next month.'))).toContain('tenancy_lifecycle');
+  });
+
   it('takes vulnerability, arrears and void status from CRM fields', () => {
     const crm = JSON.stringify({ tenant: { vulnerable: true }, arrears: { balance_gbp: 1200 }, property: { tenanted: false } });
     expect(classify(bundle('Case', [{ path: 'inputs/crm.json', text: crm }]))).toEqual(expect.arrayContaining(['vulnerable', 'arrears', 'void_keys']));

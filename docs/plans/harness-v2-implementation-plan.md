@@ -538,6 +538,13 @@ Run from the repo root (or from the workstream's worktree in Wave 1). Show the o
   - Largest gains: practice 112 (+73), 111 (+53), 18 (+37), public-cut 034 (+27), practice 10 (+20).
   - With k=1, single cases swing by ±40 to 70, so this is only directional: no flag flips, and an ablation is needed once credit is back.
   - Run folders: `runs/loop/dev-final-k3-2026-10-10T14-45-34-054Z` (off) and `…-h-all-k3-…-055Z` (on).
+- [x] (16:10) Changes after the Wave 3 run-1 read. Over the 65 paired cases, the drop with every flag on is not in guards or completion: cases with a guard block averaged +5.0, cases with a completion bounce −2.4, and cases with neither −4.4. Only 7 of 65 outcomes changed. The new misses are thinner routine work, wrong skills, and one over-cautious privacy refusal (public 021: the agent refused to send the tenant's number to the assigned contractor, which the reference does). Changes:
+  - `identity-privacy.md` and the `message.tenant_contact_to_provider` guard now treat passing the tenant's contact on file to the assigned contractor as normal practice, held back only when the records say not to share (practice 96). The `share_tenant_contact` description says the same.
+  - The `skills` flag no longer swaps in `CASE_SYSTEM_PROMPT_V2`; skills are added on top of the full V1 prompt. The slim prompt stays in the code, unused until it has its own flag and evidence.
+  - The classifier skips inspection, inventory and check-out reports, tenancy agreements and certificates when keyword-tagging, except for `compliance`. It also ignores a hypothetical move-out. Tags changed in 14 of 124 non-holdout folders, all removals of report boilerplate (CO, deposit, out of hours, tenancy lifecycle). Examples: public-cut 008 now gets only `quote_invoice` instead of six tags, and practice 02 (Saturday 09:12) no longer gets `out_of_hours`.
+  - `createOpsToolset(seed, { v2 })` hides `verify_identity`, `share_tenant_contact` and the `update_ticket` `priority` field unless `guardsV2` is on, so a flags-off run sees the toolset it was tuned on.
+
+  `pnpm verify` 56 files and 1,470 tests green.
 - [ ] Wave 4
 
 ## Discoveries
@@ -567,6 +574,7 @@ Run from the repo root (or from the workstream's worktree in Wave 1). Show the o
 
 ## Decision log
 
+- Decision: Keep every Wave 1 workstream behind its flag, with no default flips. Roll back only the pieces the run-1 data points at: the consent-first contact rule, the slim prompt coupled to `skills`, classifier tags from report boilerplate, and v2 tools visible with flags off. Rationale: flags-off scores match the 11:35 baseline over 47 paired dev cases (91.8 against 91.4), while all flags on is −4.2 at k=1. Date/Author: 2026-10-10, Marc (agreed 16:02).
 - Decision: Target the end state, not a pre-freeze subset. Rationale: Marc's choice at 15:21. Mitigation: everything sits behind flags that default to off, and `main` is protected by the Wave 3 gate. Date/Author: 2026-10-10, Marc.
 - Decision: The critic can send a decision back for one revision and never acts. Rationale: Marc's choice at 15:21; it matches the existing `critic.ts`. Date/Author: 2026-10-10, Marc.
 - Decision: Parallelise through module seams (stub entry points created in Wave 0) rather than letting workstreams edit `caseAgent.ts`. Rationale: `caseAgent.ts` is where every layer meets; one writer per wave avoids merge conflicts and keeps the AGENTS.md review rule cheap. Date/Author: 2026-10-10, Claude for Marc.

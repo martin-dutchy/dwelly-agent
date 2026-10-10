@@ -18,7 +18,7 @@ import { prescreen, screenNote } from '../agent/jev.js';
 import { seedFromCase } from '../agent/opsSeed.js';
 import { type Toolset, createOpsToolset } from '../agent/opsTools.js';
 import { type Usage, renderAnswer, renderReasoning, renderTranscript } from '../agent/report.js';
-import { CASE_SYSTEM_PROMPT, CASE_SYSTEM_PROMPT_V2 } from '../agent/systemPrompt.js';
+import { CASE_SYSTEM_PROMPT } from '../agent/systemPrompt.js';
 import { crashFiles, writeFallback } from './fallback.js';
 import { loadTolerant } from './load.js';
 import { CaseStopped, type ToolCallRecord, bounded, checkpoint, stoppable } from './supervise.js';
@@ -94,11 +94,11 @@ export async function processCase(dir: string, timeoutMs: number, env: CaseEnv):
         }
       }
       const skillText = renderSkills(skills, tags);
-      const systemPrompt = flags.skills ? CASE_SYSTEM_PROMPT_V2 : CASE_SYSTEM_PROMPT;
+      const systemPrompt = CASE_SYSTEM_PROMPT;
       const prompt = casePrompt(c) + (hints.text ? `\n\n${hints.text}` : '') + (skillText ? `\n\n${skillText}` : '');
       const screen = await prescreen(prompt);
       checkpoint(stop.signal);
-      const adapter = withOrganiserApi((env.makeToolset ?? ((lc) => createOpsToolset(seedFromCase(lc))))(c), env.organiser, c.id);
+      const adapter = withOrganiserApi((env.makeToolset ?? ((lc) => createOpsToolset(seedFromCase(lc), { v2: flags.guardsV2 })))(c), env.organiser, c.id);
       const toolset = stoppable(adapter.toolset, stop.signal, toolCalls);
       const writeTools = toolset.tools.filter((t) => t.kind === 'write').map((t) => t.name);
       const failures = chaosPlan(writeTools, env.chaos, `${env.seed}:${c.id}`, c.failures);

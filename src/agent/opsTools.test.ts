@@ -353,6 +353,16 @@ describe('ops guards', () => {
 });
 
 describe('identity, consent and priority', () => {
+  it('hides the v2 tools and the priority field when v2 is off', async () => {
+    const off = createOpsToolset([{ ref: 'NBL-1', stage: 'visit' }], { v2: false });
+    const names = off.tools.map((t) => t.name);
+    expect(names).not.toContain('verify_identity');
+    expect(names).not.toContain('share_tenant_contact');
+    expect(Object.keys((off.tools.find((t) => t.name === 'update_ticket')!.parameters as unknown as { shape: object }).shape)).toEqual(['ref', 'stage', 'note']);
+    expect(await off.execute('verify_identity', { party: 'x', role: 'tenant', evidence_quote: 'x' }, ctx)).toMatchObject({ ok: false });
+    expect(createOpsToolset([]).tools.map((t) => t.name)).toEqual(expect.arrayContaining(['verify_identity', 'share_tenant_contact']));
+  });
+
   const evidence = [
     '### 2026-10-09 09:14 UTC — event 004',
     '- **From:** Tenant',

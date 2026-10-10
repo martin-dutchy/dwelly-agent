@@ -110,16 +110,24 @@ describe('message dates', () => {
 describe('message.tenant_contact_to_provider', () => {
   const toProvider = (body: string) => ({ tool: 'send_message', args: { recipient_name: 'Keystone Plumbing', recipient_role: 'contractor', channel: 'email', contact: 'jobs@keystone.example', body } });
 
-  it("blocks the tenant's phone or email going to a contractor without a verified share_tenant_contact", () => {
-    expect(tenantContactToProvider.check(toProvider('Please call the tenant on 07700 900123 to book.'), full())).toMatchObject({ rule: 'message.tenant_contact_to_provider' });
-    expect(tenantContactToProvider.check(toProvider('Email the tenant at Sara.O@mail.example.'), full())!.reason).toMatch(/share_tenant_contact first/);
+  const noShare = (over: Partial<GuardContext> = {}) =>
+    full({ bundle: bundle({ ...DOCS, 'inputs/tenant_note.json': '{"contact_sharing": "No consent recorded to share phone number or email with contractors."}' }), ...over });
+
+  it('passes the tenant contact on file to the assigned contractor when nothing says not to share', () => {
+    expect(tenantContactToProvider.check(toProvider('Please call the tenant on 07700 900123 to book.'), full())).toBeUndefined();
+    expect(tenantContactToProvider.check(toProvider('Email the tenant at Sara.O@mail.example.'), full())).toBeUndefined();
   });
 
-  it('passes once consent is recorded, messages without contact details, and messages to the tenant', () => {
-    expect(tenantContactToProvider.check(toProvider('Please call the tenant on 07700 900123.'), full({ ledger: [entry('A1', 'share_tenant_contact', { provider: 'Keystone Plumbing' })] }))).toBeUndefined();
-    expect(tenantContactToProvider.check(toProvider('Please arrange access through our office on 020 7946 0000.'), full())).toBeUndefined();
-    expect(tenantContactToProvider.check(msg('We have your number as 07700 900123.'), full())).toBeUndefined();
-    expect(tenantContactToProvider.check(toProvider('Please call the tenant on 07700 900123.'), full({ ledger: [entry('A1', 'share_tenant_contact', {}, 'failed')] }))).toBeDefined();
+  it("blocks the tenant's phone or email going to a contractor when the record says not to share", () => {
+    expect(tenantContactToProvider.check(toProvider('Please call the tenant on 07700 900123 to book.'), noShare())).toMatchObject({ rule: 'message.tenant_contact_to_provider' });
+    expect(tenantContactToProvider.check(toProvider('Email the tenant at Sara.O@mail.example.'), noShare())!.reason).toMatch(/say not to share/);
+    expect(tenantContactToProvider.check(toProvider('Please call the tenant on 07700 900123.'), noShare({ ledger: [entry('A1', 'share_tenant_contact', {}, 'failed')] }))).toBeDefined();
+  });
+
+  it('passes once agreement is recorded, messages without contact details, and messages to the tenant', () => {
+    expect(tenantContactToProvider.check(toProvider('Please call the tenant on 07700 900123.'), noShare({ ledger: [entry('A1', 'share_tenant_contact', { provider: 'Keystone Plumbing' })] }))).toBeUndefined();
+    expect(tenantContactToProvider.check(toProvider('Please arrange access through our office on 020 7946 0000.'), noShare())).toBeUndefined();
+    expect(tenantContactToProvider.check(msg('We have your number as 07700 900123.'), noShare())).toBeUndefined();
   });
 
   it('passes contact details sent for an emergency attendance', () => {

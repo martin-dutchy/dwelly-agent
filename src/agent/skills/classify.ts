@@ -187,7 +187,7 @@ const RULES: [SituationTag, RegExp[]][] = [
     [
       /\bnotice to (quit|leave)\b/i,
       /\b(give|giving|gave|handing in) (my |our )?notice\b/i,
-      /\bmov(e|ing) out\b/i,
+      /(?<!\bif (?:i|we) (?:ever )?(?:was|were|am|are|do) (?:to )?)\bmov(e|ing) out\b/i,
       /\bend (of )?(my |our |the )?tenancy\b/i,
       /\bjoint tenan(t|cy)\b/i,
       /\b(passed away|died|death of|executor|bereave\w*)\b/i,
@@ -235,12 +235,21 @@ interface CrmFacts {
   spendLimits: number[];
 }
 
+/** Inspection, inventory and check-out reports, agreements and certificates: checklists of a property's condition,
+ * not what is happening on the case ("carbon monoxide detectors: tested", "at the end of the tenancy"). */
+const REPORT_DOC = /(inspection|inventory|check-?(in|out)|schedule[-_ ]of[-_ ]condition|tenancy[-_ ]agreement|certificate|\beicr\b|\bcp12\b|gas[-_ ]safety[-_ ]record)/i;
+/** Tags a report may still raise on its own. */
+const REPORT_TAGS: ReadonlySet<SituationTag> = new Set(['compliance']);
+
 /** What people wrote (brief, messages, transcripts, notes, ticket descriptions), plus the structured CRM facts. */
-export function caseText(b: CaseBundle): { text: string; facts: CrmFacts } {
+export function caseText(b: CaseBundle): { text: string; reports: string; facts: CrmFacts } {
   const facts: CrmFacts = { vulnerable: false, arrears: false, void: false, spendLimits: [] };
   const parts: string[] = [b.brief];
+  const reports: string[] = [];
   for (const d of b.documents ?? []) {
-    if (d.kind === 'json' || d.path.endsWith('.json')) {
+    const json = d.kind === 'json' || d.path.endsWith('.json');
+    if (!json && (REPORT_DOC.test(d.path) || REPORT_DOC.test(d.text.trimStart().split('\n', 1)[0]))) reports.push(d.text);
+    else if (json) {
       try {
         walkJson(JSON.parse(d.text), undefined, parts, facts);
       } catch {
@@ -250,7 +259,7 @@ export function caseText(b: CaseBundle): { text: string; facts: CrmFacts } {
   }
   for (const e of b.events ?? []) parts.push(e.text);
   for (const t of b.seedTickets ?? []) walkJson(t, undefined, parts, facts);
-  return { text: parts.join('\n'), facts };
+  return { text: parts.join('\n'), reports: reports.join('\n'), facts };
 }
 
 /** Hour and weekday of the case's "now" on UK wall-clock time, when the case states one. */
@@ -278,8 +287,8 @@ const amountsNear = (text: string, words: RegExp) =>
 
 export function classify(b: CaseBundle, brief?: CaseBrief): SituationTag[] {
   const tags = new Set<SituationTag>();
-  const { text, facts } = caseText(b);
-  for (const [tag, patterns] of RULES) if (patterns.some((p) => p.test(text))) tags.add(tag);
+  const { text, reports, facts } = caseText(b);
+  for (const [tag, patterns] of RULES) if (patterns.some((p) => p.test(text) || (REPORT_TAGS.has(tag) && p.test(reports)))) tags.add(tag);
 
   if (facts.vulnerable) tags.add('vulnerable');
   if (facts.arrears) tags.add('arrears');
