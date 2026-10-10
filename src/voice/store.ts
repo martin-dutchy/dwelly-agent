@@ -139,7 +139,9 @@ const SCHEMA = [
 ];
 
 export function pgStore(url: string): VoiceStore {
-  const sql = postgres(url, { max: 5, idle_timeout: 30, onnotice: () => {} });
+  // prepare: false: Neon's pooler (PgBouncer) can hand back statements prepared against an older table
+  // shape after a migration ("cached plan must not change result type"); unprepared queries avoid it.
+  const sql = postgres(url, { max: 5, idle_timeout: 30, prepare: false, onnotice: () => {} });
   const iso = (v: unknown) => (v instanceof Date ? v.toISOString() : (v as string | null));
   const row = <T>(r: Record<string, unknown>) => ({ ...r, started_at: iso(r.started_at), ended_at: iso(r.ended_at), created_at: iso(r.created_at) }) as unknown as T;
   const json = (v: unknown) => (v === null || v === undefined ? null : sql.json(v as never));
