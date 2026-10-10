@@ -10,9 +10,16 @@ export const callDir = (conversationId: string) => {
   return dir;
 };
 
+type AuditListener = (conversationId: string, entry: Record<string, unknown> & { ts: string }) => void;
+const listeners: AuditListener[] = [];
+/** Extra sinks (e.g. the voice server's Postgres event log). Listeners must not throw. */
+export const onAudit = (l: AuditListener) => listeners.push(l);
+
 // Append-only evidence trail: every tool call, result and error, per conversation.
 export function audit(conversationId: string, entry: Record<string, unknown>) {
-  const line = JSON.stringify({ ts: new Date().toISOString(), ...entry });
+  const record = { ts: new Date().toISOString(), ...entry };
+  for (const l of listeners) l(conversationId, record);
+  const line = JSON.stringify(record);
   // Async so audit writes never block the voice agent's audio loop.
   void appendFile(join(callDir(conversationId), 'audit.jsonl'), line + '\n').catch((e) => console.error('[audit]', e));
 }

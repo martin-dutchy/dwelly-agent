@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>Help Test a Voice Agent</title>
+<style>
+  :root { --bg:#f6f5f2; --panel:#fff; --ink:#1c1b19; --muted:#6b6860; --line:#e4e1da; --accent:#2f5d50; --accent-ink:#fff; --warn:#9a6700; --fail:#b3261e; --pass:#1f7a4a; --chip:#eef3f1; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#151514; --panel:#1f1e1c; --ink:#ecebe7; --muted:#a29f96; --line:#33312d; --accent:#7fb8a4; --accent-ink:#10201b; --warn:#e3b341; --fail:#ff8a80; --pass:#5cc48b; --chip:#26302c; } }
+  :root[data-theme="dark"] { --bg:#151514; --panel:#1f1e1c; --ink:#ecebe7; --muted:#a29f96; --line:#33312d; --accent:#7fb8a4; --accent-ink:#10201b; --warn:#e3b341; --fail:#ff8a80; --pass:#5cc48b; --chip:#26302c; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  main { max-width: 560px; margin: 0 auto; padding: 20px 16px 48px; }
+  h1 { font-size: 22px; margin: 8px 0 4px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin: 14px 0; }
+  .panel h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 8px; }
+  .muted { color: var(--muted); }
+  ul { padding-left: 20px; margin: 6px 0; }
+  li { margin: 4px 0; }
+  .situation { font-size: 18px; }
+  .btn { display: block; width: 100%; font: inherit; font-weight: 700; font-size: 17px; padding: 14px; border-radius: 12px; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); cursor: pointer; margin-top: 10px; }
+  .btn.ghost { background: transparent; color: var(--accent); font-weight: 600; font-size: 15px; padding: 10px; }
+  .btn.stop { background: var(--fail); border-color: var(--fail); color: #fff; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  label.check { display: flex; gap: 10px; align-items: flex-start; }
+  label.check input { margin-top: 5px; width: 20px; height: 20px; flex: none; }
+  select { font: inherit; width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
+  .meter { height: 10px; border-radius: 5px; background: var(--line); overflow: hidden; margin-top: 10px; }
+  .meter > div { height: 100%; width: 0; background: var(--pass); transition: width 80ms linear; }
+  .status { text-align: center; font-size: 20px; font-weight: 700; margin: 6px 0; }
+  .pulse { width: 96px; height: 96px; border-radius: 50%; margin: 18px auto; background: var(--chip); border: 3px solid var(--accent); transition: transform 120ms; }
+  .pulse.speaking { transform: scale(1.12); background: var(--accent); }
+  .warn { color: var(--warn); font-weight: 600; }
+  .err { color: var(--fail); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <section id="consent">
+    <h1>Help test a voice assistant</h1>
+    <p class="muted" id="hello">Thanks for helping!</p>
+    <div class="panel">
+      <p>You'll phone an <b>AI assistant</b> for a lettings agency and play a tenant with a problem. Each call takes 2 to 5 minutes. We're testing how well it copes with real people on real lines, so there's no right or wrong way to talk.</p>
+      <ul>
+        <li>Your call is <b>recorded</b>. The audio and transcript are stored by ElevenLabs (the voice provider) and by us, and used only to improve this assistant.</li>
+        <li>Use the made-up details on the card. <b>Don't give any real personal information.</b></li>
+        <li>Nothing you say will really happen. No repairs or messages are sent.</li>
+      </ul>
+      <label class="check"><input type="checkbox" id="agree" /> <span>I understand the call is recorded and I'll only use the made-up details.</span></label>
+      <button class="btn" id="continue" disabled>Continue</button>
+    </div>
+  </section>
+
+  <section id="brief" hidden>
+    <h1 id="title">Your situation</h1>
+    <div class="panel"><h2>What's going on</h2><p class="situation" id="situation"></p></div>
+    <div class="panel"><h2>What you know</h2><ul id="know"></ul><p class="muted">Only give details when they're asked for, the way you would on a normal call.</p></div>
+    <div class="panel" id="twistbox"><h2>Your twist</h2><p id="twist"></p></div>
+    <div class="panel"><h2>To make it realistic</h2><ul id="tips"></ul><p class="muted">Use your own words. Hesitations, mistakes and background noise are welcome.</p></div>
+    <div id="phonebox" hidden>
+      <button class="btn" id="callme">📞 Call me now</button>
+      <p class="muted" id="phonenote"></p>
+      <button class="btn ghost" id="usebrowser">Or talk from this browser instead</button>
+    </div>
+    <div class="panel" id="micpanel">
+      <h2>Microphone</h2>
+      <select id="device"><option value="">Default microphone</option></select>
+      <button class="btn ghost" id="miccheck">Test my microphone</button>
+      <div class="meter"><div id="level"></div></div>
+      <p class="muted" id="micwarn">Say something: the green bar should move.</p>
+    </div>
+    <button class="btn" id="start">Start the call</button>
+    <button class="btn ghost" id="swap">Give me a different situation</button>
+    <p class="err" id="starterr"></p>
+  </section>
+
+  <section id="call" hidden>
+    <div class="pulse" id="pulse"></div>
+    <p class="status" id="callstatus">Connecting…</p>
+    <p class="muted" style="text-align:center" id="reminder"></p>
+    <div class="meter"><div id="level2"></div></div>
+    <p class="muted" id="micwarn2"></p>
+    <button class="btn ghost" id="mute">Mute</button>
+    <button class="btn stop" id="hangup">End the call</button>
+  </section>
+
+  <section id="ringing" hidden>
+    <h1>Your phone is ringing 📞</h1>
+    <div class="panel"><p>Pick up and play your part. The call comes from the agency's number and may show as an international (US) number.</p>
+      <p class="muted">Keep this page open if you want to read your card during the call.</p></div>
+    <div class="panel"><h2>Your situation</h2><p id="ringsituation"></p><ul id="ringknow"></ul></div>
+    <button class="btn" id="again2">I'm done: try another situation</button>
+  </section>
+
+  <section id="done" hidden>
+    <h1>Thank you!</h1>
+    <div class="panel"><p>That call has been saved. Every call helps, especially the messy ones.</p></div>
+    <button class="btn" id="again">Try another situation</button>
+  </section>
+</main>
+
+<script type="module">
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const base = location.pathname.replace(/\/$/, '');
+const api = async (p, opts = {}) => {
+  const r = await fetch(`${base}/api/${p}`, { ...opts, headers: { 'content-type': 'application/json' } });
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(body.error || `Error ${r.status}`);
+  return body;
+};
+const show = (id) => ['consent', 'brief', 'call', 'ringing', 'done'].forEach((s) => ($(s).hidden = s !== id));
+const store = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
+
+let card, agentSetup, conversation, conversationId, muted = false, testStream, levelTimer;
+
+let phoneMode = false;
+function setMode(phone) {
+  phoneMode = phone;
+  $('phonebox').hidden = !phone;
+  $('micpanel').hidden = phone;
+  $('start').hidden = phone;
+}
+async function loadCard(skip) {
+  const { name, card: c, phone, fixed, agent } = await api(`card${skip ? `?skip=${encodeURIComponent(skip)}` : ''}`);
+  card = c;
+  agentSetup = agent;
+  $('swap').hidden = fixed;
+  if (phone) $('phonenote').textContent = `We'll ring your phone ending ${phone.replace(/\D/g, '')}.`;
+  setMode(!!phone);
+  $('ringsituation').textContent = c.situation;
+  $('ringknow').innerHTML = c.youKnow.map((k) => `<li>${esc(k)}</li>`).join('');
+  $('hello').textContent = `Hi ${name}, thanks for helping!`;
+  const roleLabel = { tenant: 'the tenant', landlord: 'the landlord', contractor: 'the contractor' }[c.role] ?? c.role;
+  $('title').textContent = `You are ${c.persona} (${roleLabel})`;
+  $('twistbox').hidden = !c.twist;
+  $('twist').textContent = c.twist ?? '';
+  $('situation').textContent = c.situation;
+  $('know').innerHTML = c.youKnow.map((k) => `<li>${esc(k)}</li>`).join('');
+  $('tips').innerHTML = c.tips.map((k) => `<li>${esc(k)}</li>`).join('');
+  $('reminder').textContent = c.situation;
+}
+
+// The level meter catches the most common failure: a mic that connects but sends silence.
+function watchLevel(read, bar, warn) {
+  clearInterval(levelTimer);
+  let silentFor = 0, heard = false;
+  levelTimer = setInterval(() => {
+    const v = Math.min(1, read() * 4);
+    $(bar).style.width = `${Math.round(v * 100)}%`;
+    if (v > 0.04) { heard = true; silentFor = 0; $(warn).textContent = ''; }
+    else if ((silentFor += 100) >= 5000 && !heard)
+      $(warn).innerHTML = '<span class="warn">We can\'t hear your microphone.</span> Try another microphone in the list, or check your browser and phone settings allow microphone access.';
+  }, 100);
+}
+const stopLevel = () => { clearInterval(levelTimer); $('level').style.width = '0'; $('level2').style.width = '0'; };
+
+async function listDevices() {
+  try {
+    const devices = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'audioinput' && d.deviceId);
+    const keep = $('device').value || store.get('voice-mic') || '';
+    $('device').innerHTML = '<option value="">Default microphone</option>' + devices.map((d) => `<option value="${esc(d.deviceId)}">${esc(d.label || 'Microphone')}</option>`).join('');
+    $('device').value = devices.some((d) => d.deviceId === keep) ? keep : '';
+  } catch {}
+}
+async function stopTest() {
+  if (!testStream) return;
+  testStream.getTracks().forEach((t) => t.stop());
+  testStream = undefined;
+  stopLevel();
+  $('miccheck').textContent = 'Test my microphone';
+}
+async function micCheck() {
+  if (testStream) return stopTest();
+  try {
+    testStream = await navigator.mediaDevices.getUserMedia({ audio: $('device').value ? { deviceId: { exact: $('device').value } } : true });
+    await listDevices();
+    const ctx = new AudioContext();
+    const analyser = ctx.createAnalyser();
+    ctx.createMediaStreamSource(testStream).connect(analyser);
+    const buf = new Float32Array(analyser.fftSize);
+    $('miccheck').textContent = 'Stop test';
+    $('micwarn').textContent = 'Say something: the green bar should move.';
+    watchLevel(() => { analyser.getFloatTimeDomainData(buf); return Math.sqrt(buf.reduce((a, x) => a + x * x, 0) / buf.length); }, 'level', 'micwarn');
+  } catch (e) {
+    $('micwarn').innerHTML = `<span class="err">Microphone blocked (${esc(e.message)}). Allow microphone access for this site and reload.</span>`;
+  }
+}
+
+async function startCall() {
+  $('starterr').textContent = '';
+  $('start').disabled = true;
+  await stopTest();
+  try {
+    const { Conversation } = await import('https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.27.0/+esm');
+    const { token } = await api('start', { method: 'POST' });
+    show('call');
+    conversation = await Conversation.startSession({
+      conversationToken: token,
+      connectionType: 'webrtc',
+      dynamicVariables: { call_brief: agentSetup.callBrief, scenario_id: card.id },
+      overrides: { agent: { firstMessage: agentSetup.firstMessage } },
+      ...($('device').value ? { inputDeviceId: $('device').value } : {}),
+      onConnect: () => { $('callstatus').textContent = 'Connected: start talking'; },
+      onModeChange: ({ mode }) => {
+        $('pulse').classList.toggle('speaking', mode === 'speaking');
+        $('callstatus').textContent = mode === 'speaking' ? 'Assistant speaking' : 'Listening';
+      },
+      onDisconnect: () => endCall(),
+      onError: (e) => { $('callstatus').textContent = 'Connection problem'; console.error(e); },
+    });
+    conversationId = conversation.getId();
+    await api('calls', { method: 'POST', body: JSON.stringify({ conversationId, scenarioId: card.id }) });
+    watchLevel(() => conversation?.getInputVolume?.() ?? 0, 'level2', 'micwarn2');
+  } catch (e) {
+    show('brief');
+    $('starterr').textContent = e.message;
+  } finally {
+    $('start').disabled = false;
+  }
+}
+
+let ending = false;
+async function endCall() {
+  if (ending) return;
+  ending = true;
+  stopLevel();
+  const c = conversation; conversation = undefined;
+  try { await c?.endSession(); } catch {}
+  if (conversationId) await api(`calls/${encodeURIComponent(conversationId)}/end`, { method: 'POST' }).catch(() => {});
+  conversationId = undefined;
+  show('done');
+  ending = false;
+}
+
+$('agree').addEventListener('change', () => ($('continue').disabled = !$('agree').checked));
+$('continue').addEventListener('click', async () => { store.set('voice-consent', '1'); show('brief'); await listDevices(); });
+$('miccheck').addEventListener('click', micCheck);
+$('device').addEventListener('change', () => { store.set('voice-mic', $('device').value); if (testStream) { stopTest().then(micCheck); } });
+$('start').addEventListener('click', startCall);
+$('callme').addEventListener('click', async () => {
+  $('starterr').textContent = '';
+  $('callme').disabled = true; $('callme').textContent = 'Calling you…';
+  try {
+    await api('phone-call', { method: 'POST', body: JSON.stringify({ scenarioId: card.id }) });
+    show('ringing');
+  } catch (e) {
+    $('starterr').textContent = e.message;
+  } finally {
+    $('callme').disabled = false; $('callme').textContent = '📞 Call me now';
+  }
+});
+$('usebrowser').addEventListener('click', async () => { setMode(false); await listDevices(); });
+$('again2').addEventListener('click', async () => { await loadCard(card?.id); show('brief'); });
+$('swap').addEventListener('click', () => loadCard(card?.id));
+$('hangup').addEventListener('click', endCall);
+$('mute').addEventListener('click', () => { muted = !muted; conversation?.setMicMuted(muted); $('mute').textContent = muted ? 'Unmute' : 'Mute'; });
+$('again').addEventListener('click', async () => { await loadCard(card?.id); show('brief'); });
+navigator.mediaDevices?.addEventListener?.('devicechange', listDevices);
+
+try {
+  await loadCard();
+  if (store.get('voice-consent') === '1') { $('agree').checked = true; $('continue').disabled = false; }
+} catch (e) {
+  document.querySelector('main').innerHTML = `<h1>This link isn't working</h1><p class="muted">${esc(e.message)}</p>`;
+}
+</script>
+</body>
+</html>

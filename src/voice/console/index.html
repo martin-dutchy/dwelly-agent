@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Voice Test Console</title>
+<style>
+  :root {
+    --bg: #f6f5f2; --panel: #fff; --ink: #1c1b19; --muted: #6b6860; --line: #e4e1da;
+    --accent: #2f5d50; --pass: #1f7a4a; --fail: #b3261e; --warn: #9a6700; --chip: #eef3f1;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #151514; --panel: #1f1e1c; --ink: #ecebe7; --muted: #a29f96; --line: #33312d; --accent: #7fb8a4; --pass: #5cc48b; --fail: #ff8a80; --warn: #e3b341; --chip: #26302c; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  header { display: flex; gap: 16px; align-items: center; padding: 12px 20px; border-bottom: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; }
+  header h1 { font-size: 16px; margin: 0; }
+  .status { color: var(--muted); font-size: 12px; display: flex; gap: 12px; flex-wrap: wrap; }
+  .status b { color: var(--ink); font-weight: 600; }
+  main { display: grid; grid-template-columns: 240px minmax(0, 1fr) minmax(0, 1fr); gap: 16px; padding: 16px 20px; }
+  @media (max-width: 1000px) { main { grid-template-columns: 1fr; padding: 16px; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-bottom: 16px; }
+  .panel h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 8px; }
+  .scenario { display: block; width: 100%; text-align: left; padding: 10px 12px; margin-bottom: 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); cursor: pointer; font: inherit; }
+  .scenario.active { border-color: var(--accent); background: var(--chip); }
+  .scenario small { display: block; color: var(--muted); }
+  ul { margin: 0; padding-left: 18px; }
+  .facts { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; }
+  .facts dt { color: var(--muted); }
+  .facts dd { margin: 0; font-weight: 600; }
+  ol.script { padding-left: 0; list-style: none; margin: 0; }
+  ol.script li { display: flex; gap: 8px; align-items: flex-start; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+  ol.script li.done { color: var(--muted); text-decoration: line-through; }
+  ol.script input { margin-top: 4px; }
+  ol.script .line { flex: 1; font-size: 15px; }
+  button.small { font: inherit; font-size: 12px; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--line); background: transparent; color: var(--accent); cursor: pointer; }
+  .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .btn { font: inherit; font-weight: 600; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--accent); background: var(--accent); color: var(--panel); cursor: pointer; }
+  .btn.secondary { background: transparent; color: var(--accent); }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .mode { font-size: 12px; color: var(--muted); }
+  .feed { max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+  .msg { padding: 6px 10px; border-radius: 8px; background: var(--chip); max-width: 90%; }
+  .msg.user { align-self: flex-end; background: transparent; border: 1px solid var(--line); }
+  .msg .who { font-size: 11px; color: var(--muted); display: block; }
+  .tool { font: 12px/1.4 ui-monospace, Menlo, monospace; padding: 6px 8px; border-left: 3px solid var(--line); margin-bottom: 4px; word-break: break-word; }
+  .tool.ok { border-color: var(--pass); } .tool.bad { border-color: var(--fail); } .tool.write { border-color: var(--warn); }
+  .check { display: flex; gap: 8px; padding: 4px 0; }
+  .pass { color: var(--pass); font-weight: 700; } .fail { color: var(--fail); font-weight: 700; } .pending { color: var(--muted); }
+  .verdict { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+  .typebox { display: flex; gap: 6px; margin-top: 8px; }
+  .typebox input { flex: 1; min-width: 0; font: inherit; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
+  .hint { color: var(--muted); font-size: 12px; }
+  .err { color: var(--fail); }
+  .mic { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+  .mic select { font: inherit; font-size: 12px; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); max-width: 260px; }
+  .meter { width: 120px; height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+  .meter > div { height: 100%; width: 0; background: var(--pass); transition: width 80ms linear; }
+  .warn { color: var(--warn); font-weight: 600; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Voice Test Console</h1>
+  <div class="status" id="status">loading…</div>
+</header>
+<main>
+  <section>
+    <div class="panel"><h2>Scenarios</h2><div id="list"></div></div>
+  </section>
+
+  <section id="brief"></section>
+
+  <section>
+    <div class="panel">
+      <h2>Call</h2>
+      <div class="controls">
+        <button class="btn" id="start">Start call</button>
+        <button class="btn secondary" id="stop" disabled>End call</button>
+        <button class="btn secondary" id="mute" disabled>Mute mic</button>
+        <span class="mode" id="mode"></span>
+      </div>
+      <label class="hint" style="display:block;margin-top:8px"><input type="checkbox" id="textonly" /> Text only (no mic): tests the agent's decisions without audio</label>
+      <div class="mic">
+        <select id="device" title="Microphone"><option value="">Default microphone</option></select>
+        <button class="small" id="miccheck">Test mic</button>
+        <div class="meter" title="Mic level"><div id="level"></div></div>
+      </div>
+      <p class="hint" id="micwarn"></p>
+      <div class="typebox">
+        <input id="typed" placeholder="Or type what the caller says (no mic needed)" disabled />
+        <button class="small" id="send" disabled>Send</button>
+      </div>
+      <p class="hint" id="callinfo"></p>
+    </div>
+    <div class="panel"><h2>Transcript</h2><div class="feed" id="feed"></div></div>
+    <div class="panel"><h2>What the agent did (server audit log)</h2><div id="tools" class="hint">No tool calls yet.</div></div>
+    <div class="panel"><h2>Grade</h2><div id="grade" class="hint">Make the call, then the checks below are graded from the audit log.</div>
+      <button class="btn secondary" id="regrade" style="margin-top:8px" disabled>Grade now</button></div>
+  </section>
+</main>
+
+<script type="module">
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const api = (p, opts) => fetch(`/admin/api/${p}`, { ...opts, headers: { 'content-type': 'application/json', ...(opts?.headers ?? {}) } }).then(async (r) => { if (!r.ok) throw new Error(await r.text()); return r.json(); });
+
+let scenarios = [], current, conversation, conversationId, poll, muted = false;
+
+function renderStatus(s) {
+  const ok = (v) => (v ? '<b>set</b>' : '<span class="err">missing</span>');
+  $('status').innerHTML = `brain <b>${esc(s.brain)}</b> · agent ${ok(s.agentId)} · public URL ${s.publicBaseUrl ? `<b>${esc(s.publicBaseUrl)}</b>` : '<span class="err">missing</span>'} · database ${s.database ? '<b>postgres</b>' : '<span class="err">in-memory</span>'}`;
+}
+
+function pick(id) {
+  current = scenarios.find((s) => s.id === id);
+  try { localStorage.setItem('voice-scenario', id); } catch {}
+  $('list').querySelectorAll('.scenario').forEach((b) => b.classList.toggle('active', b.dataset.id === id));
+  const s = current;
+  $('brief').innerHTML = `
+    <div class="panel"><h2>Case context (what the agency knows)</h2><ul>${s.context.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></div>
+    <div class="panel"><h2>You are</h2><p style="margin:0 0 6px;font-size:15px;font-weight:600">${esc(s.persona.name)}</p>
+      <dl class="facts">${Object.entries(s.persona.facts).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl></div>
+    <div class="panel"><h2>Say this (improvise in between, answer with your facts)</h2>
+      <ol class="script">${s.script.map((l, i) => `<li><input type="checkbox" data-i="${i}" /><span class="line">${esc(l)}</span><button class="small" data-say="${i}">type it</button></li>`).join('')}</ol></div>
+    <div class="panel"><h2>Make it realistic</h2><ul>${s.stress.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></div>
+    <div class="panel"><h2>A good agent will</h2><ul>${s.expected.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></div>`;
+  $('brief').querySelectorAll('input[type=checkbox]').forEach((cb) => cb.addEventListener('change', () => cb.closest('li').classList.toggle('done', cb.checked)));
+  $('brief').querySelectorAll('[data-say]').forEach((b) => b.addEventListener('click', () => {
+    const line = s.script[Number(b.dataset.say)].replace(/\(.*?\)\s*/g, '').trim();
+    if (conversation) { conversation.sendUserMessage(line); addMsg('user', `${line} (typed)`); b.closest('li').querySelector('input').click(); }
+    else $('typed').value = line;
+  }));
+  renderChecks(null);
+}
+
+function renderChecks(result) {
+  if (!current) return;
+  if (!result) {
+    $('grade').innerHTML = current.checks.map((c) => `<div class="check"><span class="pending">○</span>${esc(c)}</div>`).join('');
+    return;
+  }
+  $('grade').innerHTML = `<div class="verdict ${result.passed ? 'pass' : 'fail'}">${result.passed ? 'PASS' : 'FAIL'}</div>` +
+    result.results.map((r) => `<div class="check"><span class="${r.pass ? 'pass' : 'fail'}">${r.pass ? '✓' : '✗'}</span>${esc(r.label)}</div>`).join('');
+}
+
+function addMsg(role, text) {
+  const d = document.createElement('div');
+  d.className = `msg ${role}`;
+  d.innerHTML = `<span class="who">${role === 'user' ? 'you' : 'agent'}</span>${esc(text)}`;
+  $('feed').appendChild(d);
+  $('feed').scrollTop = $('feed').scrollHeight;
+}
+
+function renderTools(log) {
+  const items = [
+    ...log.tools.map((t) => {
+      const cls = t.result?.ok === false ? 'bad' : 'ok';
+      return `<div class="tool ${cls}"><b>${esc(t.name)}</b> ${esc(JSON.stringify(t.args))}<br>→ ${esc(JSON.stringify(t.result).slice(0, 220))}</div>`;
+    }),
+    ...log.refused.map((n) => `<div class="tool bad"><b>${esc(n)}</b> refused: no read-back confirmation</div>`),
+    ...log.ledger.map((e) => `<div class="tool write">ledger: <b>${esc(e.tool)}</b> ${esc(e.status)}${e.ref ? ` (${esc(e.ref)})` : ''}</div>`),
+  ];
+  $('tools').innerHTML = items.length ? items.join('') : 'No tool calls yet.';
+}
+
+async function refresh() {
+  if (!conversationId) return;
+  try { renderTools(await api(`calls/${encodeURIComponent(conversationId)}`)); } catch {}
+}
+async function regrade() {
+  if (!conversationId || !current) return;
+  const r = await api(`grade?scenario=${current.id}&conversation=${encodeURIComponent(conversationId)}`);
+  renderTools(r.log);
+  renderChecks(r);
+}
+
+// A silent mic is the most common "it didn't hear me": the browser connects but sends zeros
+// (macOS privacy setting, or a virtual/disconnected input). Show the level and say so.
+let levelTimer, testStream;
+function stopLevel() { clearInterval(levelTimer); $('level').style.width = '0'; }
+function watchLevel(read) {
+  stopLevel();
+  let silentFor = 0, heard = false;
+  levelTimer = setInterval(() => {
+    const v = Math.min(1, read() * 4);
+    $('level').style.width = `${Math.round(v * 100)}%`;
+    if (v > 0.04) { heard = true; silentFor = 0; $('micwarn').textContent = ''; }
+    else if ((silentFor += 100) >= 5000 && !heard) {
+      $('micwarn').innerHTML = '<span class="warn">No sound from your mic.</span> Pick another input above, or allow the browser in macOS System Settings → Privacy &amp; Security → Microphone, then restart the browser.';
+    }
+  }, 100);
+}
+async function listDevices() {
+  try {
+    const devices = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'audioinput');
+    const keep = $('device').value;
+    $('device').innerHTML = '<option value="">Default microphone</option>' + devices.map((d) => `<option value="${esc(d.deviceId)}">${esc(d.label || 'Microphone')}</option>`).join('');
+    $('device').value = devices.some((d) => d.deviceId === keep) ? keep : '';
+  } catch {}
+}
+async function micCheck() {
+  if (testStream) { testStream.getTracks().forEach((t) => t.stop()); testStream = undefined; stopLevel(); $('miccheck').textContent = 'Test mic'; return; }
+  try {
+    testStream = await navigator.mediaDevices.getUserMedia({ audio: $('device').value ? { deviceId: { exact: $('device').value } } : true });
+    await listDevices();
+    const ctx = new AudioContext();
+    const analyser = ctx.createAnalyser();
+    ctx.createMediaStreamSource(testStream).connect(analyser);
+    const buf = new Float32Array(analyser.fftSize);
+    $('micwarn').textContent = 'Say something: the bar should move.';
+    $('miccheck').textContent = 'Stop test';
+    watchLevel(() => { analyser.getFloatTimeDomainData(buf); return Math.sqrt(buf.reduce((a, x) => a + x * x, 0) / buf.length); });
+  } catch (e) {
+    $('micwarn').innerHTML = `<span class="err">Mic blocked: ${esc(e.message)}</span>`;
+  }
+}
+
+function setCallUi(active) {
+  $('start').disabled = active; $('stop').disabled = !active; $('mute').disabled = !active;
+  $('typed').disabled = !active; $('send').disabled = !active;
+}
+
+$('start').addEventListener('click', async () => {
+  if (!current) return;
+  if (testStream) await micCheck();
+  $('feed').innerHTML = ''; renderChecks(null); $('tools').textContent = 'No tool calls yet.';
+  $('start').disabled = true; $('callinfo').textContent = 'Connecting…';
+  try {
+    const { Conversation } = await import('https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.27.0/+esm');
+    const textOnly = $('textonly').checked;
+    const session = textOnly
+      ? { signedUrl: (await api('signed-url')).signed_url, connectionType: 'websocket', textOnly: true }
+      : { conversationToken: (await api('token')).token, connectionType: 'webrtc', ...($('device').value ? { inputDeviceId: $('device').value } : {}) };
+    conversation = await Conversation.startSession({
+      ...session,
+      dynamicVariables: { call_brief: current.callBrief, scenario_id: current.id },
+      overrides: { agent: { firstMessage: current.firstMessage }, ...(textOnly ? { conversation: { textOnly: true } } : {}) },
+      onConnect: () => { $('callinfo').textContent = $('textonly').checked ? 'Connected (text only). Type or click "type it".' : 'Connected. Start with the first line.'; },
+      onDisconnect: () => {
+        setCallUi(false); clearInterval(poll); stopLevel(); conversation = undefined;
+        $('callinfo').textContent = `Call ended (${conversationId}). Grading…`;
+        setTimeout(regrade, 800);
+      },
+      onMessage: ({ source, message }) => addMsg(source === 'user' ? 'user' : 'agent', message),
+      onModeChange: ({ mode }) => { $('mode').textContent = mode === 'speaking' ? 'agent speaking' : 'listening'; },
+      onError: (e) => { $('callinfo').innerHTML = `<span class="err">${esc(e?.message ?? e)}</span>`; },
+    });
+    conversationId = conversation.getId();
+    await api('calls', { method: 'POST', body: JSON.stringify({ conversationId, scenarioId: current.id }) });
+    if (!$('textonly').checked) watchLevel(() => conversation?.getInputVolume?.() ?? 0);
+    $('regrade').disabled = false;
+    setCallUi(true);
+    poll = setInterval(refresh, 1000);
+  } catch (e) {
+    $('callinfo').innerHTML = `<span class="err">Could not start: ${esc(e.message)}</span>`;
+    $('start').disabled = false;
+  }
+});
+$('stop').addEventListener('click', () => conversation?.endSession());
+$('mute').addEventListener('click', () => { muted = !muted; conversation?.setMicMuted(muted); $('mute').textContent = muted ? 'Unmute mic' : 'Mute mic'; });
+const sendTyped = () => { const v = $('typed').value.trim(); if (!v || !conversation) return; conversation.sendUserMessage(v); addMsg('user', `${v} (typed)`); $('typed').value = ''; };
+$('send').addEventListener('click', sendTyped);
+$('typed').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendTyped(); });
+$('regrade').addEventListener('click', regrade);
+$('miccheck').addEventListener('click', micCheck);
+$('device').addEventListener('change', () => { try { localStorage.setItem('voice-mic', $('device').value); } catch {} });
+navigator.mediaDevices?.addEventListener?.('devicechange', listDevices);
+await listDevices();
+try { const m = localStorage.getItem('voice-mic'); if (m && [...$('device').options].some((o) => o.value === m)) $('device').value = m; } catch {}
+
+try { $('textonly').checked = localStorage.getItem('voice-textonly') === '1'; } catch {}
+$('textonly').addEventListener('change', () => { try { localStorage.setItem('voice-textonly', $('textonly').checked ? '1' : '0'); } catch {} });
+const [list, status] = await Promise.all([api('scenarios'), api('status')]);
+scenarios = list; renderStatus(status);
+$('list').innerHTML = scenarios.map((s) => `<button class="scenario" data-id="${s.id}">${esc(s.title)}<small>${esc(s.persona.name)}</small></button>`).join('');
+$('list').querySelectorAll('.scenario').forEach((b) => b.addEventListener('click', () => pick(b.dataset.id)));
+let saved; try { saved = localStorage.getItem('voice-scenario'); } catch {}
+pick(scenarios.some((s) => s.id === saved) ? saved : scenarios[0].id);
+</script>
+</body>
+</html>

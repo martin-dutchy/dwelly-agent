@@ -267,6 +267,9 @@ Create each as a default plan (not ExecPlan) in `docs/plans/`, named with the mi
   - [ ] 15:15 rehearsal per the runbook.
   - [x] (2026-10-10 11:45 BST, Marc) Runbook half: `.claude/skills/reality-test-run/SKILL.md` has the 5-minute format-triage checklist (organiser / practice / third format / API-MCP), every step a command with a pass signal; `scripts/convert-to-organiser.ts` converts loose files per case to `index.md` + `history.md` + `attachments/` with `--dry-run`, `--check` and a loader `--probe`; 8 Vitest tests next to it. Runner flags and the adapter are Martin's and listed as pending in the skill; rehearsal table left as placeholders.
 - [ ] M6 Voice (gated)
+  - [x] (2026-10-10 11:40 BST) Inbound tenant-line agent on ElevenLabs, `src/voice/**`: shared tools via webhooks, swappable brain (`VOICE_BRAIN=native|pi`), per-call ledger, post-call `CALL.md`, test console at `/voice/console` with 6 graded scenarios. Text-mode runs of routine-repair and gas-emergency both PASS.
+  - [x] (2026-10-10 12:05 BST) Hosted on Fly (dwelly-voice.fly.dev) with Neon; invites with "Call me now"; 10 case-grounded scenarios (tenant, landlord, contractor) from non-holdout cases incl. the landlord-approval call; calls export into case histories for `pnpm cases`/`pnpm eval`. Plan: `src/voice/plans/voice-dataset-plan.md`.
+  - [ ] Dataset waves W0–W2 per the sub-plan.
 - [ ] M7 Submission package
   - [x] (2026-10-10 11:45 BST) Sub-plan `docs/plans/M7-submission-package-plan.md`.
   - [x] (2026-10-10 12:04 BST, PR #12) README sections, `SUBMISSION.md`, LFS attributes, demo storyboard, post drafts. README metrics table still cites the 11:58 baseline; replace after the rehearsal.
@@ -307,6 +310,9 @@ Create each as a default plan (not ExecPlan) in `docs/plans/`, named with the mi
 - Observation: with critic off and the two deterministic pre-review checks on, `main` 4cfac5a scores mean 91.0 final (practice, public examples and public-cuts, 48/48 decided, 0 critical, escalation P/R 1.00/1.00, $2.49 agent, 157 s) and 83.6 quick (Haiku, escalation precision 0.25). Evidence: `evals/baseline-final-dev.json`, `evals/baseline-quick-dev.json`.
 - Observation: measurements the plan asked for, all final profile. k = 3 on `3172ad8` (dev, 144 case-runs): mean 90.2, 0 critical, pass^3 0.60, escalation P/R 1.00/1.00 over 54 labelled runs, recovery 24/24, $0.053 and 22 s per case-run (`evals/baseline-final-dev-k3.json`). Chaos 0.15 seed 1 on `16adacd` (dev, k = 1): mean 89.0, 0 critical, recovery 38/38, escalation precision 0.50 (more hand-overs under failures). Holdout on `16adacd` (aggregates only, 11 cases): mean 92.0, 0 critical, so no sign of overfitting to dev. Decision stability is the weak axis: 25 of 48 cases keep identical decision fields across 3 runs, mostly differing in the set of next actions.
 - Observation: `record_landlord_decision` checked that the quote was in the case but not who wrote it, so a tenant's or contractor's "the landlord said go ahead" counted as approval; naming any attachment fragment skipped the check. PR #30 blocks tenant/contractor hearsay and needs the exact attachment name; the block fired 0 times in the dev run (no false blocks in the 7 dev cases that record landlord decisions).
+- Observation: ElevenLabs gives no ASR confidence anywhere (transcript, webhook or API), so bad audio can only be caught by protocol: read-back + explicit yes before writes (enforced server-side by `caller_confirmed_readback`), exact DOB match after server-side spoken-date normalisation, fuzzy names. Evidence: research subagent report 10 Oct, `research/voice-agent-stack.md` "Update 10 Oct".
+- Observation: in the gas test the agent escalated P1 before learning who or where the caller was, and did not update the handover when it later heard the name and address. Evidence: console run 11:39 BST, escalation E-4902 has no tenant or address.
+- Observation: the first exported voice case (008 + landlord call), run on the voice branch's older case-worker code, approved and held payment but did not instruct the contractor ("no contact details on file", eval 30): the same failure `main` had already fixed by making `send_message.contact` optional. Re-run voice exports on merged `main` before drawing conclusions. Evidence: runs/voice/V008-landlord-two-quotes-*/ANSWER.md.
 
 ## Decision log
 
@@ -348,6 +354,8 @@ Create each as a default plan (not ExecPlan) in `docs/plans/`, named with the mi
   Rationale: about 4.5 hours to 16:30 and five independent pieces of work; file-level ownership keeps merges conflict-free, and `caseAgent.ts` stays single-writer. Date/Author: 2026-10-10 12:00, Claude for Marc.
 - Decision: the critic ships off (`--critic` defaults to `off`); the deterministic pre-review checks stay on in every run, capped at 2 blocks each.
   Rationale: AC12 rule as written: the k=3 A/B lowered required-met and escalation precision and added an over-escalation, at twice the cost and 1.5× the time. The deterministic checks are free and cannot stall a case. Date/Author: 2026-10-10 12:35, Claude for Marc (PR #21).
+- Decision: the live voice brain is ElevenLabs-hosted Claude (`claude-haiku-4-5`) calling our tools as webhooks; the pi agent is a drop-in alternative via ElevenLabs Custom LLM (`VOICE_BRAIN=pi`).
+  Rationale: native keeps the lowest latency and ElevenLabs' automatic LLM fallback; Custom LLM has no fallback and adds a hop. Both share tools, guard, ledger, prompt and turn settings, so the brain can be A/B'd per call. Date/Author: 2026-10-10 11:40, Martin (with Claude).
 
 ## Final outcome
 
