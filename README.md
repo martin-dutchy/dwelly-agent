@@ -119,6 +119,10 @@ Images and scanned PDFs (no text layer) are sent to Claude natively. PDFs with a
 | `ANTHROPIC_API_KEY` | Claude models |
 | `CASE_MODEL`, `JUDGE_MODEL` | Agent and judge models (defaults: Sonnet 5.5, Opus 5.5) |
 | `TYPESAFE_API_KEY` | Optional Jev classifier for pre-screen and pre-send checks |
+| `ORGANISER_API_URL` | Optional organiser-supplied tool API (only if one is provided at the Reality Test). Unset: the local mock toolset. Set: mapped tool calls go to `POST {url}/tools/<name>`, writes are mirrored on the mock for read-back, and the first failure switches the run back to the mock; each REASONING.md has a `Toolset:` line saying which was used |
+| `ORGANISER_API_KEY` | Optional bearer token for that API; never logged or written to outputs |
+| `ORGANISER_API_TRANSPORT` | `http` (default; the only transport in this build) |
+| `ORGANISER_TOOL_MAP` | Optional JSON: per-tool target name, `"METHOD /path"` route and argument renames, or `null` to keep a tool local |
 
 PDF attachments are extracted with `pdftotext` (poppler: `brew install poppler`).
 

@@ -105,7 +105,7 @@ grep -rilE 'https?://|api[_ -]?key|bearer|token|mcp' "$RELEASE"/*.md "$RELEASE"/
 ```
 Pass for "no toolset": the second command prints nothing (a plain `README.md` in the first listing is normal; `head -40` it). Then the mock toolset is the acting surface and the ledger is the evidence, which is the master plan's assumption.
 
-If a URL or key is supplied: the organiser adapter (`src/agent/adapters/organiserApi.ts`, Martin's, switched on by an env var named in its plan `src/agent/adapters/plans/organiser-api-adapter-plan.md`) is used. Pass signal for the adapter: in the first finished case, `grep -c '"verified"' ANSWERS/<id>/trace.jsonl` is ≥ 1 and `ANSWERS/<id>/REASONING.md` names the organiser toolset. If the first case errors on the adapter, unset the env var and re-run everything on the mock; the runner states the fallback in REASONING. If the adapter has not landed by 16:30, the answer to this step is "mock", whatever the release contains, and REASONING says the organiser tools were not used.
+If an HTTP tool API URL (and maybe a key) is supplied: set `ORGANISER_API_URL` (and `ORGANISER_API_KEY`) in `.env`; that is configuration, not a code change. If its tool names, routes or argument names differ from ours, `ORGANISER_TOOL_MAP` renames them (JSON, see `.env.example`); if it needs more than renames, or is MCP over stdio, leave the variables empty and run on the mock. The run's second line reads `Toolset: organiser API at <host> (http), K of 28 tools mapped`. Pass signal: in the first finished case, `grep '^Toolset' ANSWERS/<id>/REASONING.md` names the organiser API, and `grep -c '"verified"' ANSWERS/<id>/trace.jsonl` is ≥ 1. No manual fallback is needed: the first failure (network, timeout, HTTP ≥ 400, non-JSON) switches the whole run to the mock, and every affected REASONING says so in its `Toolset:` line.
 
 ### Decision table (16:35)
 
@@ -115,23 +115,19 @@ If a URL or key is supplied: the organiser adapter (`src/agent/adapters/organise
 | Step 2 counts = N, probe OK, `--at auto` recommended | Organiser format with recorded-action markers | `--in "$CASES" --at auto` |
 | Step 3 count = N, probe OK, briefs present | Practice format | `--in "$CASES"` |
 | Probe OK but "no brief file", or probe FAIL, or N = 0 | Third format: Step 5 | `--in runs/reality-converted --at 100%` |
-| Step 6 finds a toolset | Any of the above plus the adapter env var | as above |
+| Step 6 finds an HTTP tool API | Any of the above plus `ORGANISER_API_URL` (and `ORGANISER_API_KEY`, `ORGANISER_TOOL_MAP`) in `.env` | as above |
 
 ## At 16:37: run
 
 1. Run everything in one go, with the flags from the decision table:
    ```bash
    mkdir -p ANSWERS
-   pnpm cases --in "$CASES" --out ANSWERS --at 100% --concurrency 6 2>&1 | tee ANSWERS/run.log
+   pnpm cases --in "$CASES" --out ANSWERS --at 100% --concurrency 6 --deadline 16:50 2>&1 | tee ANSWERS/run.log
    ```
-   Replace `--at 100%` with the probe's recommendation. (`*.log` is git-ignored, so the log stays local; the per-case `trace.jsonl` is the committed evidence.) Concurrency and the global budget: see "Runner flags still to come" below; until they land, `--concurrency 6` and `--timeout 300` are the knobs, and the per-case timeout is what keeps a stuck case from eating the window.
-2. Watch the log: each finished case prints `✓ <id> <outcome> (<s>s, $<cost>)`. Pass at the end: `decisions N/N` on the `Done in` line and no `CRASH` or `NO DECISION` row in the table. Count 429s while it runs:
-   ```bash
-   grep -c '"type":"retry"' ANSWERS/*/trace.jsonl | awk -F: '{s+=$2} END {print "429 retries:", s}'
-   ```
-   More than a handful: the next re-run uses `--concurrency 3`.
-3. If some cases errored or timed out, re-run only those with `--only <ids>`, using the same code and appending to the log (`tee -a`). If a case still fails, **leave the failure in ANSWERS**, since an honest failure record is better than a fabricated answer. Make sure the folder still has ANSWER.md/REASONING.md stating what failed (the runner writes the "escalated (system failure)" pair itself).
-4. **16:50 time fallback.** Whatever has finished is committed. Cases still running get the crash-fallback ANSWER rather than nothing: stop the runner (Ctrl-C), and for any id without both files re-run with `--only <ids> --timeout 120`. Never write the files by hand.
+   Replace `--at 100%` with the probe's recommendation, and `--concurrency 6` with the rehearsal's recommendation (Rehearsal record below). (`*.log` is git-ignored, so the log stays local; the per-case `trace.jsonl` is the committed evidence.) `--deadline 16:50` makes the run finish by 16:50 whatever happens: per-case timeouts shrink as the deadline approaches (the start line prints the deadline and the case timeout), a case still running at its timeout writes the agent's fallback answer with its verified ledger, and a case that can no longer start gets an honest "not processed within the run's time budget, escalated (system failure)" answer. Nobody needs to press Ctrl-C.
+2. Watch the log: each finished case prints `✓ <id> <outcome> (<s>s, $<cost>)`. Pass at the end: `decisions N/N · resumed 0 · budget-skipped 0` on the `Done in` line and no `CRASH`, `NO DECISION` or `BUDGET SKIP` row in the table. The next line reads `Rate-limit retries: <total> across <cases> cases (max <m> in one case) at concurrency <c> · next run: <advice>`; use its advice for any re-run.
+3. If some cases crashed, timed out or were budget-skipped and there is time left (before about 16:48), re-run the **same command plus `--resume`**, with the advised `--concurrency` and a new `--deadline` (for example 16:53), appending to the log (`tee -a`). `--resume` keeps every case that already has a decided `result.json` (byte-identical) and re-runs only the rest; the start line says `resuming K of N`. If a case still fails, **leave the failure in ANSWERS**, since an honest failure record is better than a fabricated answer. The runner writes the "escalated (system failure)" pair itself.
+4. **16:50 time fallback.** Nothing to do by hand: `--deadline` has already written an answer for every case. If the process was killed (laptop, terminal), `--resume` with a new `--deadline` fills only the gaps. Ctrl-C once also stops cleanly (running cases get the fallback answer, unstarted ones are skipped, exit code 130); twice exits at once. Never write the files by hand.
 5. Verify:
    ```bash
    bash .claude/skills/submission-check/scripts/check.sh
@@ -149,18 +145,35 @@ If a URL or key is supplied: the organiser adapter (`src/agent/adapters/organise
 
 The implementation and ANSWERS must not change. Only these may be added: the demo video (via Git LFS), the LinkedIn and X post URLs, and SUBMISSION.md metadata (team, track, members, hash, video path). Make sure the repo is **public**. Run `submission-check` one last time.
 
-## Runner flags still to come (Martin, master plan M5)
+## Runner flags
 
-The runbook above uses only flags that exist in `src/run.ts` today (`--in --out --only --at --concurrency --timeout --model --thinking --chaos --seed`). These are planned and not yet landed; when they merge, swap them into the run command and delete this list:
+`src/run.ts`: `--in --out --only --at --concurrency --timeout --model --thinking --chaos --seed`, plus:
 
-- `--budget-min 20`: global wall-clock budget that scales the per-case timeouts so the batch finishes inside the window. Until then: `--timeout 300` and the 16:50 fallback.
-- Resumable runs: skip cases that already have `ANSWERS/<id>/result.json`. Until then: re-run with `--only <ids>` by hand (the list of ids missing `result.json`: `for d in "$CASES"/*/; do i=$(basename "$d"); [ -f "ANSWERS/$i/result.json" ] || printf '%s,' "$i"; done; echo`).
-- Concurrency chosen from observed 429s. Until then: start at 6, drop to 3 if the retry count above climbs.
-- Organiser API adapter env var (Step 6).
+- `--deadline HH:MM` (local time today) and/or `--budget-min M` (minutes from start); the earlier wins. The run exits 1 if the deadline has passed or is more than 3 hours away. Per-case timeout: `min(--timeout, max(90 s, 2 × budget × concurrency / N))`, clamped to the time left minus 20 s; a case is not started with under 60 s left.
+- `--resume`: keep cases whose folder has `ANSWER.md`, `REASONING.md` and a decided `result.json` (not crashed, not skipped); re-run the rest. Off by default.
+- Ctrl-C: once for a clean stop, twice to exit at once.
+
+## Rehearsal (15:15, AC13)
+
+Aggregates only: 11 of the 25 cases are the holdout, so never open `runs/rehearsal/` case folders or the full console.
+
+```bash
+bash .claude/skills/reality-test-run/scripts/make-rehearsal-set.sh   # pass: "rehearsal set: 25 cases in runs/rehearsal-cases"
+mkdir -p runs/rehearsal
+DEADLINE=$(date -v+15M +%H:%M)                                       # macOS; 15 minutes from now
+time pnpm cases --in runs/rehearsal-cases --out runs/rehearsal --at auto --concurrency 8 --deadline "$DEADLINE" \
+  2>&1 | tee runs/rehearsal/console.txt | grep -E '^(Running|Done in|Rate-limit retries)'
+pnpm eval --cases runs/rehearsal-cases --answers runs/rehearsal --summary-only
+jq -s 'map(.usage.durationMs // 0) | max' runs/rehearsal/*/result.json   # slowest case, a number only
+# Resume drill: must print "resumed 25" (or resumed <decided> plus re-runs) and finish in under 30 s when nothing is left.
+pnpm cases --in runs/rehearsal-cases --out runs/rehearsal --at auto --resume 2>&1 | grep -E '^(Running|Done in)'
+```
+
+Add `--critic` to the run command if the M3 A/B adopted it, so the rehearsal runs the 16:30 configuration.
 
 ## Rehearsal record (AC13, fill in at 15:15)
 
-Command: `time pnpm cases --in runs/rehearsal-cases --out runs/rehearsal --at 100% --concurrency <c>` on the holdout split plus 10 public cases never used in M1/M2.
+Command: the rehearsal block above, on the holdout split plus 14 public cases never used in M1/M2.
 
 | Measure | Value |
 |---|---|

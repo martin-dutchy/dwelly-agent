@@ -198,29 +198,29 @@ Then, in the same window, a resume drill on the same output: `pnpm cases --in ru
 ## Acceptance criteria
 
 - [ ] **AC1 (master plan).** Given N ≤ 30 organiser-format cases, when `pnpm cases --in <dir> --out ANSWERS --budget-min 20` runs, then N case folders each have `ANSWER.md`, `REASONING.md`, `result.json` and (for every case the agent ran) `trace.jsonl`; the table has 0 `CRASH` and 0 `NO DECISION` rows unless the API itself failed; wall time ≤ 20 min. Proved for N = 25 by the rehearsal (AC13) with `--deadline` 15 minutes out.
-- [ ] **AC2 (master plan).** Given a case whose `history.md` is unreadable, its `ANSWER.md` says escalated (system failure) and the other cases complete. Named test: `runner.integration.test.ts › crash fallback`.
+- [x] **AC2 (master plan).** Given a case whose `history.md` is unreadable, its `ANSWER.md` says escalated (system failure) and the other cases complete. Named test: `runner.integration.test.ts › crash fallback`.
 - [ ] **AC13 (master plan).** 25 unseen cases complete in ≤ 15 minutes with 25/25 decisions at the chosen concurrency, and the retry count is recorded in the runbook's Rehearsal record. Command and recording above.
-- [ ] **AC-M5-1 (R1, R2).** Named test: `budget.test.ts` (all cases listed in step 1).
-- [ ] **AC-M5-2 (R5).** Named test: `resume.test.ts` (all cases listed in step 2).
-- [ ] **AC-M5-3 (R3).** Given `--budget-min 0.5` and two cases, then both are budget-skipped, each folder has the three files with `skipped: "budget"`, no model was called, exit 0. Named test: `runner.integration.test.ts › budget skip`.
-- [ ] **AC-M5-4 (R5).** Given a complete case and `--resume`, then it is not re-run and its files are byte-identical. Named test: `runner.integration.test.ts › resume`.
-- [ ] **AC-M5-5 (R4).** Given `timeoutMs: 200` and a model that never finishes, `runCase` returns within 2 s with no decision and no nudge prompt. Named test: `caseAgent.test.ts › abort is bounded`.
+- [x] **AC-M5-1 (R1, R2).** Named test: `budget.test.ts` (all cases listed in step 1).
+- [x] **AC-M5-2 (R5).** Named test: `resume.test.ts` (all cases listed in step 2).
+- [x] **AC-M5-3 (R3).** Given `--budget-min 0.5` and two cases, then both are budget-skipped, each folder has the three files with `skipped: "budget"`, no model was called, exit 0. Named test: `runner.integration.test.ts › budget skip`.
+- [x] **AC-M5-4 (R5).** Given a complete case and `--resume`, then it is not re-run and its files are byte-identical. Named test: `runner.integration.test.ts › resume`.
+- [x] **AC-M5-5 (R4).** Given `timeoutMs: 200` and a model that never finishes, `runCase` returns within 2 s with no decision and no nudge prompt. Named test: `caseAgent.abort.test.ts › abort is bounded` (a new file, so the M1 and M3 lanes own `caseAgent.test.ts` undisturbed).
 - [ ] **AC-M5-6 (R6).** The summary prints `Rate-limit retries: <total> across <cases> cases (max <max> in one case) at concurrency <c> · next run: <advice>`, and `result.json.usage.retries` equals the case's `"type":"retry"` count in `trace.jsonl`. Named test: `retries.test.ts`; spot check `jq .usage.retries` against `grep -c` on one rehearsal case (a number only).
 - [ ] **AC-M5-7 (runbook).** `.claude/skills/reality-test-run/SKILL.md` has no "Runner flags still to come" section; its run command uses `--deadline 16:50`; its re-run step uses `--resume`; its Rehearsal record table is filled with the 15:15 numbers.
-- [ ] **AC-M5-8 (no regression).** Without the new flags, `pnpm cases --in cases/practice --only 01 --out runs/m5-noflags` behaves as before: same files, same summary line apart from the added `resumed 0 · budget-skipped 0` and the retry line.
+- [x] **AC-M5-8 (no regression).** Without the new flags, `pnpm cases --in cases/practice --only 01 --out runs/m5-noflags` behaves as before: same files, same summary line apart from the added `resumed 0 · budget-skipped 0` and the retry line.
 
 ## Verification
 
 Run from the repo root and show the output.
 
-- [ ] `pnpm verify` exits 0.
-- [ ] `pnpm test -- src/runner/` passes (AC2, AC-M5-1 to AC-M5-4, AC-M5-6), offline.
+- [x] `pnpm verify` exits 0.
+- [x] `pnpm test -- src/runner/` passes (AC2, AC-M5-1 to AC-M5-4, AC-M5-6), offline.
 - [ ] `pnpm test -- src/agent/caseAgent.test.ts -t "abort"` passes (AC-M5-5).
-- [ ] Manual AC2 as the master plan words it: `mkdir -p runs/tmp-crash && cp -R "HackatonPublicCases/Property Management/016" runs/tmp-crash/ && chmod 000 runs/tmp-crash/016/history.md && pnpm cases --in runs/tmp-crash --out runs/tmp-crash-out; head -4 runs/tmp-crash-out/016/ANSWER.md; chmod 644 runs/tmp-crash/016/history.md` shows a `CRASH` row and "escalated (system failure)".
+- [x] Manual AC2 as the master plan words it: `mkdir -p runs/tmp-crash && cp -R "HackatonPublicCases/Property Management/016" runs/tmp-crash/ && chmod 000 runs/tmp-crash/016/history.md && pnpm cases --in runs/tmp-crash --out runs/tmp-crash-out; head -4 runs/tmp-crash-out/016/ANSWER.md; chmod 644 runs/tmp-crash/016/history.md` shows a `CRASH` row and "escalated (system failure)".
 - [ ] `pnpm cases --in cases/practice --only 01,02 --out runs/m5-budget --budget-min 0.5; jq .skipped runs/m5-budget/*/result.json` prints `"budget"` twice.
 - [ ] Rehearsal commands above, with the three summary lines and the judge's summary pasted into the runbook (AC13, AC1).
 - [ ] Resume drill above prints `resumed`.
-- [ ] `rg "still to come" .claude/skills/reality-test-run/SKILL.md` returns nothing (AC-M5-7).
+- [x] `rg "still to come" .claude/skills/reality-test-run/SKILL.md` returns nothing (AC-M5-7).
 - [ ] `/code-review` on the diff before the PR (step 6).
 
 ## Risks
@@ -235,6 +235,18 @@ Run from the repo root and show the output.
 | Holdout leakage through the rehearsal output | Console filtered, judge `--summary-only`, no folder opened; the rehearsal is after the last tuning change anyway. |
 | Rate limits at 16:30 differ from 15:15 (shared organiser traffic) | Retry line printed live at the end of each run; `--resume` with lower concurrency is the documented next step. |
 
+## Progress
+
+- [x] 12:30 Steps 1, 2, 5 (`src/runner/budget.ts`, `resume.ts`, `retries.ts` with tests), step 3 (`fallback.ts`, pool wiring, `runner.integration.test.ts`), step 4 (R4 test, green without a `caseAgent.ts` change), step 7 (Ctrl-C, run.ts only), step 8 (`make-rehearsal-set.sh` prints `rehearsal set: 25 cases`; runbook updated). Built on `main` 85ed782 (Q1 override). Also wired the M1 case-state hints (`hintsFor`) into `processCase`.
+- [x] Live checks: `--only 01,02 --budget-min 3` gives `decisions 2/2`; the same command with `--resume` gives `resumed 2` in 0 s with `ANSWER.md` unchanged; public 017 shows `<case_state_hints>` in `trace.jsonl`, practice 01/02 none; AC2 manual command shows `CRASH` and "escalated (system failure)". Ctrl-C drill on practice 03, 05, 06 at concurrency 1: 03 (running) `CRASH` "stopped by the operator", 05 and 06 `BUDGET SKIP` with `skipped: "interrupt"`, all three folders complete, exit 130.
+- [ ] Step 9 rehearsal at 15:15 (orchestrator).
+
+## Discoveries
+
+- `agent.abort()` in pi-agent-core only aborts the *active* run. If `runCase`'s timer fires while `withRetries` is sleeping between 429 retries, the abort is a no-op and the following `agent.continue()` runs with a fresh controller and no timer. The streaming abort itself is bounded (`caseAgent.abort.test.ts` passes, and the nudge is skipped because the aborted turn sets `errorMessage`). Rather than edit `caseAgent.ts` (M1/M3 lanes), `run.ts` puts a guard around each case: if the case has not returned within its timeout plus 15 s (inside the 20 s write margin, so it still ends before the deadline), the runner stops waiting, writes the crash fallback (without the ledger, which only the abandoned run holds) and exits the process at the end of the batch. A proper fix in `caseAgent.ts` is to check the timer in `withRetries` before `continue()`.
+- R7 Ctrl-C needed no `signal` option on `runCase`: the same guard rejects on the interrupt, so in-flight cases write the crash fallback ("stopped by the operator") and unstarted cases write the skip answer with `skipped: "interrupt"`. Exit code 130.
+- Crashes now write `result.json` (`crashed: true`, `decision: null`, plus `cutoff` when the case loaded) through `writeFallback`, so `--resume` and `loop.ts` both see them. `loop.ts` still reports them as `CRASH`.
+
 ## Decision log
 
 - Decision: the rehearsal is one `pnpm cases` batch over a symlink folder, not `pnpm loop --split holdout` plus a second run.
@@ -245,3 +257,7 @@ Run from the repo root and show the output.
   Rationale: hackathon exception in `docs/plans/README.md`. Date/Author: 2026-10-10 12:15, Claude for Marc.
 - Decision: Marc approved the plan with the recommended defaults for Q2 to Q10, and overrode Q1: the runner flags are built on `main`'s `run.ts` now, without waiting for PR #11. This plan's "Fallback at 13:45" path is the plan of record from the start. PR #11 rebases on top of the flags afterwards and merges only if it is green before the 15:15 rehearsal; otherwise it waits until after 17:00. The same lane also wires the M1 case-state hints into `run.ts` (4 lines, `hintsFor` from `src/agent/maintenance/stateReconstruct.ts`) and then builds the organiser API adapter, so `run.ts` has one writer.
   Rationale: the rehearsal needs the flags by 15:00, and waiting on a rebase of someone else's branch puts the critical path on the slowest dependency. Date/Author: 2026-10-10 12:06 BST, Marc.
+- Decision: R4 and R7 are enforced in `run.ts` by a per-case guard (timeout + 15 s, or Ctrl-C) instead of a `signal` option and a nudge guard in `caseAgent.ts`.
+  Rationale: `caseAgent.ts` belongs to the M1 and M3 lanes today; the guard bounds every hang (prescreen, retry backoff, nudge) from the one file this lane owns. Cost: a case abandoned by the guard loses its ledger in the fallback answer. Date/Author: 2026-10-10 12:30 BST, Claude for Marc.
+- Decision: budget-skip and Ctrl-C-skip answers set `decision: null` in `result.json` as well as `skipped`, and the summary table shows them as `BUDGET SKIP`.
+  Rationale: every consumer that looks for `decision` (`loop.ts`, `--resume`) then treats them as undecided without special cases. Date/Author: 2026-10-10 12:30 BST, Claude for Marc.

@@ -108,3 +108,4 @@ Run from the worktree root and show the output.
 ## Progress
 
 - 12:05 delta plan committed. 12:20 G1–G5 implemented with tests (`pnpm verify`: 174 tests green). Dev behaviour check on 6 dev cases with the final text: mean 91.2 vs 90.3 for the same rows in the 10:57Z baseline, 0 critical in both; no gate fired spuriously (empty `policyLog` on all six).
+- 12:30 (M5 lane, branch `marc/m5-runner`): step 9 `run.ts` wiring done. `processCase` calls `hintsFor(c)` right after `loadCase` and appends `hints.text` to the prompt; `result.json` carries `hintsError`. Checked live: public 017 has `<case_state_hints>` in its `trace.jsonl` prompt, practice 01 and 02 have none; a `history.md` without event anchors gives `hintsError: "history.md has no event anchors"` and the case still runs.
