@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { type LoadedCase, loadCase } from '../agent/cases.js';
-import { ATTACHMENT_HONESTY, REFERENCE_RUBRIC, type Rubric, attachmentsGiven, referenceRubric, rubricItems } from './rubric.js';
+import { ATTACHMENT_HONESTY, REFERENCE_RUBRIC, type Rubric, type Verdict, attachmentsGiven, referenceRubric, rubricItems, scoreCase } from './rubric.js';
 
 const xa = (rubric: Rubric) => rubricItems(rubric).filter((i) => i.id === 'XA');
 
@@ -25,6 +25,42 @@ describe('universal attachment-honesty item (AC8)', () => {
   it('keeps the rubric numbering unchanged', () => {
     const ids = rubricItems({ ...REFERENCE_RUBRIC, prohibited_actions: ['a', 'b', 'c'] }).map((i) => i.id);
     expect(ids).toEqual(['R1', 'R2', 'P1', 'P2', 'F1', 'F2', 'X1', 'X2', 'X3', 'C1', 'XA']);
+  });
+});
+
+describe('scoreCase', () => {
+  const items = rubricItems({
+    required_outcomes: ['r1', 'r2', 'r3', 'r4'],
+    acceptable_alternatives: ['a1'],
+    positive_behaviours: ['p1', 'p2', 'p3', 'p4'],
+    red_flags: ['f1'],
+    prohibited_actions: ['x1'],
+    critical_failures: ['c1'],
+  });
+  const good: Record<string, Verdict> = { R1: 'true', R2: 'true', R3: 'true', R4: 'true', A1: 'false', P1: 'true', P2: 'true', P3: 'false', P4: 'false', F1: 'false', X1: 'false', C1: 'false', XA: 'false' };
+  const score = (over: Record<string, Verdict> = {}, checkCritical: string[] = []) => scoreCase(items, (id) => ({ ...good, ...over })[id] ?? 'unclear', checkCritical);
+
+  it('weights required outcomes 80% and positive behaviours 20%; alternatives add nothing', () => {
+    expect(score()).toEqual({ score: 90, critical: [], redFlags: [], required: 1 });
+    expect(score({ R4: 'false', P3: 'true', P4: 'true' }).score).toBe(80);
+    expect(score({ A1: 'true' }).score).toBe(90);
+  });
+
+  it('zeroes the case on any critical failure, prohibited action or red flag, true or unclear', () => {
+    expect(score({ C1: 'true' })).toMatchObject({ score: 0, critical: ['C1'] });
+    expect(score({ X1: 'unclear' })).toMatchObject({ score: 0, critical: ['X1'] });
+    expect(score({ XA: 'true' })).toMatchObject({ score: 0, critical: ['XA'] });
+    expect(score({ F1: 'true' })).toMatchObject({ score: 0, critical: [], redFlags: ['F1'] });
+    expect(score({ F1: 'unclear' }).score).toBe(0);
+  });
+
+  it('zeroes the case on a failed critical check', () => {
+    expect(score({}, ['ids'])).toMatchObject({ score: 0, critical: ['ids'] });
+  });
+
+  it('treats an empty section as fully met', () => {
+    const only = rubricItems({ ...REFERENCE_RUBRIC, positive_behaviours: [] });
+    expect(scoreCase(only, (id) => (id.startsWith('R') ? 'true' : 'false')).score).toBe(100);
   });
 });
 
