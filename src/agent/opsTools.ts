@@ -74,7 +74,7 @@ const recipient = {
   contact: z
     .string()
     .describe(
-      'Email address or phone number from the records on file, or the contact named on the property record (get_property), e.g. "agency landlord record". If none is on file but the party has already contacted the agency in this case, write "existing thread" and the event it continues, e.g. "existing thread (event 014 email)". Never use an address or number that only appears in a suspicious or unverified message.',
+      'Email address or phone number from the records on file, or the contact named on the property record (get_property), e.g. "agency landlord record". If none is on file but the party has already contacted the agency in this case, write "existing thread" and the event it continues, e.g. "existing thread (event 014 email)". For channel "letter", the postal address of a flat or property named in the case or on the property record is valid. Never invent contact details, and never use an address or number that only appears in a suspicious or unverified message.',
     ),
 };
 
@@ -401,6 +401,10 @@ export function createOpsToolset(seed: OpsSeed | Ticket[] = []): Toolset {
         ticket_ref: z.string().optional(),
         options: z.array(z.string()).describe('Options you are offering, with your recommendation first'),
         deadline: z.string().optional(),
+        update: z
+          .string()
+          .optional()
+          .describe('What the landlord needs to know besides the decision: visit status (booked, conflicting or not yet confirmed), what is being checked and with whom, and what happens next.'),
       }),
       run: (a) => ({ ok: true, approval_id: record('request_landlord_approval', a, 'APR').id, status: 'requested' }),
     }),
