@@ -179,6 +179,15 @@ export function compareToBaseline(run: DiffSide, baseline: DiffSide) {
   return { scope: same ? ('all' as const) : ('shared' as const), shared: shared.length, notInBaseline, cur, base, regressions };
 }
 
+/**
+ * The key a run's baseline and latest files are stored under: evals/baseline-<tag>.json. Harness flags are part of it,
+ * so flags-on and flags-off runs are compared separately; no flags ('none' or empty) keeps the pre-harness key.
+ */
+export function baselineTag(o: { profile: string; split: string; chaos: number; partial: boolean; k: number; harness?: string }) {
+  const h = o.harness && o.harness !== 'none' ? `-h-${o.harness.replace(/,/g, '+')}` : '';
+  return `${o.profile}-${o.split}${h}${o.chaos > 0 ? '-chaos' : ''}${o.partial ? '-partial' : ''}${o.k > 1 ? `-k${o.k}` : ''}`;
+}
+
 export type Metrics = ReturnType<typeof summarize>;
 
 /** Aggregates every run of every case. Keeps the pre-M4 top-level fields (cases, decided, judged, mean, criticalCases, cost, judgeCost, rows). */
