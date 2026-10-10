@@ -2,9 +2,9 @@ import { createModels, fauxAssistantMessage, fauxProvider, fauxToolCall } from '
 import { describe, expect, it } from 'vitest';
 import { runCase } from './caseAgent.js';
 import { loadCase } from './cases.js';
-import { foreignAddresses, invoiceFlags, quoteTotal, tooThinForApproval, visitProblems } from './opsChecks.js';
+import { foreignAddresses, invoiceFlags, quoteAppears, quoteTotal, tooThinForApproval, visitProblems } from './opsChecks.js';
 import { seedFromCase } from './opsSeed.js';
-import { createOpsToolset } from './opsTools.js';
+import { createOpsToolset, landlordInformedProblem } from './opsTools.js';
 
 const ctx = { conversationId: 'test', channel: 'text' as const };
 const ADDRESS = 'Flat 30, 30 Harbour View, Northbridge, ZZ9 0ZZ';
@@ -33,6 +33,49 @@ describe('ops checks', () => {
   it('treats an emoji as no approval', () => {
     expect(tooThinForApproval('👍')).toBe(true);
     expect(tooThinForApproval('Yes please go ahead')).toBe(false);
+  });
+
+  it('finds a quote copied from the case, whatever the quotes, case, spacing or annotation', () => {
+    const history = '#### event-019\n- **From:** Landlord\n\n> Please approve this  quote for works.\n> I don’t want the old toilet back.';
+    expect(quoteAppears('please approve this quote for works', history)).toBe(true);
+    expect(quoteAppears('“Please approve this quote for works.”', history)).toBe(true);
+    expect(quoteAppears("I don't want the old toilet back", history)).toBe(true);
+    expect(quoteAppears('Please approve this quote for works. I don’t want', history)).toBe(true);
+    expect(quoteAppears('Please approve … old toilet back', history)).toBe(true);
+    expect(quoteAppears('Email 12/10: "Please approve this quote for works."', history)).toBe(true);
+    expect(quoteAppears('Please approve this quote for works (email, event 019)', history)).toBe(true);
+    expect(quoteAppears('Please approve this quote for works - email 12/10', history)).toBe(true);
+    expect(quoteAppears('Yes, go ahead with the repair', history)).toBe(false);
+    expect(quoteAppears('Please approve this quote', 'Please approve this quoted figure')).toBe(false);
+    expect(quoteAppears('old toilet back … Please approve', history)).toBe(false);
+    expect(quoteAppears('', history)).toBe(false);
+  });
+});
+
+describe('landlord_informed on close', () => {
+  const entry = (id: string, tool: string, args: Record<string, unknown>, status: 'verified' | 'failed' = 'verified') => ({ id, tool, args, key: id, attempts: 1, status, evidence: [] });
+  const ledger = [
+    entry('A1', 'send_message', { recipient_role: 'tenant' }),
+    entry('A2', 'send_message', { recipient_role: 'landlord' }),
+    entry('A3', 'send_message', { recipient_role: 'landlord' }, 'failed'),
+    entry('A4', 'request_landlord_approval', { landlord: 'L' }),
+  ];
+  it('accepts a verified landlord message, a history quote or a reason', () => {
+    expect(landlordInformedProblem('A2', ledger)).toBeUndefined();
+    expect(landlordInformedProblem('emailed them, A2', ledger)).toBeUndefined();
+    expect(landlordInformedProblem('A4', ledger)).toBeUndefined();
+    expect(landlordInformedProblem('history: "I will pay the contractor directly" (event 021)', ledger)).toBeUndefined();
+    expect(landlordInformedProblem('not_applicable: agency-owned block, no landlord', ledger)).toBeUndefined();
+  });
+  it('rejects empty, free text, a tenant message or an unverified one', () => {
+    expect(landlordInformedProblem('  ', ledger)).toMatch(/empty/);
+    expect(landlordInformedProblem('they know', ledger)).toMatch(/must be/);
+    expect(landlordInformedProblem('A1', ledger)).toMatch(/not a verified message to the landlord/);
+    expect(landlordInformedProblem('A3', ledger)).toMatch(/not a verified message to the landlord/);
+    expect(landlordInformedProblem('A9', ledger)).toMatch(/A9/);
+  });
+  it('accepts a ledger id unchecked when the ledger is not known', () => {
+    expect(landlordInformedProblem('A3')).toBeUndefined();
   });
 });
 
@@ -82,6 +125,28 @@ describe('ops guards', () => {
     expect(inv.flags).toEqual(['Invoice £240.00 is above the approved £238.04.']);
   });
 
+  it('records a landlord decision only when the quote is in the case', () => {
+    const t = ops({}, { evidence: 'Landlord email 12/10:\n> Yes, please send your contractor. Keep it under £200.' });
+    const rec = (decision: string, evidence_quote: string, source?: string) => t.guard!('record_landlord_decision', { ticket_ref: 'NBL-1', decision, evidence_quote, source });
+    expect(rec('approved', 'Yes, please send your contractor.')).toBeUndefined();
+    expect(rec('approved', 'Yes please send your contractor (email 12/10)')).toBeUndefined();
+    expect(rec('approved', 'Landlord approved the works by phone')).toMatch(/not in the case.*unclear/);
+    expect(rec('declined', 'I will not pay for this')).toMatch(/not in the case/);
+    expect(rec('unclear', 'landlord replied with a thumbs up')).toBeUndefined();
+    expect(ops().guard!('record_landlord_decision', { ticket_ref: 'NBL-1', decision: 'approved', evidence_quote: 'Landlord approved by phone' })).toBeUndefined();
+    const scanned = ops({}, { evidence: 'no text', mediaNames: ['attachments/letter.jpg'] });
+    expect(scanned.guard!('record_landlord_decision', { ticket_ref: 'NBL-1', decision: 'approved', evidence_quote: 'Go ahead', source: 'letter.jpg' })).toBeUndefined();
+    expect(scanned.guard!('record_landlord_decision', { ticket_ref: 'NBL-1', decision: 'approved', evidence_quote: 'Go ahead' })).toMatch(/image or scanned attachment/);
+  });
+
+  it('will not close until the landlord is shown to know', () => {
+    const t = ops({ work_result: { outcome: 'completed' } });
+    const close = (landlord_informed: string) => t.guard!('close_ticket', { ticket_ref: 'NBL-1', mode: 'without_payment', resolution: 'tenant fixed it', tenant_confirmation: 'tenant SMS 12/10', landlord_informed }, []);
+    expect(close('')).toMatch(/landlord_informed is empty/);
+    expect(close('A1')).toMatch(/not a verified message to the landlord/);
+    expect(close('not_applicable: the landlord raised the job and closed it themselves')).toBeUndefined();
+  });
+
   it('reads back holds and catches a dropped one', async () => {
     const t = ops();
     const args = { ticket_ref: 'NBL-1', reason: 'Waiting for Landlord', comment: 'approval', review_on: '2026-10-13' };
@@ -103,6 +168,12 @@ describe('case seeding', () => {
     expect(seed.properties![0].address).toBeTruthy();
   });
 
+  it('carries the visible case text as evidence, never the hidden ending', () => {
+    const seed = seedFromCase(loadCase('cases/public-cuts/002-quote-approval'));
+    expect(quoteAppears('Spoke to landlord who approved for me to instruct a contractor to attend', seed.evidence!)).toBe(true);
+    expect(quoteAppears('Please approve this quote for works.', seed.evidence!)).toBe(false);
+  });
+
   it('reads the property and spend limit from a practice CRM', () => {
     const seed = seedFromCase(loadCase('cases/practice/05'));
     expect(seed.properties![0]).toMatchObject({ id: 'P-203', landlord: { spend_limit_gbp: 300 } });
@@ -118,13 +189,13 @@ describe('guards inside the agent loop', () => {
     faux.setResponses([
       fauxAssistantMessage([fauxToolCall('update_bank_details', { party: 'L-01', sort_code: '00-00-00', account_number: '1', verification_done: 'email' })]),
       fauxAssistantMessage([
-        fauxToolCall('submit_decision', { case_state: 'open', next_actions: [{ type: 'WAIT', action: 'wait', recipient: 'internal', channel: 'internal' }], boundaries: [], remaining_work: [], missing_info: [], outcome: 'no_action', severity: 'routine', summary: 's', answers: [], actions_claimed: [], failed_actions: [], conflicts: [], assumptions: [] }),
+        fauxToolCall('submit_decision', { case_state: 'open', next_actions: [{ type: 'OTHER', action: 'none', recipient: 'internal', channel: 'internal' }], boundaries: [], remaining_work: [], missing_info: [], outcome: 'action_taken', severity: 'routine', summary: 's', answers: [], actions_claimed: [], failed_actions: [], conflicts: [], assumptions: [] }),
       ]),
     ]);
     const run = await runCase({ caseId: 'guard', prompt: 'p', systemPrompt: 's', model: faux.getModel(), streamFn: models.streamSimple.bind(models), toolset: ops() });
     const results = run.messages.filter((m: any) => m.role === 'toolResult').map((m: any) => m.content[0].text);
     expect(results[0]).toMatch(/Blocked by policy/);
     expect(run.ledger).toHaveLength(0);
-    expect(run.decision?.outcome).toBe('no_action');
+    expect(run.decision?.outcome).toBe('action_taken');
   });
 });

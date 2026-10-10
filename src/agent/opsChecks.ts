@@ -48,6 +48,36 @@ export function visitProblems(datetime: string, slotText: string, today?: string
   return problems;
 }
 
+/** Words only: lower case, every run of punctuation, quotes, markdown or whitespace becomes one space. */
+const words = (s: string) => ` ${s.toLowerCase().replace(/[^a-z0-9£]+/g, ' ').trim()} `;
+
+/**
+ * True when `quote` is copied from `evidence`, ignoring case, spacing, quote styles and punctuation.
+ * Tolerates an elision ("…" or "...") and a date/channel annotation around the words, e.g.
+ * `Email 12/10: "Please go ahead"` or `Please go ahead (SMS, 28/09)`.
+ */
+export function quoteAppears(quote: string, evidence: string): boolean {
+  const hay = words(evidence);
+  const found = (q: string) => {
+    const parts = q.split(/\.\.\.|…/).map(words).filter((p) => p.trim());
+    if (!parts.length) return false;
+    let from = 0;
+    for (const p of parts) {
+      const at = hay.indexOf(p, from);
+      if (at < 0) return false;
+      from = at + p.length - 1;
+    }
+    return true;
+  };
+  const candidates = [
+    quote,
+    ...[...quote.matchAll(/["“”]([^"“”]{4,})["“”]/g)].map((m) => m[1]),
+    quote.replace(/\s*\([^()]*\)\s*$/, '').replace(/^[^:"“]{0,60}:\s*/, ''),
+    quote.replace(/\s+[-–—]\s+[^-–—]{0,60}$/, ''),
+  ];
+  return candidates.some((c) => c.trim() && found(c));
+}
+
 /** Approval text that is too thin to rely on (emoji, "ok", empty). */
 export const tooThinForApproval = (quote: string) => quote.replace(/[^A-Za-z]/g, '').length < 4;
 
