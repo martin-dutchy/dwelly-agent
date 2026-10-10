@@ -4,19 +4,28 @@
 // Public-format cases: pnpm cases --in "HackatonPublicCases/Property Management" --out runs/pm [--at auto|12|50%|none]
 //   --at defaults to "auto" (replay: cut at a decision point) under HackatonPublicCases/ and to "none" (take the
 //   case as it comes, every event visible) anywhere else, which is what the Reality Test cases need.
+// Time budget: --deadline HH:MM (local) and/or --budget-min M; the earlier wins. Per-case timeouts shrink to fit,
+//   cases that can no longer start get an honest "not processed" escalation. --resume keeps finished cases.
+//   Ctrl-C once: in-flight cases get the fallback answer, unstarted ones are skipped; twice: exit at once.
 import 'dotenv/config';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { chaosPlan } from './core/failures.js';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { runCase } from './agent/caseAgent.js';
 import { type LoadedCase, casePrompt, listCases, loadCase } from './agent/cases.js';
+import { hintsFor } from './agent/maintenance/stateReconstruct.js';
 import { claude, streamFn } from './agent/models.js';
 import { jevEnabled, prescreen, screenNote } from './agent/jev.js';
 import { seedFromCase } from './agent/opsSeed.js';
 import { createOpsToolset } from './agent/opsTools.js';
 import { type Usage, renderAnswer, renderReasoning } from './agent/report.js';
 import { CASE_SYSTEM_PROMPT } from './agent/systemPrompt.js';
+import { baseTimeoutMs, caseTimeoutMs, hhmm, parseDeadline } from './runner/budget.js';
+import { budgetSkipFiles, crashFiles, writeFallback } from './runner/fallback.js';
+import { isComplete, resumedRow } from './runner/resume.js';
+import { retryLine, retryStats } from './runner/retries.js';
+import { NO_DECISION, type Row } from './runner/types.js';
 
 const { values } = parseArgs({
   options: {
@@ -30,40 +39,89 @@ const { values } = parseArgs({
     at: { type: 'string' },
     chaos: { type: 'string', default: '0' },
     seed: { type: 'string', default: '1' },
+    'budget-min': { type: 'string' },
+    deadline: { type: 'string' },
+    resume: { type: 'boolean', default: false },
   },
 });
+
+const t0 = Date.now();
+let deadline: Date | undefined;
+try {
+  deadline = parseDeadline(values['budget-min'], values.deadline, new Date(t0));
+} catch (e) {
+  console.error(e instanceof Error ? e.message : String(e));
+  process.exit(1);
+}
+const budgetMs = deadline ? deadline.getTime() - t0 : undefined;
+const runFlags = process.argv.slice(2).join(' ');
 
 const model = claude(values.model!);
 const only = values.only?.split(',').map((s) => s.trim());
 const dirs = listCases(values.in!).filter((d) => !only || only.some((o) => d.endsWith(`/${o}`)));
+const outDirOf = (dir: string) => join(values.out!, basename(dir));
 
-type Row = { id: string; outcome: string; actions: number; failed: number; cost: number; secs: number; error?: string };
+// Ctrl-C: the first stops the run cleanly (see header), the second exits at once.
+const interrupt = new AbortController();
+process.on('SIGINT', () => {
+  if (interrupt.signal.aborted) process.exit(130);
+  console.log('\nCtrl-C: stopping. Running cases get the fallback answer, unstarted cases are skipped. Ctrl-C again exits at once.');
+  deadline = new Date();
+  interrupt.abort();
+});
 
-async function processCase(dir: string): Promise<Row> {
+/** Extra time a case gets after its own timeout before the runner stops waiting for it. Must stay below
+ *  WRITE_MARGIN_MS in budget.ts, so a guarded case still ends before the deadline. */
+const GUARD_GRACE_MS = 15_000;
+let abandoned = 0;
+/** Resolve with `p`, or reject when it overruns `ms` or the operator interrupts. The loser keeps running unobserved. */
+function bounded<T>(p: Promise<T>, ms: number): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+  let onAbort: (() => void) | undefined;
+  const stop = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => (abandoned++, reject(new Error(`the agent did not return within ${Math.round(ms / 1000)}s; stopped waiting for it`))), ms);
+    onAbort = () => (abandoned++, reject(new Error('the run was stopped by the operator (Ctrl-C) while this case was running')));
+    if (interrupt.signal.aborted) onAbort();
+    else interrupt.signal.addEventListener('abort', onAbort, { once: true });
+  });
+  return Promise.race([p, stop]).finally(() => {
+    clearTimeout(timer);
+    interrupt.signal.removeEventListener('abort', onAbort!);
+  });
+}
+
+async function processCase(dir: string, timeoutMs: number): Promise<Row> {
   const started = Date.now();
   let c: LoadedCase | undefined;
-  const outDir = join(values.out!, dir.split('/').at(-1)!);
+  const outDir = outDirOf(dir);
   mkdirSync(outDir, { recursive: true });
   try {
-    c = loadCase(dir, values.at);
-    const prompt = casePrompt(c);
-    const screen = await prescreen(prompt);
-    const toolset = createOpsToolset(seedFromCase(c));
-    const writeTools = toolset.tools.filter((t) => t.kind === 'write').map((t) => t.name);
-    const failures = chaosPlan(writeTools, Number(values.chaos), `${values.seed}:${c.id}`, c.failures);
-    const chaos = Object.fromEntries(Object.entries(failures).filter(([k]) => !(k in c!.failures)));
-    const run = await runCase({
-      caseId: c.id,
-      prompt: prompt + screenNote(screen),
-      systemPrompt: CASE_SYSTEM_PROMPT,
-      model,
-      streamFn,
-      failures,
-      media: c.media,
-      toolset,
-      thinkingLevel: values.thinking as 'off' | 'low' | 'medium' | 'high',
-      timeoutMs: Number(values.timeout) * 1000,
-    });
+    // Everything that can hang runs inside the guard; files are written only after it, so a case the runner
+    // gave up on can never overwrite its fallback later.
+    const work = async () => {
+      c = loadCase(dir, values.at);
+      const hints = hintsFor(c);
+      const prompt = casePrompt(c) + (hints.text ? `\n\n${hints.text}` : '');
+      const screen = await prescreen(prompt);
+      const toolset = createOpsToolset(seedFromCase(c));
+      const writeTools = toolset.tools.filter((t) => t.kind === 'write').map((t) => t.name);
+      const failures = chaosPlan(writeTools, Number(values.chaos), `${values.seed}:${c.id}`, c.failures);
+      const chaos = Object.fromEntries(Object.entries(failures).filter(([k]) => !(k in c!.failures)));
+      const run = await runCase({
+        caseId: c.id,
+        prompt: prompt + screenNote(screen),
+        systemPrompt: CASE_SYSTEM_PROMPT,
+        model,
+        streamFn,
+        failures,
+        media: c.media,
+        toolset,
+        thinkingLevel: values.thinking as 'off' | 'low' | 'medium' | 'high',
+        timeoutMs,
+      });
+      return { c, hints, screen, chaos, run };
+    };
+    const { c: lc, hints, screen, chaos, run } = await bounded(work(), timeoutMs + GUARD_GRACE_MS);
     const assistants = run.messages.filter((m: any) => m.role === 'assistant') as any[];
     const usage: Usage = {
       input: assistants.reduce((a, m) => a + (m.usage?.input ?? 0), 0),
@@ -72,29 +130,44 @@ async function processCase(dir: string): Promise<Row> {
       turns: assistants.length,
       durationMs: Date.now() - started,
     };
-    writeFileSync(join(outDir, 'ANSWER.md'), renderAnswer(c, run.decision, run.ledger, run.error));
-    writeFileSync(join(outDir, 'REASONING.md'), renderReasoning(c, run.decision, run.ledger, run.messages, usage, run.error, { screen, gateLog: run.gateLog, policyLog: run.policyLog, chaos }));
+    const retries = run.trace.filter((e: any) => e.type === 'retry').length;
+    writeFileSync(join(outDir, 'ANSWER.md'), renderAnswer(lc, run.decision, run.ledger, run.error));
+    writeFileSync(join(outDir, 'REASONING.md'), renderReasoning(lc, run.decision, run.ledger, run.messages, usage, run.error, { screen, gateLog: run.gateLog, policyLog: run.policyLog, chaos }));
     writeFileSync(join(outDir, 'trace.jsonl'), run.trace.map((e) => JSON.stringify(e)).join('\n') + '\n');
     writeFileSync(
       join(outDir, 'result.json'),
-      JSON.stringify({ id: c.id, model: values.model, cutoff: c.cutoff, chaos, screen, gateLog: run.gateLog, policyLog: run.policyLog, decision: run.decision, ledger: run.ledger, state: run.state, usage, error: run.error }, null, 2),
+      JSON.stringify({ id: lc.id, model: values.model, cutoff: lc.cutoff, timeoutMs, chaos, screen, hintsError: hints.hintsError, gateLog: run.gateLog, policyLog: run.policyLog, decision: run.decision, ledger: run.ledger, state: run.state, usage: { ...usage, retries }, error: run.error }, null, 2),
     );
     return {
-      id: c.id,
+      id: lc.id,
       outcome: run.decision?.outcome ?? 'NO DECISION',
       actions: run.ledger.length,
       failed: run.ledger.filter((e) => e.status !== 'verified').length,
       cost: usage.cost,
       secs: usage.durationMs / 1000,
+      retries,
       error: run.error,
     };
   } catch (e) {
     // A crash must never cost us the case: write an honest fallback and move on.
     const msg = e instanceof Error ? e.message : String(e);
-    writeFileSync(join(outDir, 'ANSWER.md'), `# Case ${c?.id ?? dir}: ANSWER\n\n**Outcome:** escalated (system failure)\n\nThe system crashed while processing this case: ${msg}\nA human must handle it.\n`);
-    writeFileSync(join(outDir, 'REASONING.md'), `# Case ${c?.id ?? dir}: REASONING\n\nRun crashed: ${msg}\n`);
-    return { id: c?.id ?? dir, outcome: 'CRASH', actions: 0, failed: 0, cost: 0, secs: (Date.now() - started) / 1000, error: msg };
+    const id = c?.id ?? basename(dir);
+    writeFallback(outDir, crashFiles(id, msg, { model: values.model, cutoff: c?.cutoff, timeoutMs }));
+    return { id, outcome: 'CRASH', actions: 0, failed: 0, cost: 0, secs: (Date.now() - started) / 1000, retries: 0, error: msg };
   }
+}
+
+function skipCase(dir: string): Row {
+  const id = basename(dir);
+  const outDir = outDirOf(dir);
+  try {
+    mkdirSync(outDir, { recursive: true });
+    const reason = interrupt.signal.aborted ? 'interrupt' : 'budget';
+    writeFallback(outDir, budgetSkipFiles(id, { deadline: deadline ?? new Date(), skippedAt: new Date(), reason, flags: runFlags }));
+  } catch (e) {
+    console.error(`  could not write the skip answer for ${id}: ${e instanceof Error ? e.message : String(e)}`);
+  }
+  return { id, outcome: 'BUDGET SKIP', actions: 0, failed: 0, cost: 0, secs: 0, retries: 0, note: 'budget' };
 }
 
 async function pool<T, R>(items: T[], n: number, fn: (t: T) => Promise<R>) {
@@ -113,9 +186,30 @@ async function pool<T, R>(items: T[], n: number, fn: (t: T) => Promise<R>) {
   return results;
 }
 
-console.log(`Running ${dirs.length} cases with ${values.model} (concurrency ${values.concurrency}, Jev ${jevEnabled() ? 'on' : 'off'}${Number(values.chaos) > 0 ? `, chaos ${values.chaos} seed ${values.seed}` : ''})…`);
-const t0 = Date.now();
-const rows = await pool(dirs, Number(values.concurrency), processCase);
+const concurrency = Number(values.concurrency);
+const done = values.resume ? dirs.filter((d) => isComplete(outDirOf(d))) : [];
+const todo = dirs.filter((d) => !done.includes(d));
+const base = baseTimeoutMs(Number(values.timeout), budgetMs, concurrency, todo.length);
+
+console.log(
+  `Running ${dirs.length} cases with ${values.model} (concurrency ${values.concurrency}, Jev ${jevEnabled() ? 'on' : 'off'}${Number(values.chaos) > 0 ? `, chaos ${values.chaos} seed ${values.seed}` : ''}${deadline ? `, deadline ${hhmm(deadline)}, case timeout ${Math.round(base / 1000)}s` : ''}${values.resume ? `, resuming ${done.length} of ${dirs.length}` : ''})…`,
+);
+const ran = await pool(todo, concurrency, async (dir) => {
+  const t = caseTimeoutMs(base, deadline, Date.now());
+  return t === 'skip' ? skipCase(dir) : processCase(dir, t);
+});
+const byDir = new Map<string, Row>([...done.map((d): [string, Row] => [d, resumedRow(outDirOf(d), basename(d))]), ...todo.map((d, i): [string, Row] => [d, ran[i]])]);
+const rows = dirs.map((d) => byDir.get(d)!);
 console.table(rows.map((r) => ({ ...r, cost: `$${r.cost.toFixed(3)}`, secs: Math.round(r.secs) })));
 const total = rows.reduce((a, r) => a + r.cost, 0);
-console.log(`Done in ${((Date.now() - t0) / 1000).toFixed(0)}s · total cost $${total.toFixed(2)} · decisions ${rows.filter((r) => !['NO DECISION', 'CRASH'].includes(r.outcome)).length}/${rows.length}`);
+const wallMs = Date.now() - t0;
+const skipped = rows.filter((r) => r.note === 'budget').length;
+console.log(
+  `Done in ${(wallMs / 1000).toFixed(0)}s · total cost $${total.toFixed(2)} · decisions ${rows.filter((r) => !NO_DECISION.has(r.outcome)).length}/${rows.length} · resumed ${done.length} · budget-skipped ${skipped}`,
+);
+console.log(retryLine(retryStats(ran), concurrency, ran.length - skipped, wallMs, budgetMs));
+if (skipped) console.log(`Skipped cases can be re-run with the same command plus --resume (and a new --deadline).`);
+
+// Abandoned agents (timed out past the guard, or interrupted) may still be running: flush the output and exit.
+const code = interrupt.signal.aborted ? 130 : 0;
+if (abandoned || code) process.stdout.write('', () => process.exit(code));

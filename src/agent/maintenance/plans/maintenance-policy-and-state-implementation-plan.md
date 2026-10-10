@@ -217,3 +217,7 @@ Run from the repo root and show the output.
 | Does the address check apply to practice cases? | Only when a postcode is found in `crm.json`; otherwise off. | Never block on absence of data. |
 | Is the quote check too strict for call summaries paraphrased by the system? | 15-char minimum and whitespace/case/quote normalisation; the agent is told to copy the words as written in the summary. | Lower to 10 chars if the dev split shows legitimate blocks. |
 | Where do `payment` and `resolution` live for the organiser API adapter (M5)? | On the ticket object; the adapter maps them later. | M5. |
+
+## Progress (step 9 wiring, M5 lane)
+
+- [x] 2026-10-10 12:30 BST, branch `marc/m5-runner`: step 9 `run.ts` wiring. `processCase` calls `hintsFor(c)` right after `loadCase` and appends `hints.text` to the prompt; `result.json` carries `hintsError`. Checked live: public 017 has `<case_state_hints>` in its `trace.jsonl` prompt, practice 01 and 02 have none; a `history.md` without event anchors gives `hintsError: "history.md has no event anchors"` and the case still runs.
