@@ -12,7 +12,7 @@ import { GUARDS } from './guards/index.js';
 import { completionProblems, firstGuardBlock } from './harness/apply.js';
 import type { CompletionProblem, GuardContext, HarnessRun } from './harness/contracts.js';
 import { NO_FLAGS } from './harness/flags.js';
-import { ActionLedger } from './ledger.js';
+import { ActionLedger, failureNote } from './ledger.js';
 import { quoteAppears } from './opsChecks.js';
 import type { Toolset } from './opsTools.js';
 import { listSkills, loadSkill } from './skills/index.js';
@@ -133,7 +133,8 @@ export async function runCase(opts: CaseRunOptions) {
   // Only the ops toolset's escalation carries a decision packet (known / missing / options / recommendation).
   const packetEscalation = (getTool('escalate_to_human')?.parameters as { shape?: Record<string, unknown> } | undefined)?.shape?.options !== undefined;
   const brief = opts.prompt.match(/<case\b[^>]*>\n?([\s\S]*?)<\/case>/)?.[1] ?? '';
-  const ledger = new ActionLedger();
+  const flags = opts.harness?.flags ?? NO_FLAGS;
+  const ledger = new ActionLedger(flags.guardsV2);
   const ctx: ToolContext = { conversationId: `case-${opts.caseId}`, channel: 'text', failures: new FailureInjector(opts.failures) };
   const lastResults = new Map<string, ToolResult>(); // toolCallId -> raw result, for the verifier
   let decision: Decision | undefined;
@@ -146,13 +147,16 @@ export async function runCase(opts: CaseRunOptions) {
     // Writes run one at a time so each is verified before the next one starts.
     executionMode: t.kind === 'write' ? 'sequential' : 'parallel',
     execute: async (toolCallId, params) => {
-      const result = await toolset.execute(t.name, params, ctx);
+      let result = await toolset.execute(t.name, params, ctx);
+      if (!flags.guardsV2 && 'failure_class' in result) {
+        const { failure_class: _c, next_step: _n, ...rest } = result as ToolResult & { failure_class?: unknown; next_step?: unknown };
+        result = rest as ToolResult;
+      }
       lastResults.set(toolCallId, result);
       return { content: text(JSON.stringify(result)), details: result, isError: result.ok === false };
     },
   }));
 
-  const flags = opts.harness?.flags ?? NO_FLAGS;
   const guardContext = (): GuardContext => ({ bundle: opts.harness?.bundle, brief: opts.harness?.brief, ledger: ledger.entries, state: toolset.state, flags });
   const harnessLog = { guardBlocks: [] as { tool: string; rule: string; reason: string }[], completion: [] as (CompletionProblem & { capped: boolean })[], skillsLoaded: [] as string[] };
   const completionCounts = new Map<string, number>();
@@ -369,7 +373,7 @@ export async function runCase(opts: CaseRunOptions) {
             ? `Verified: ${v.evidence}.`
             : v.status === 'unverifiable'
               ? `Could not verify (${v.evidence}). Do not report it as confirmed.`
-              : `NOT APPLIED: ${v.evidence}. Retry once if safe, otherwise escalate. Never tell anyone it was done.`;
+              : `NOT APPLIED: ${v.evidence}. Retry once if safe, otherwise escalate. Never tell anyone it was done.${failureNote(entry)}`;
       return {
         content: text(`${JSON.stringify(raw ?? {})}\n[ledger ${entry.id}, attempt ${entry.attempts}] ${note}`),
         isError: v.status !== 'verified',

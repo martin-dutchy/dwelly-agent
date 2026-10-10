@@ -30,6 +30,9 @@ export const failureNote = (e: LedgerEntry) => (e.failureClass ? ` Failure class
 export class ActionLedger {
   readonly entries: LedgerEntry[] = [];
 
+  /** `classify` adds a failure class and next step to failed entries. */
+  constructor(private readonly classify = true) {}
+
   keyOf(tool: string, args: Record<string, unknown>) {
     return `${tool}:${canonical(args)}`;
   }
@@ -43,7 +46,7 @@ export class ActionLedger {
     const key = this.keyOf(tool, args);
     const status: LedgerStatus = v.status === 'verified' ? 'verified' : v.status === 'unverifiable' ? 'unverifiable' : 'failed';
     const prior = this.entries.find((e) => e.key === key && e.status !== 'verified');
-    const typed = (attempts: number) => (status === 'failed' ? classifyFailure(tool, attempts, apiError) : { failureClass: undefined, nextStep: undefined });
+    const typed = (attempts: number) => (status === 'failed' && this.classify ? classifyFailure(tool, attempts, apiError) : { failureClass: undefined, nextStep: undefined });
     if (prior) {
       // A retry of the same intent updates the same entry: one action, several attempts.
       Object.assign(prior, { attempts: prior.attempts + 1, apiError, status, ref: v.ref ?? prior.ref }, typed(prior.attempts + 1));
@@ -51,7 +54,7 @@ export class ActionLedger {
       return prior;
     }
     const entry: LedgerEntry = { id: `A${this.entries.length + 1}`, tool, args, key, attempts: 1, apiError, status, ref: v.ref, evidence: [v.evidence] };
-    if (status === 'failed') Object.assign(entry, typed(1));
+    if (status === 'failed' && this.classify) Object.assign(entry, typed(1));
     this.entries.push(entry);
     return entry;
   }

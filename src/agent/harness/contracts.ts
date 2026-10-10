@@ -187,7 +187,7 @@ export interface Skill {
   redFlags: string[];
 }
 
-export type FailureClass = 'retry' | 'alternative_route' | 'record_and_escalate';
+export type { FailureClass } from '../../core/failures.js';
 
 export type Layer = 'ingest' | 'brief' | 'skill' | 'guard' | 'completion' | 'critic' | 'render' | 'model_judgement' | 'unclassified';
 

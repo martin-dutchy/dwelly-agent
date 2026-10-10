@@ -515,7 +515,22 @@ Run from the repo root (or from the workstream's worktree in Wave 1). Show the o
   - `cases/splits.json` gained an `expansion` group with practice 91-100, an additive edit.
 
   Smoke run with every flag on, practice 99 and 100: 2/2 decided, 0 unverified actions, $0.12. Case 100 read the £522 total from the PDF inside the email and asked the landlord to approve it because it is over the £300 limit.
-- [ ] Wave 1: C · E
+- [x] (16:05) WS C and WS E merged into `h2/base`. Wave 1 is complete: `pnpm verify` 56 files and 1,466 tests green.
+  - C: a typed brief with facts, conflicts, deadlines and money for every format, with sources that always resolve.
+  - E: `verify_identity` and `share_tenant_contact`; a tier for every tool and the tier-3 basis guard; message, prohibited-content and loop guards; typed failure classes.
+
+  Integration after the merge:
+  - public 047's address conflict now cites `ev:10` from ingest instead of `doc:history.md`, and the test expects that;
+  - `identity-privacy.md` now names the two new tools;
+  - failure classes are gated on `guardsV2`: with the flag off, the ledger leaves failures unclassified and `failure_class` and `next_step` are stripped from tool results, so flags-off behaviour is unchanged; with it on, `failureNote` is appended to the not-applied note (new test in `harness.test.ts`);
+  - `contracts.ts` re-exports `FailureClass` from `core/failures.ts`;
+  - the classifier's identity patterns now match "send me the tenant's mobile" and "no consent recorded to share" (practice 96 was untagged).
+
+  Smoke run with every flag on, practice 05, 17, 20, 23, 91 and 96: 6/6 decided, 0 unverified actions, $0.78, no guard blocks, no harness errors.
+  - Practice 17: `conflicts_acknowledged` bounced twice, both uncapped, and the final decision names both block conflicts with the source it trusted.
+  - Practice 20 and 23 used `load_skill`.
+  - Practice 96 declined to share the number without consent and arranged access through the tenant.
+  - Practice 91 still did not escalate, even with `damp-mould-awaab` injected. That is a Wave 4 item.
 - [ ] Wave 2
 - [ ] Wave 3
 - [ ] Wave 4
@@ -539,6 +554,8 @@ Run from the repo root (or from the workstream's worktree in Wave 1). Show the o
 - Observation (WS F): with today's checks, a verified `escalate_to_human` with an empty `decision.escalations` (case 06 in the smoke run) is never checked for packet completeness. Requiring a packet for each verified escalation is a candidate extra check, to be decided on Wave 3 data. Not added yet.
 - Observation (15:35): the main checkout's `.env` changed twice after the worktrees were created, so worktrees had different, stale copies. WS F got 404 "workspace not found" until it blanked `ANTHROPIC_WORKSPACE_ID`. All worktrees were re-synced from the current `dwelly-agent/.env` at 15:36. Before Wave 3, re-copy it again.
 - Observation (15:39): the `dwelly-agent/.env` saved at 15:30 sets `ANTHROPIC_WORKSPACE_ID` to a 36-character UUID. `src/agent/models.ts` sends it as the `anthropic-workspace-id` header, and the API rejects it ("must be a valid workspace ID"). Every LLM call fails in 1 s, in the main checkout as well as in the worktrees. Evidence: `pnpm cases --in cases/practice --only 01` in `dwelly-agent` returned 400 at 15:39. Raised with Marc. At his choice, `ANTHROPIC_WORKSPACE_ID` was blanked in `dwelly-agent/.env` and all worktrees (backup at `/tmp/dwelly-env-backup-1539`). The re-test of practice 01 in `dwelly-agent` decided (escalated, 6 verified actions, 32 s).
+- Observation (WS E): replaying 2,668 recorded non-holdout agent calls through the guards first gave about 100 false positives; the rules were narrowed until one true positive remained (public 026 repeats "Monday 30/08/2025", which is a Saturday). The executor's `tool_failed` message still says "Escalate to a human", which contradicts the `retry` class; replace it if `guardsV2` becomes the default. The rules for people, amounts and the emergency exemption depend on the brief, so they were mostly inactive until WS C merged.
+- Observation (WS C): candidate contract changes are a citable case-description document, `Deadline.cite`, and `Party.id` or `preferredName`. Practice 17's invoice is also dated before the visit, a second independent reason to hold it. Practice 10's landlord email comes from a look-alike domain. Practice 18's tenant notice is shorter than the two-month minimum.
 - Observation (WS B): the organiser loader reads only `index.md`, `history.md` and `attachments/`, so `expected.json` in public cuts and walks was missing from the manifest without a note. Ingest now lists grading-named files as withheld. Practice 23 has two clocks: transcript offsets don't line up with the action log's times, so ingest keeps both as separate events, which WS C can use. Candidate contract change: `ManifestEntry.role?: 'brief' | 'input' | 'attachment'`. The new parse methods `mime` and `unparsed` render as raw names in `report.ts`.
 - Observation (WS T): practice 91 (recurring mould, toddler with asthma) did not escalate in its smoke run, against `research/uk-lettings-rules.md`. That is a real gap the damp skill should close, and it is to be checked in Wave 3. Once WS E adds its tools, cases 92 and 96 can get stricter checks.
 - Observation (WS D): the out-of-hours rule counts Saturday daytime as staffed. Out of hours means before 08:00, after 18:00 or on Sunday, and it applies only to emergencies and lockouts. Keyword tagging over whole JSON records gave false positives, so the classifier reads only the free-text values (`classify.ts` skips names, trades and ids). Evidence: `src/agent/skills/classify.ts` L6 and L273. Wave 2 to-do: add `verify_identity` and `share_tenant_contact` to `identity-privacy.md` once WS E merges.

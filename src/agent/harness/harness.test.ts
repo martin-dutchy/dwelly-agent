@@ -6,6 +6,7 @@ import { COMPLETION_CHECKS } from '../completion/index.js';
 import { GUARDS } from '../guards/index.js';
 import { fromLoadedCase, ingest, toLoadedCase } from '../ingest/index.js';
 import { createOpsToolset } from '../opsTools.js';
+import type { FailurePlan } from '../../core/failures.js';
 import { completionProblems, firstGuardBlock } from './apply.js';
 import type { CompletionCheck, Guard, GuardContext } from './contracts.js';
 import { NO_FLAGS, parseHarnessFlags } from './flags.js';
@@ -57,12 +58,12 @@ const decision = {
 };
 const message = { recipient_name: 'Sam', recipient_role: 'tenant', channel: 'email', contact: 'sam@example.com', body: 'Hello' };
 
-async function run(flags: string) {
+async function run(flags: string, failures?: FailurePlan) {
   const faux = fauxProvider();
   const models = createModels();
   models.setProvider(faux.provider);
   faux.setResponses([fauxAssistantMessage([fauxToolCall('send_message', message)]), fauxAssistantMessage([fauxToolCall('submit_decision', decision)]), fauxAssistantMessage([fauxToolCall('submit_decision', decision)])]);
-  return runCase({ caseId: 't', prompt: 'case', systemPrompt: 'test', model: faux.getModel(), streamFn: models.streamSimple.bind(models), toolset: createOpsToolset([]), harness: { flags: parseHarnessFlags(flags) } });
+  return runCase({ caseId: 't', prompt: 'case', systemPrompt: 'test', model: faux.getModel(), streamFn: models.streamSimple.bind(models), toolset: createOpsToolset([]), failures, harness: { flags: parseHarnessFlags(flags) } });
 }
 
 describe('runCase harness wiring', () => {
@@ -89,5 +90,17 @@ describe('runCase harness wiring', () => {
     expect(r.policyLog[0].reason).toContain('[test.no_messages]');
     expect(r.harnessLog.guardBlocks).toMatchObject([{ tool: 'send_message', rule: 'test.no_messages' }]);
     expect(r.harnessLog.completion[0]).toMatchObject({ check: 'test.always', capped: false });
+  });
+
+  it('shows failure classes to the model only with guardsV2 on', async () => {
+    const failures: FailurePlan = { send_message: [{ call: 1, mode: 'error' }] };
+    const toolText = (r: Awaited<ReturnType<typeof run>>) => JSON.stringify(r.messages.filter((m) => m.role === 'toolResult'));
+    const off = await run('', failures);
+    expect(off.ledger[0]).toMatchObject({ status: 'failed' });
+    expect(off.ledger[0].failureClass).toBeUndefined();
+    expect(toolText(off)).not.toMatch(/failure_class|Failure class/);
+    const on = await run('guardsV2', failures);
+    expect(on.ledger[0].failureClass).toBeDefined();
+    expect(toolText(on)).toMatch(/Failure class: /);
   });
 });

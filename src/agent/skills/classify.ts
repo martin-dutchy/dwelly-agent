@@ -125,8 +125,8 @@ const RULES: [SituationTag, RegExp[]][] = [
       /\bverified: false\b/i,
       /\bdo not disclose\b/i,
       /\bdata protection\b|\bGDPR\b|\bsubject access\b/i,
-      /\b(give|send|pass) (me |us )?(the )?(tenant'?s?|her|his|their) (phone |mobile |contact )?(number|details|address)\b/i,
-      /\bconsent to (share|pass on)\b/i,
+      /\b(give|send|pass|share|hand)\b[^.\n]{0,25}\b(tenant'?s?|her|his|their) (phone|mobile|number|contact|details|address)\b/i,
+      /\bconsent\b[^.\n]{0,25}\b(share|sharing|pass on|passing on)\b/i,
     ],
   ],
   [
