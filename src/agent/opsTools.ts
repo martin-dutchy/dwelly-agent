@@ -26,8 +26,11 @@ export type Toolset = {
 const recipient = {
   recipient_name: z.string().describe('Who the message is for'),
   recipient_role: z.enum(['tenant', 'landlord', 'contractor', 'neighbour', 'third_party', 'internal']).describe('Their role'),
-  channel: z.enum(['email', 'sms', 'whatsapp', 'phone_call', 'letter']).describe('Channel; use contact details from the records'),
-  contact: z.string().describe('Email address or phone number taken from the CRM record on file'),
+  channel: z.enum(['email', 'sms', 'whatsapp', 'phone_call', 'letter']).describe('Channel. Replies to a party already on the case thread go by email unless the history shows another channel for them'),
+  contact: z
+    .string()
+    .optional()
+    .describe('Email address or phone number when the records give one. Omit it to reply on the case thread to a party the history already identifies (tenant, landlord, contractor): the case system routes it'),
 };
 
 export function createOpsToolset(seedTickets: Ticket[] = []): Toolset {
