@@ -126,7 +126,7 @@ When you do escalate, the packet says which routine steps you took first. Over-e
 | Needs parts or a return visit | `schedule_follow_up` and tell the tenant and landlord. Do not close |
 | Cannot do it or declines | Reassign and tell the tenant |
 | No access, tenant not home | `record_work_result` `no_access`, rebook and find out why |
-| Asks for the tenant's number to book the job | Give the number on file: the provider we instructed needs it to book (our job email already carries it). Never give the landlord's details to the tenant |
+| Asks for the tenant's number to book the job | The provider we instructed may have it. Pass on the contact on file exactly as written, with any calling instructions (a code, a relay line). They asked even though our job email carried it, so say you will check the tenant's direct number and ask the tenant for the best number and times. Never give the landlord's details to the tenant |
 | Found another fault on site | New job, check severity, landlord approval before extra work |
 | Emoji only, one word, unreadable | Read it as best you can. If it cannot be read, ask a plain question and keep the raw text in a note |
 | "The landlord told me to go ahead" with no record | Hearsay. Ask the landlord before instructing |
