@@ -1,0 +1,250 @@
+{
+  "id": "012",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "cutoff": 18,
+  "totalEvents": 31,
+  "inputs": [
+    {
+      "name": "history.md",
+      "method": "derived",
+      "bytes": 7378,
+      "chars": 7310,
+      "note": "events 1–18 of 31 from history.md"
+    }
+  ],
+  "withheld": [
+    {
+      "name": "history.md",
+      "reason": "events 19–31 come after the decision point"
+    },
+    {
+      "name": "index.md",
+      "reason": "sections that reveal the ending: Overview, Outcome, History, Attachments"
+    }
+  ],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Provider assigned; visit booked for Wed 29/04/2026 08:00-12:00 (system event 017, provider call event 016). Waiting on the visit result. Any quote needs landlord approval before work.",
+    "next_actions": [
+      {
+        "type": "BOOK_OR_CONFIRM_APPOINTMENT",
+        "action": "Confirm the 29 April 8am-12pm inspection to the tenant, explain that a quote needs landlord approval, and say when we will next be in touch",
+        "recipient": "Leo Turner, tenant",
+        "channel": "email",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "WAIT",
+        "action": "Follow up on 30 April for the visit result, quote or invoice",
+        "recipient": "Riverside Compliance / tenant",
+        "channel": "internal",
+        "ledger_id": "A3"
+      }
+    ],
+    "boundaries": [
+      "Confirming the visit does not establish the cause, the cost, or landlord approval of any repair.",
+      "Event 008 'LL already agreed for GS to go out' is ambiguous and is not treated as approval of a quote.",
+      "The visit date is not yet in the past, so no work result can be recorded."
+    ],
+    "remaining_work": [
+      "Visit on 29/04 and its result",
+      "If a quote is needed: record it and send it to the landlord for approval",
+      "Invoice and final checks, tenant confirmation, then close"
+    ],
+    "missing_info": [
+      "Landlord spend limit is not on the property record",
+      "Meaning of 'GS' in event 008"
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "The dishwasher door still won't close after the tenant's troubleshooting. The property manager instructed an engineer, and the visit is confirmed for 29 April 8am-12pm. I emailed the tenant the confirmed slot, added a note on the record mismatches and set a follow-up for 30 April.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "The visit is booked for 29/04/2026 08:00-12:00 with the assigned provider. The visit result, any quote and its approval, the invoice and the closing checks are all still outstanding."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "I emailed the tenant (Leo Turner) to confirm the slot. A follow-up is set for 30 April to get the result from the provider and tenant."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "No. Nothing needs a human now. Any quote will go to the landlord for approval."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Emailed tenant the confirmed visit slot and next steps"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Added note on the visit, name mismatches and the ambiguous 'GS' entry"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Scheduled follow-up for 30 April"
+      }
+    ],
+    "failed_actions": [
+      {
+        "ledger_id": "A4",
+        "handling": "resume_auto failed because ticket ref '012' was not found. It is not safety-critical, so I did not retry it. A human or the system should return the job to auto mode and clear hold event 009 if it is still active."
+      }
+    ],
+    "conflicts": [
+      "Provider: Riverside Compliance is assigned, but the call summary names Cedar Utilities. Same address and job, so treated as the assigned provider.",
+      "Tenant: Leo Turner on the record, but the call summary says Leo Kendall. Treated as the same tenant.",
+      "Event 004 says it was unclear whether 'door won't close' meant the dishwasher, but event 011 and event 012 confirm the dishwasher issue persists."
+    ],
+    "assumptions": [
+      "Event 012 shows the agency manager instructed the engineer to investigate and repair if possible.",
+      "A quote above any limit will go to the landlord before work."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Leo Turner",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 011 email)",
+        "ticket_ref": "012",
+        "body": "Hi Leo, thanks for running the checks. The engineer is booked to inspect the dishwasher on Wednesday 29 April, between 8am and 12pm. Please make sure someone is home to let them in. If that no longer works, tell us or the engineer and we'll rearrange. If the engineer finds a repair that needs a quote, we'll need landlord approval first and will keep you updated. We'll check in with you after the visit, by 30 April."
+      },
+      "key": "send_message:{body:\"Hi Leo, thanks for running the checks. The engineer is booked to inspect the dishwasher on Wednesday 29 April, between 8am and 12pm. Please make sure someone is home to let them in. If that no longer works, tell us or the engineer and we'll rearrange. If the engineer finds a repair that needs a quote, we'll need landlord approval first and will keep you updated. We'll check in with you after the visit, by 30 April.\",channel:\"email\",contact:\"existing thread (event 011 email)\",recipient_name:\"Leo Turner\",recipient_role:\"tenant\",ticket_ref:\"012\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-101",
+      "evidence": [
+        "MSG-101 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "add_note",
+      "args": {
+        "entity": "012",
+        "note": "Visit 29/04/2026 08:00-12:00 recorded by system (event 017) and agreed by provider by phone (event 016). Name mismatches: provider assigned is Riverside Compliance but caller said Cedar Utilities; tenant is Leo Turner but call summary says Leo Kendall. Same address/job so treated as assigned provider and tenant. Event 008 \"LL already agreed for GS to go out\" is ambiguous; event 012 says engineer instructed to investigate and repair if possible. Any quote must go to landlord for approval before work. Spend limit not on file."
+      },
+      "key": "add_note:{entity:\"012\",note:\"Visit 29/04/2026 08:00-12:00 recorded by system (event 017) and agreed by provider by phone (event 016). Name mismatches: provider assigned is Riverside Compliance but caller said Cedar Utilities; tenant is Leo Turner but call summary says Leo Kendall. Same address/job so treated as assigned provider and tenant. Event 008 \\\"LL already agreed for GS to go out\\\" is ambiguous; event 012 says engineer instructed to investigate and repair if possible. Any quote must go to landlord for approval before work. Spend limit not on file.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NOTE-102",
+      "evidence": [
+        "NOTE-102 found in the add_note log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "schedule_follow_up",
+      "args": {
+        "ticket_ref": "012",
+        "due_on": "2026-04-30",
+        "party": "Riverside Compliance / tenant",
+        "purpose": "Check visit on 29/04 happened; get result, quote or invoice from provider and confirm with tenant."
+      },
+      "key": "schedule_follow_up:{due_on:\"2026-04-30\",party:\"Riverside Compliance / tenant\",purpose:\"Check visit on 29/04 happened; get result, quote or invoice from provider and confirm with tenant.\",ticket_ref:\"012\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "FUP-103",
+      "evidence": [
+        "FUP-103 found in the schedule_follow_up log"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "resume_auto",
+      "args": {
+        "ticket_ref": "012"
+      },
+      "key": "resume_auto:{ticket_ref:\"012\"}",
+      "attempts": 1,
+      "apiError": "not_found",
+      "status": "failed",
+      "evidence": [
+        "Ticket 012 not found on read-back"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-012",
+        "stage": "visit",
+        "property": "Flat 9, 89 Juniper Mews, Willowbank, ZZ2 0ZZ",
+        "description": "Dishwasher door not closing,"
+      }
+    ],
+    "records": [
+      {
+        "id": "MSG-101",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Leo Turner",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 011 email)",
+          "body": "Hi Leo, thanks for running the checks. The engineer is booked to inspect the dishwasher on Wednesday 29 April, between 8am and 12pm. Please make sure someone is home to let them in. If that no longer works, tell us or the engineer and we'll rearrange. If the engineer finds a repair that needs a quote, we'll need landlord approval first and will keep you updated. We'll check in with you after the visit, by 30 April.",
+          "ticket_ref": "012"
+        },
+        "at": 1791642125858
+      },
+      {
+        "id": "NOTE-102",
+        "tool": "add_note",
+        "args": {
+          "entity": "012",
+          "note": "Visit 29/04/2026 08:00-12:00 recorded by system (event 017) and agreed by provider by phone (event 016). Name mismatches: provider assigned is Riverside Compliance but caller said Cedar Utilities; tenant is Leo Turner but call summary says Leo Kendall. Same address/job so treated as assigned provider and tenant. Event 008 \"LL already agreed for GS to go out\" is ambiguous; event 012 says engineer instructed to investigate and repair if possible. Any quote must go to landlord for approval before work. Spend limit not on file."
+        },
+        "at": 1791642125858
+      },
+      {
+        "id": "FUP-103",
+        "tool": "schedule_follow_up",
+        "args": {
+          "ticket_ref": "012",
+          "due_on": "2026-04-30",
+          "party": "Riverside Compliance / tenant",
+          "purpose": "Check visit on 29/04 happened; get result, quote or invoice from provider and confirm with tenant."
+        },
+        "at": 1791642125859
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 9, 89 Juniper Mews, Willowbank, ZZ2 0ZZ",
+        "landlord": {
+          "contact": "agency landlord record",
+          "notes": [
+            "Contact details are held in the agency system and not shown in this case file; messages to the landlord go through it. Use contact \"agency landlord record\".",
+            "No landlord message is visible in this case yet."
+          ]
+        }
+      }
+    ]
+  },
+  "usage": {
+    "input": 8,
+    "output": 2955,
+    "cost": 0.0586514,
+    "turns": 3,
+    "durationMs": 23572,
+    "retries": 0,
+    "thinkingTokens": 586
+  }
+}

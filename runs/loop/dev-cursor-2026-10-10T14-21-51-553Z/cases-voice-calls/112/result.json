@@ -1,0 +1,406 @@
+{
+  "id": "112",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "cutoff": 32,
+  "totalEvents": 32,
+  "inputs": [
+    {
+      "name": "history.md",
+      "method": "derived",
+      "bytes": 11840,
+      "chars": 11767,
+      "note": "events 1–32 of 32 from history.md"
+    }
+  ],
+  "withheld": [
+    {
+      "name": "index.md",
+      "reason": "sections that summarise the case: Overview, Outcome"
+    },
+    {
+      "name": "rubric.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    }
+  ],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Void flat, check-out works. Landlord approved Eliza Bennett's £1,370 (no VAT) by phone 14/05; quote recorded and approved. Waiting on Eliza for start dates and resent invoice; no visit booked.",
+    "next_actions": [
+      {
+        "type": "ASSIGN_PROVIDER",
+        "action": "Instruct Eliza Bennett to proceed up to £1,370, offer dates via agency key, resend invoice",
+        "recipient": "Eliza Bennett, contractor",
+        "channel": "email",
+        "ledger_id": "A4"
+      },
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Update landlord: approval recorded, ask which property the earlier invoice relates to and the address of the roof leak",
+        "recipient": "Mr Langley, landlord",
+        "channel": "email",
+        "ledger_id": "A5"
+      },
+      {
+        "type": "WAIT",
+        "action": "Follow up 19 May for Eliza's dates, invoice, and landlord's answers",
+        "recipient": "Eliza Bennett / landlord",
+        "channel": "internal",
+        "ledger_id": "A6"
+      }
+    ],
+    "boundaries": [
+      "Approval does not book a visit; no date confirmed",
+      "Does not establish whether the earlier refurb invoice was paid or which property it was for",
+      "Roof leak at another property not logged (no address)"
+    ],
+    "remaining_work": [
+      "Eliza to confirm dates; then set_visit with agency key",
+      "Obtain resent invoice and forward to landlord",
+      "Landlord to give roof-leak address; then log as separate job",
+      "Final invoice check against £1,370, then close"
+    ],
+    "missing_info": [
+      "Eliza's start dates",
+      "Property of earlier invoice",
+      "Address of roof leak"
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "Recorded the landlord's phone approval of Eliza Bennett's £1,370 quote, approved it, and told Eliza to proceed and offer dates. Updated the landlord and asked for the two missing addresses. Follow-up set for 19 May.",
+    "answers": [
+      {
+        "question": "Where does this case stand, and what is outstanding?",
+        "answer": "Quote approved at £1,370 (no VAT). Outstanding: Eliza's dates, visit booking, the resent invoice, and the work itself."
+      },
+      {
+        "question": "Next action, recipient, channel?",
+        "answer": "Email to Eliza Bennett to proceed and give dates; email to the landlord confirming and asking two questions."
+      },
+      {
+        "question": "Does anything need a human decision?",
+        "answer": "No. The approval is clear and within the cap. Nothing needs escalating now."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Recorded landlord approval"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Recorded quote"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Approved quote"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Messaged Eliza"
+      },
+      {
+        "ledger_id": "A5",
+        "description": "Messaged landlord"
+      },
+      {
+        "ledger_id": "A6",
+        "description": "Follow-up scheduled"
+      },
+      {
+        "ledger_id": "A7",
+        "description": "Note added"
+      },
+      {
+        "ledger_id": "A8",
+        "description": "Resumed auto"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Several events name other addresses; ignored as not this job",
+      "Event 030 'resend the invoice' is ambiguous; event 031 clarifies it is Eliza's invoice",
+      "Event 032 says approved £1,370 which matches the call",
+      "Contractor email sent on existing thread because no contact detail for Eliza is on file"
+    ],
+    "assumptions": [
+      "Eliza's quote of £1,370 covers the full original scope; the attachments were not visible"
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "record_landlord_decision",
+      "args": {
+        "ticket_ref": "NBL-008-3466",
+        "decision": "approved",
+        "evidence_quote": "let's, let's choose Eliza and ask her to send the, resend the invoice.",
+        "source": "event 031, call 14/05",
+        "cap_gbp": 1370
+      },
+      "key": "record_landlord_decision:{cap_gbp:1370,decision:\"approved\",evidence_quote:\"let's, let's choose Eliza and ask her to send the, resend the invoice.\",source:\"event 031, call 14/05\",ticket_ref:\"NBL-008-3466\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-008-3466",
+      "evidence": [
+        "Ticket NBL-008-3466 read back after record_landlord_decision"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "record_quote",
+      "args": {
+        "ticket_ref": "NBL-008-3466",
+        "provider": "Eliza Bennett",
+        "amount_gbp": 1370,
+        "vat": "none",
+        "items": [
+          "Check-out works: repaint bedroom (other rooms if needed)",
+          "replace burnt bedroom carpet",
+          "replace bathroom flooring",
+          "repair broken plug",
+          "repair dripping bath tap",
+          "repair damaged bathroom shelf"
+        ],
+        "source": "event 024 email 06/05 and event 031 call 14/05"
+      },
+      "key": "record_quote:{amount_gbp:1370,items:[\"Check-out works: repaint bedroom (other rooms if needed)\",\"replace burnt bedroom carpet\",\"replace bathroom flooring\",\"repair broken plug\",\"repair dripping bath tap\",\"repair damaged bathroom shelf\"],provider:\"Eliza Bennett\",source:\"event 024 email 06/05 and event 031 call 14/05\",ticket_ref:\"NBL-008-3466\",vat:\"none\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-008-3466",
+      "evidence": [
+        "Ticket NBL-008-3466 read back after record_quote"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "approve_quote",
+      "args": {
+        "ticket_ref": "NBL-008-3466",
+        "amount_gbp": 1370,
+        "contractor": "Eliza Bennett",
+        "approval_basis": "Landlord approved by phone 14/05 (event 031): \"let's, let's choose Eliza\", cap £1,370 no VAT"
+      },
+      "key": "approve_quote:{amount_gbp:1370,approval_basis:\"Landlord approved by phone 14/05 (event 031): \\\"let's, let's choose Eliza\\\", cap £1,370 no VAT\",contractor:\"Eliza Bennett\",ticket_ref:\"NBL-008-3466\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "QAP-102",
+      "evidence": [
+        "QAP-102 found in the approve_quote log"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Eliza Bennett",
+        "recipient_role": "contractor",
+        "channel": "email",
+        "contact": "existing thread (event 027 email)",
+        "ticket_ref": "NBL-008-3466",
+        "body": "Hi Eliza, the landlord has approved your quote of £1,370 (no VAT) for the check-out works at Flat 5, 55 Lantern Quay, Cedarford, ZZ2 4ZZ (job NBL-008-3466). Please go ahead. The flat is empty, so access is via the agency key: please reply with the dates you can start. Please keep to the £1,370 approved; anything extra needs landlord approval first. The landlord has also asked you to resend your invoice from the earlier refurb so he can check it. Please send it to us as a PDF. Thank you."
+      },
+      "key": "send_message:{body:\"Hi Eliza, the landlord has approved your quote of £1,370 (no VAT) for the check-out works at Flat 5, 55 Lantern Quay, Cedarford, ZZ2 4ZZ (job NBL-008-3466). Please go ahead. The flat is empty, so access is via the agency key: please reply with the dates you can start. Please keep to the £1,370 approved; anything extra needs landlord approval first. The landlord has also asked you to resend your invoice from the earlier refurb so he can check it. Please send it to us as a PDF. Thank you.\",channel:\"email\",contact:\"existing thread (event 027 email)\",recipient_name:\"Eliza Bennett\",recipient_role:\"contractor\",ticket_ref:\"NBL-008-3466\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-103",
+      "evidence": [
+        "MSG-103 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A5",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Mr Langley",
+        "recipient_role": "landlord",
+        "channel": "email",
+        "contact": "agency landlord record",
+        "ticket_ref": "NBL-008-3466",
+        "body": "Hi Mr Langley, thanks for your call. We have recorded your approval of Eliza Bennett's quote of £1,370 (no VAT) for the check-out works at Flat 5, 55 Lantern Quay, and have asked her to start and to send us the dates she can attend. We have also asked her to resend her earlier invoice for you to check; we will forward it when it arrives. Please can you confirm which property that earlier invoice was for, as our records mention more than one address? Also, for the roof leak you mentioned at another flat, please send us the address when you find it and we will log it straight away. We will update you once Eliza confirms dates, by 19 May."
+      },
+      "key": "send_message:{body:\"Hi Mr Langley, thanks for your call. We have recorded your approval of Eliza Bennett's quote of £1,370 (no VAT) for the check-out works at Flat 5, 55 Lantern Quay, and have asked her to start and to send us the dates she can attend. We have also asked her to resend her earlier invoice for you to check; we will forward it when it arrives. Please can you confirm which property that earlier invoice was for, as our records mention more than one address? Also, for the roof leak you mentioned at another flat, please send us the address when you find it and we will log it straight away. We will update you once Eliza confirms dates, by 19 May.\",channel:\"email\",contact:\"agency landlord record\",recipient_name:\"Mr Langley\",recipient_role:\"landlord\",ticket_ref:\"NBL-008-3466\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-104",
+      "evidence": [
+        "MSG-104 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A6",
+      "tool": "schedule_follow_up",
+      "args": {
+        "ticket_ref": "NBL-008-3466",
+        "due_on": "2025-05-19",
+        "party": "Eliza Bennett",
+        "purpose": "Chase Eliza for start dates and resent invoice; then set_visit (agency key) once she confirms; chase landlord for roof-leak address and which property the earlier invoice was for"
+      },
+      "key": "schedule_follow_up:{due_on:\"2025-05-19\",party:\"Eliza Bennett\",purpose:\"Chase Eliza for start dates and resent invoice; then set_visit (agency key) once she confirms; chase landlord for roof-leak address and which property the earlier invoice was for\",ticket_ref:\"NBL-008-3466\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "FUP-105",
+      "evidence": [
+        "FUP-105 found in the schedule_follow_up log"
+      ]
+    },
+    {
+      "id": "A7",
+      "tool": "add_note",
+      "args": {
+        "entity": "NBL-008-3466",
+        "note": "Route: Eliza Bennett approved 14/05 by phone, £1,370 no VAT cap (Kendall £1,700+VAT declined). Property void: access via agency key. Events 021, 023, 027, 028 name other addresses (115 Juniper Mews, 101 Meadow Row, 8 Alder Lane, 43 Willowmere Rd, 83 Harbour View) - not this job; not treated as relating. Landlord's roof leak at an unknown property not logged: no address. Previous refurb invoice property unclear - asked landlord. No visit date yet."
+      },
+      "key": "add_note:{entity:\"NBL-008-3466\",note:\"Route: Eliza Bennett approved 14/05 by phone, £1,370 no VAT cap (Kendall £1,700+VAT declined). Property void: access via agency key. Events 021, 023, 027, 028 name other addresses (115 Juniper Mews, 101 Meadow Row, 8 Alder Lane, 43 Willowmere Rd, 83 Harbour View) - not this job; not treated as relating. Landlord's roof leak at an unknown property not logged: no address. Previous refurb invoice property unclear - asked landlord. No visit date yet.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NOTE-106",
+      "evidence": [
+        "NOTE-106 found in the add_note log"
+      ]
+    },
+    {
+      "id": "A8",
+      "tool": "resume_auto",
+      "args": {
+        "ticket_ref": "NBL-008-3466"
+      },
+      "key": "resume_auto:{ticket_ref:\"NBL-008-3466\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-008-3466",
+      "evidence": [
+        "Ticket NBL-008-3466 read back after resume_auto"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-008-3466",
+        "stage": "quote_approved",
+        "property": "Flat 5, 55 Lantern Quay, Cedarford, ZZ2 4ZZ",
+        "description": "Following the tenant vacating please provide an estimate to; \nRepaint bedroom any other rooms if needed\nReplace bedroom carpet that is burnt\nReplace bathroom flooring \nRepair broken plug \nRepair dripping bath tap \nRepair damaged shelf in bathroom",
+        "landlord_approval": "confirmed",
+        "landlord_decision": {
+          "decision": "approved",
+          "evidence_quote": "let's, let's choose Eliza and ask her to send the, resend the invoice.",
+          "source": "event 031, call 14/05",
+          "cap_gbp": 1370
+        },
+        "approved_gbp": 1370,
+        "quotes": [
+          {
+            "id": "Q-101",
+            "provider": "Eliza Bennett",
+            "amount_gbp": 1370,
+            "vat": "none",
+            "total_gbp": 1370,
+            "items": [
+              "Check-out works: repaint bedroom (other rooms if needed)",
+              "replace burnt bedroom carpet",
+              "replace bathroom flooring",
+              "repair broken plug",
+              "repair dripping bath tap",
+              "repair damaged bathroom shelf"
+            ],
+            "source": "event 024 email 06/05 and event 031 call 14/05"
+          }
+        ],
+        "mode": "auto"
+      }
+    ],
+    "records": [
+      {
+        "id": "QAP-102",
+        "tool": "approve_quote",
+        "args": {
+          "ticket_ref": "NBL-008-3466",
+          "amount_gbp": 1370,
+          "contractor": "Eliza Bennett",
+          "approval_basis": "Landlord approved by phone 14/05 (event 031): \"let's, let's choose Eliza\", cap £1,370 no VAT"
+        },
+        "at": 1791642174619
+      },
+      {
+        "id": "MSG-103",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Eliza Bennett",
+          "recipient_role": "contractor",
+          "channel": "email",
+          "contact": "existing thread (event 027 email)",
+          "body": "Hi Eliza, the landlord has approved your quote of £1,370 (no VAT) for the check-out works at Flat 5, 55 Lantern Quay, Cedarford, ZZ2 4ZZ (job NBL-008-3466). Please go ahead. The flat is empty, so access is via the agency key: please reply with the dates you can start. Please keep to the £1,370 approved; anything extra needs landlord approval first. The landlord has also asked you to resend your invoice from the earlier refurb so he can check it. Please send it to us as a PDF. Thank you.",
+          "ticket_ref": "NBL-008-3466"
+        },
+        "at": 1791642183578
+      },
+      {
+        "id": "MSG-104",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Mr Langley",
+          "recipient_role": "landlord",
+          "channel": "email",
+          "contact": "agency landlord record",
+          "body": "Hi Mr Langley, thanks for your call. We have recorded your approval of Eliza Bennett's quote of £1,370 (no VAT) for the check-out works at Flat 5, 55 Lantern Quay, and have asked her to start and to send us the dates she can attend. We have also asked her to resend her earlier invoice for you to check; we will forward it when it arrives. Please can you confirm which property that earlier invoice was for, as our records mention more than one address? Also, for the roof leak you mentioned at another flat, please send us the address when you find it and we will log it straight away. We will update you once Eliza confirms dates, by 19 May.",
+          "ticket_ref": "NBL-008-3466"
+        },
+        "at": 1791642183578
+      },
+      {
+        "id": "FUP-105",
+        "tool": "schedule_follow_up",
+        "args": {
+          "ticket_ref": "NBL-008-3466",
+          "due_on": "2025-05-19",
+          "party": "Eliza Bennett",
+          "purpose": "Chase Eliza for start dates and resent invoice; then set_visit (agency key) once she confirms; chase landlord for roof-leak address and which property the earlier invoice was for"
+        },
+        "at": 1791642183578
+      },
+      {
+        "id": "NOTE-106",
+        "tool": "add_note",
+        "args": {
+          "entity": "NBL-008-3466",
+          "note": "Route: Eliza Bennett approved 14/05 by phone, £1,370 no VAT cap (Kendall £1,700+VAT declined). Property void: access via agency key. Events 021, 023, 027, 028 name other addresses (115 Juniper Mews, 101 Meadow Row, 8 Alder Lane, 43 Willowmere Rd, 83 Harbour View) - not this job; not treated as relating. Landlord's roof leak at an unknown property not logged: no address. Previous refurb invoice property unclear - asked landlord. No visit date yet."
+        },
+        "at": 1791642183578
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 5, 55 Lantern Quay, Cedarford, ZZ2 4ZZ",
+        "tenanted": false,
+        "landlord": {
+          "contact": "agency landlord record",
+          "notes": [
+            "Contact details are held in the agency system and not shown in this case file; messages to the landlord go through it. Use contact \"agency landlord record\".",
+            "Landlord messages visible in this case: event 006 (email, to landlord); event 009 (email, from landlord); event 021 (email, to landlord); event 023 (email, from landlord); event 024 (email, to landlord); event 028 (email, to landlord); event 030 (email, from landlord); event 031 (call, to landlord)."
+          ]
+        }
+      }
+    ]
+  },
+  "usage": {
+    "input": 14,
+    "output": 3987,
+    "cost": 0.1008475,
+    "turns": 6,
+    "durationMs": 29550,
+    "retries": 0,
+    "thinkingTokens": 470
+  }
+}

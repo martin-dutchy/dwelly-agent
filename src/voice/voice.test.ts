@@ -2,7 +2,7 @@ import { createHmac } from 'node:crypto';
 import type { Agent } from '@earendil-works/pi-agent-core';
 import { describe, expect, it } from 'vitest';
 import { tools } from '../core/tools.js';
-import { agentConfig, webhookTool } from './elevenlabs/config.js';
+import { type Brain, agentConfig, webhookTool } from './elevenlabs/config.js';
 import { callFlags, verifySignature } from './elevenlabs/postCall.js';
 import { conversationIdOf, syncInterruption } from './pi/brain.js';
 import type { AddressInfo } from 'node:net';
@@ -92,6 +92,14 @@ describe('ElevenLabs agent config', () => {
     expect(pi.conversation_config.agent.prompt.prompt).toContain('{{system__conversation_id}}');
     expect(pi.conversation_config.turn).toEqual(native.conversation_config.turn);
     expect(pi.conversation_config.asr).toEqual(native.conversation_config.asr);
+  });
+
+  it('points inbound conversations at our initiation webhook only when asked', () => {
+    const brain: Brain = { kind: 'native', llm: 'x', toolIds: [] };
+    expect(agentConfig({ name: 'a', brain }).platform_settings.overrides.enable_conversation_initiation_client_data_from_webhook).toBe(false);
+    const on = agentConfig({ name: 'a', brain, initiationWebhook: { url: 'https://x.test/voice/webhooks/initiation', auth: 'Bearer s' } }).platform_settings;
+    expect(on.overrides.enable_conversation_initiation_client_data_from_webhook).toBe(true);
+    expect(on.workspace_overrides?.conversation_initiation_client_data_webhook).toEqual({ url: 'https://x.test/voice/webhooks/initiation', request_headers: { Authorization: 'Bearer s' } });
   });
 });
 
@@ -195,6 +203,19 @@ describe('tester and admin routes', () => {
     }
   };
   const basic = (pw: string) => ({ authorization: `Basic ${Buffer.from(`admin:${pw}`).toString('base64')}` });
+
+  it('answers the initiation webhook with every dynamic variable, WhatsApp brief when there is no call SID', async () => {
+    await withServer(async (base) => {
+      const post = (body: unknown, auth = 'Bearer s') =>
+        fetch(`${base}/voice/webhooks/initiation`, { method: 'POST', headers: { authorization: auth, 'content-type': 'application/json' }, body: JSON.stringify(body) });
+      expect((await post({}, 'Bearer wrong')).status).toBe(401);
+      const wa = await (await post({ caller_id: '447700900123', called_number: '5240294576', call_sid: '', conversation_id: 'c1' })).json();
+      expect(wa).toMatchObject({ type: 'conversation_initiation_client_data', dynamic_variables: { scenario_id: '' } });
+      expect(wa.dynamic_variables.call_brief).toContain('WhatsApp');
+      const phone = await (await post({ caller_id: '+447700900123', called_number: '+447700900999', call_sid: 'CA123', conversation_id: 'c2' })).json();
+      expect(phone.dynamic_variables.call_brief).not.toContain('WhatsApp');
+    });
+  });
 
   it('requires the admin password', async () => {
     await withServer(async (base) => {

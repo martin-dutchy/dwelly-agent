@@ -1,0 +1,246 @@
+{
+  "id": "008-second-quote",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "cutoff": 9,
+  "totalEvents": 49,
+  "inputs": [
+    {
+      "name": "history.md",
+      "method": "derived",
+      "bytes": 2668,
+      "chars": 2650,
+      "note": "events 1–9 of 49 from history.md"
+    },
+    {
+      "name": "attachments/attachment-01-check-out-inspection-report.pdf",
+      "method": "pdftotext",
+      "bytes": 213515,
+      "chars": 16887
+    },
+    {
+      "name": "attachments/attachment-02-estimate.pdf",
+      "method": "pdftotext",
+      "bytes": 74406,
+      "chars": 1779
+    },
+    {
+      "name": "attachments/attachment-03-check-out-inspection-report.pdf",
+      "method": "pdftotext",
+      "bytes": 129002,
+      "chars": 13391
+    }
+  ],
+  "withheld": [
+    {
+      "name": "history.md",
+      "reason": "events 10–49 come after the decision point"
+    },
+    {
+      "name": "index.md",
+      "reason": "sections that reveal the ending: Overview, Outcome, Next action at escalation, History, Attachments"
+    },
+    {
+      "name": "attachments/attachment-04-invoice.pdf",
+      "reason": "first linked from an event after the decision point"
+    },
+    {
+      "name": "checks.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    },
+    {
+      "name": "rubric.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    }
+  ],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Ticket at double_quotation, on hold to 2025-04-10. First estimate (Alder Compliance £1,370) sent to landlord; landlord asked for a second quote. Waiting on second provider being sourced.",
+    "next_actions": [
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Email landlord confirming a second comparison quote is being obtained, first quote on hold, update by 10 April",
+        "recipient": "Landlord",
+        "channel": "email",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "WAIT",
+        "action": "Hold until second quote is sourced; review 2025-04-10",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A3"
+      }
+    ],
+    "boundaries": [
+      "Nothing is approved; no work or spend authorised.",
+      "Moving to double_quotation does not yet instruct a second contractor; no one is named in the case.",
+      "Estimate contents are only what attachment-02 states; its figure is not verified as VAT-inclusive."
+    ],
+    "remaining_work": [
+      "Source a second contractor for a quote only (double_quotation stage).",
+      "Report both quotes to landlord for decision; review 2025-04-10."
+    ],
+    "missing_info": [
+      "No second contractor named; first estimate scope differs from request (carpet kept, tap replaced), VAT unclear. Attachment-04 invoice not seen in history."
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "Landlord asked for one other subcontractor to quote for comparison. No other contractor is named in the case, so the job moved to double_quotation, the landlord was told by email, and the job is on hold with a review date of 10 April.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "First estimate (£1,370, Alder Compliance) has gone to the landlord, who wants a second comparison quote. Job is at double_quotation and on hold; the second quote is outstanding and no approval has been given."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Email to the landlord confirming a second quote is being obtained (sent). The second provider will be sourced via the double_quotation stage, with review on 10 April."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "No. A second quote is a routine request. The landlord decides on the quotes once both are in."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Moved ticket to double_quotation with note"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Emailed landlord confirming second quote"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Put on hold, review 2025-04-10"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Estimate says carpet can stay and includes tap replacement, versus the original request; inspection report dates (5 Jan 2026) are after the case date. Treated as data inconsistencies."
+    ],
+    "assumptions": [
+      "Event 009 landlord email is a request for a second quote, not approval of the first."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "update_ticket",
+      "args": {
+        "ref": "NBL-008-3466",
+        "stage": "double_quotation",
+        "note": "Landlord (event 009) asked for one other subcontractor to quote for comparison. First estimate: Alder Compliance £1,370.00 (no VAT itemised), which says carpet can stay and includes tap replacement, differing from original scope. No other contractor named in case; second provider to be sourced for quote only, same scope + check-out report. First quote on hold."
+      },
+      "key": "update_ticket:{note:\"Landlord (event 009) asked for one other subcontractor to quote for comparison. First estimate: Alder Compliance £1,370.00 (no VAT itemised), which says carpet can stay and includes tap replacement, differing from original scope. No other contractor named in case; second provider to be sourced for quote only, same scope + check-out report. First quote on hold.\",ref:\"NBL-008-3466\",stage:\"double_quotation\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-008-3466",
+      "evidence": [
+        "Ticket NBL-008-3466 read back at stage double_quotation"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Landlord",
+        "recipient_role": "landlord",
+        "channel": "email",
+        "contact": "agency landlord record",
+        "ticket_ref": "NBL-008-3466",
+        "body": "Hello, thank you for your reply. Yes, we will get a second quote from another contractor for comparison, for the same works (repaint, bedroom carpet, bathroom flooring, plug, bath tap and shelf). It is a quote only, nothing will be started. The first estimate stays on hold meanwhile. For information, it says the bedroom carpet can stay and includes replacing the bathroom tap, so it differs slightly from our original list. We will update you when the second quote arrives, and by Thursday 10 April at the latest with progress."
+      },
+      "key": "send_message:{body:\"Hello, thank you for your reply. Yes, we will get a second quote from another contractor for comparison, for the same works (repaint, bedroom carpet, bathroom flooring, plug, bath tap and shelf). It is a quote only, nothing will be started. The first estimate stays on hold meanwhile. For information, it says the bedroom carpet can stay and includes replacing the bathroom tap, so it differs slightly from our original list. We will update you when the second quote arrives, and by Thursday 10 April at the latest with progress.\",channel:\"email\",contact:\"agency landlord record\",recipient_name:\"Landlord\",recipient_role:\"landlord\",ticket_ref:\"NBL-008-3466\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-101",
+      "evidence": [
+        "MSG-101 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "put_on_hold",
+      "args": {
+        "ticket_ref": "NBL-008-3466",
+        "reason": "Waiting for Provider",
+        "comment": "Waiting for second contractor quote (comparison) requested by landlord; first quote Alder Compliance £1,370 held pending comparison.",
+        "review_on": "2025-04-10"
+      },
+      "key": "put_on_hold:{comment:\"Waiting for second contractor quote (comparison) requested by landlord; first quote Alder Compliance £1,370 held pending comparison.\",reason:\"Waiting for Provider\",review_on:\"2025-04-10\",ticket_ref:\"NBL-008-3466\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-008-3466",
+      "evidence": [
+        "Ticket NBL-008-3466 read back after put_on_hold"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-008-3466",
+        "stage": "double_quotation",
+        "property": "Flat 5, 55 Lantern Quay, Cedarford, ZZ2 4ZZ",
+        "description": "Following the tenant vacating please provide an estimate to; \nRepaint bedroom any other rooms if needed\nReplace bedroom carpet that is burnt\nReplace bathroom flooring \nRepair broken plug \nRepair dripping bath tap \nRepair damaged shelf in bathroom",
+        "notes": [
+          "Landlord (event 009) asked for one other subcontractor to quote for comparison. First estimate: Alder Compliance £1,370.00 (no VAT itemised), which says carpet can stay and includes tap replacement, differing from original scope. No other contractor named in case; second provider to be sourced for quote only, same scope + check-out report. First quote on hold."
+        ],
+        "hold": {
+          "reason": "Waiting for Provider",
+          "comment": "Waiting for second contractor quote (comparison) requested by landlord; first quote Alder Compliance £1,370 held pending comparison.",
+          "review_on": "2025-04-10"
+        },
+        "mode": "manual"
+      }
+    ],
+    "records": [
+      {
+        "id": "MSG-101",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Landlord",
+          "recipient_role": "landlord",
+          "channel": "email",
+          "contact": "agency landlord record",
+          "body": "Hello, thank you for your reply. Yes, we will get a second quote from another contractor for comparison, for the same works (repaint, bedroom carpet, bathroom flooring, plug, bath tap and shelf). It is a quote only, nothing will be started. The first estimate stays on hold meanwhile. For information, it says the bedroom carpet can stay and includes replacing the bathroom tap, so it differs slightly from our original list. We will update you when the second quote arrives, and by Thursday 10 April at the latest with progress.",
+          "ticket_ref": "NBL-008-3466"
+        },
+        "at": 1791640320191
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 5, 55 Lantern Quay, Cedarford, ZZ2 4ZZ",
+        "landlord": {
+          "contact": "agency landlord record",
+          "notes": [
+            "Contact details are held in the agency system and not shown in this case file; messages to the landlord go through it. Use contact \"agency landlord record\".",
+            "Landlord messages visible in this case: event 006 (email, to landlord); event 009 (email, from landlord)."
+          ]
+        }
+      }
+    ]
+  },
+  "usage": {
+    "input": 10,
+    "output": 3368,
+    "cost": 0.06710490000000001,
+    "turns": 4,
+    "durationMs": 23431,
+    "retries": 0,
+    "thinkingTokens": 83
+  }
+}

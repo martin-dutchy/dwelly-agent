@@ -172,7 +172,7 @@ function messages(ledger: LedgerEntry[]) {
     .map((e) => {
       const a = e.args as Record<string, any>;
       const to = a.recipient_name ? `${a.recipient_name} (${a.recipient_role}) via ${a.channel}${a.contact ? `, ${a.contact}` : ''}` : `${a.landlord ?? 'landlord'} (landlord)`;
-      const body = a.body ?? (a.questions ? `${(a.questions as string[]).map((q) => `- ${q}`).join('\n')}\n\nWhy: ${a.why}` : `${a.decision_needed}${a.amount_gbp ? ` (£${a.amount_gbp})` : ''}\n\nOptions: ${(a.options ?? []).join('; ')}`);
+      const body = a.body ?? (a.questions ? `${(a.questions as string[]).map((q) => `- ${q}`).join('\n')}\n\nWhy: ${a.why}` : `${a.decision_needed}${a.amount_gbp ? ` (£${a.amount_gbp})` : ''}\n\nOptions: ${(a.options ?? []).join('; ')}${a.update ? `\n\nUpdate: ${a.update}` : ''}`);
       const quoted = String(body).split('\n').map((l) => `> ${l}`).join('\n');
       return `**${e.id} · ${e.tool} → ${to}** (${e.status})\n\n${quoted}`;
     })

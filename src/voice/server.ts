@@ -8,8 +8,10 @@ import { type IncomingMessage, type ServerResponse, createServer } from 'node:ht
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { claude, streamFn } from '../agent/models.js';
 import { onAudit } from '../core/audit.js';
+import { initiationResponse } from './elevenlabs/initiation.js';
 import { verifySignature } from './elevenlabs/postCall.js';
-import { fetchAudio, finalizeCall } from './finalize.js';
+import { fetchAudio, finalizeCall, onCallFinalized } from './finalize.js';
+import { type Ops, createOps, opsRoutes } from '../ops/routes.js';
 import { adminCallPage, adminHomePage } from './http/adminPages.js';
 import { type ChatRequest, createPiBrain } from './pi/brain.js';
 import { buildCallLog, callBrief, firstMessage, grade, publicScenarios, scenarioById, scenarios, testerCard, worldFor } from './scenarios.js';
@@ -367,7 +369,7 @@ async function adminRoutes(path: string, req: IncomingMessage, res: ServerRespon
 
 const publicBase = (req: IncomingMessage, env: Env) => env.PUBLIC_BASE_URL || `http://${req.headers.host}`;
 
-export function createVoiceServer(env: Env = process.env, store: VoiceStore = createStore(env.DATABASE_URL)) {
+export function createVoiceServer(env: Env = process.env, store: VoiceStore = createStore(env.DATABASE_URL), ops?: Ops) {
   // Each call's tools work on a copy of its case: tenant, property, open job.
   setWorldSeeder(worldFor);
   // After a restart, a live call's identity state is rebuilt from the durable event log.
@@ -380,6 +382,7 @@ export function createVoiceServer(env: Env = process.env, store: VoiceStore = cr
     const path = url.pathname;
     try {
       if (req.method === 'GET' && (path === '/voice/health' || path === '/health')) return send(res, 200, { ok: true });
+      if (path === '/' && ops) return void res.writeHead(302, { location: '/ops/show' }).end();
       if (path === '/' || path === '/favicon.ico') return send(res, 404, { ok: false });
 
       const join = path.match(/^\/join\/([\w-]{4,64})(?:\/(.*))?$/);
@@ -387,6 +390,15 @@ export function createVoiceServer(env: Env = process.env, store: VoiceStore = cr
 
       const tester = path.match(/^\/t\/([\w-]{6,40})(?:\/(.*))?$/);
       if (tester) return await testerRoutes(tester[1], tester[2] ?? '', req, res, store, env);
+
+      // Operations portal: what the agents did, and the tasks waiting on a person. Same password as the admin.
+      if (ops && (path === '/ops' || path.startsWith('/ops/'))) {
+        if (!isAdmin(req, env)) {
+          res.writeHead(401, { 'www-authenticate': 'Basic realm="voice admin"' }).end('Admin password required');
+          return;
+        }
+        return await opsRoutes(path, req, res, ops);
+      }
 
       if (path === '/admin' || path.startsWith('/admin/')) {
         if (!isAdmin(req, env)) {
@@ -405,6 +417,13 @@ export function createVoiceServer(env: Env = process.env, store: VoiceStore = cr
       if (req.method === 'POST' && tool) {
         if (!env.VOICE_TOOL_SECRET || !sameSecret(req.headers.authorization ?? '', `Bearer ${env.VOICE_TOOL_SECRET}`)) return send(res, 401, { ok: false });
         return send(res, 200, await handleVoiceToolCall(tool, await readJson(req)));
+      }
+
+      if (req.method === 'POST' && path === '/voice/webhooks/initiation') {
+        if (!env.VOICE_TOOL_SECRET || !sameSecret(req.headers.authorization ?? '', `Bearer ${env.VOICE_TOOL_SECRET}`)) return send(res, 401, { ok: false });
+        // Anyone can message or ring the public number: the shared daily cap stops a flood (refused = no reply).
+        if (!mint('all', Number(env.VOICE_DAILY_CALL_CAP ?? 200))) return send(res, 429, { ok: false });
+        return send(res, 200, initiationResponse(await readJson(req)));
       }
 
       if (req.method === 'POST' && path === '/voice/webhooks/elevenlabs') {
@@ -435,7 +454,11 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const unfinished = (await store.listCalls(200)).filter((c) => (c.status === 'live' || c.status === 'ended') && Date.now() - Date.parse(c.started_at) < 86_400_000);
   for (const c of unfinished) void finalizeCall(store, c.conversation_id, { attempts: 120, delayMs: 10_000 });
   if (unfinished.length) console.log(`[voice] resuming grading for ${unfinished.length} call(s)`);
-  createVoiceServer(process.env, store).listen(port, () =>
+  // After each graded call the portal records it and the case worker runs the follow-ups.
+  const ops = await createOps();
+  onCallFinalized(ops.onCallFinalized);
+  if (process.env.ELEVENLABS_PHONE_NUMBER_ID) ops.dial = (to, scenarioId) => placePhoneCall(process.env, store, { to: toE164(to) ?? to, scenarioId, testerId: null });
+  createVoiceServer(process.env, store, ops).listen(port, () =>
     console.log(`[voice] listening on :${port} (${process.env.DATABASE_URL ? 'postgres' : 'in-memory'} store). Admin: /admin`),
   );
 }

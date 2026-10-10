@@ -3,12 +3,12 @@ import { fileURLToPath } from 'node:url';
 
 const read = (path: string) => readFileSync(fileURLToPath(new URL(path, import.meta.url)), 'utf8');
 const policy = read('../core/policy.md');
-/** Frozen copy of the full maintenance policy, so the flags-off prompt stays byte-identical. */
+/** The full maintenance policy as on `main`; refresh this copy whenever `main` changes it. */
 const maintenancePolicyV1 = read('./skills/legacy/maintenance-policy-v1.md');
 /** The core maintenance rules; the procedures live in the skill playbooks. */
 const maintenancePolicy = read('./maintenance/maintenance-policy.md');
 
-/** Full prompt, used when the skills flag is off. */
+/** Full prompt: the default, and the base the skills are added to. */
 export const CASE_SYSTEM_PROMPT = `You are the operations agent of a London lettings and property management agency.
 You work through one case at a time: messages, call transcripts, documents and system records arrive in pieces, and old records from acquired agencies may disagree with current ones.
 

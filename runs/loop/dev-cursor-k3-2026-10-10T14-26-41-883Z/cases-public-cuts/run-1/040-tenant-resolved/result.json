@@ -1,0 +1,330 @@
+{
+  "id": "040-tenant-resolved",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "cutoff": 9,
+  "totalEvents": 13,
+  "inputs": [
+    {
+      "name": "history.md",
+      "method": "derived",
+      "bytes": 5250,
+      "chars": 5229,
+      "note": "events 1–9 of 13 from history.md"
+    }
+  ],
+  "withheld": [
+    {
+      "name": "history.md",
+      "reason": "events 10–13 come after the decision point"
+    },
+    {
+      "name": "index.md",
+      "reason": "sections that reveal the ending: Overview, Outcome, Next action at escalation, History, Attachments"
+    },
+    {
+      "name": "checks.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    },
+    {
+      "name": "rubric.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    }
+  ],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Ticket at init/landlord gate. Tenant has swapped in their own machine (event 008); landlord's later email (event 009) agrees to a check, probably unaware. No contractor assigned. Waiting on landlord about the faulty machine and the tenant's machine staying connected; follow-up 2026-12-29.",
+    "next_actions": [
+      {
+        "type": "REQUEST_LANDLORD_APPROVAL",
+        "action": "Tell landlord of the tenant's swap and ask what to do with the faulty machine and whether the tenant's can stay connected",
+        "recipient": "Landlord",
+        "channel": "email",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Acknowledge swap, paused visit, ask for leak check, next update 29 Dec",
+        "recipient": "Tenant",
+        "channel": "email",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "WAIT",
+        "action": "Chase landlord by 29 Dec, then close without payment",
+        "recipient": "Landlord",
+        "channel": "internal",
+        "ledger_id": "A4"
+      }
+    ],
+    "boundaries": [
+      "Nothing here confirms the faulty machine's fault or who owns the repair cost",
+      "Landlord's agreement to a check is not an instruction to book now; no contractor assigned",
+      "Ticket not closed; the landlord has not yet decided about their machine"
+    ],
+    "remaining_work": [
+      "Landlord decision on faulty machine and tenant's machine",
+      "Tenant leak-check confirmation",
+      "Close without payment after that (agency)"
+    ],
+    "missing_info": [
+      "Whether landlord knew of the swap",
+      "Landlord's wishes for the faulty machine"
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "Tenant resolved the issue by swapping in their own machine, while the landlord later agreed to a check. I did not assign a contractor; I asked the landlord how to handle their stored machine, updated the tenant, noted the record and set a follow-up for 29 Dec.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "Tenant has swapped machines themselves; landlord approved a check not knowing this. Outstanding: landlord decision on the faulty machine and the tenant's machine staying, leak check, then close without payment."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Landlord emailed (APR-101) with options; tenant emailed (MSG-102); follow-up 29 Dec."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "No human escalation; the decision on the landlord's own appliance is the landlord's, already requested."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Landlord approval/decision request"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Tenant message"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Internal note on conflict and route"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Follow-up 29 Dec"
+      },
+      {
+        "ledger_id": "A6",
+        "description": "Ticket returned to auto mode"
+      }
+    ],
+    "failed_actions": [
+      {
+        "ledger_id": "A5",
+        "handling": "resume_auto used wrong ref NBL-040-4451 (that is in the description); retried with the real ref NBL-040-tenant-resolved, verified as A6."
+      }
+    ],
+    "conflicts": [
+      "Tenant (event 008, 11:47) says swap done; landlord (event 009, 12:12) agrees to a check. Treated the tenant's fix as current fact and asked the landlord.",
+      "Names Rowan/Oliver differ from the record; assumed tenant and landlord."
+    ],
+    "assumptions": [
+      "Rowan is the tenant and Oliver the landlord",
+      "Landlord was unaware of the swap when replying"
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "request_landlord_approval",
+      "args": {
+        "landlord": "Landlord (Oliver per event 009)",
+        "ticket_ref": "NBL-040-4451",
+        "decision_needed": "Thanks for agreeing to a check. Since then the tenant has told us they have swapped in their own washing machine and stored your faulty one in the garage, so no visit is booked and we have not sent anyone. How would you like to handle your machine, and is the tenant's machine allowed to stay connected?",
+        "options": [
+          "Leave it stored for now and we close the repair; you decide on the machine later (recommended if you are away)",
+          "We send our contractor to inspect or repair your machine in the garage (you approve any cost first)",
+          "Dispose of your machine, at your cost",
+          "Your own contractor deals with it (please give name and date)"
+        ],
+        "update": "Tenant's email today says they did the swap themselves. The flat has no isolation valves, so we will ask the tenant to confirm the connection is leak-free. The tenant's machine stays theirs and is not on the inventory. Nothing has been spent. We will chase for your answer by 2026-12-29.",
+        "deadline": "2026-12-29"
+      },
+      "key": "request_landlord_approval:{deadline:\"2026-12-29\",decision_needed:\"Thanks for agreeing to a check. Since then the tenant has told us they have swapped in their own washing machine and stored your faulty one in the garage, so no visit is booked and we have not sent anyone. How would you like to handle your machine, and is the tenant's machine allowed to stay connected?\",landlord:\"Landlord (Oliver per event 009)\",options:[\"Leave it stored for now and we close the repair; you decide on the machine later (recommended if you are away)\",\"We send our contractor to inspect or repair your machine in the garage (you approve any cost first)\",\"Dispose of your machine, at your cost\",\"Your own contractor deals with it (please give name and date)\"],ticket_ref:\"NBL-040-4451\",update:\"Tenant's email today says they did the swap themselves. The flat has no isolation valves, so we will ask the tenant to confirm the connection is leak-free. The tenant's machine stays theirs and is not on the inventory. Nothing has been spent. We will chase for your answer by 2026-12-29.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "APR-101",
+      "evidence": [
+        "APR-101 found in the request_landlord_approval log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Tenant",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 008 email)",
+        "ticket_ref": "NBL-040-4451",
+        "body": "Hello, thanks for letting us know you've swapped the machines. We've paused the engineer visit and are asking the landlord what they'd like done with their machine in the garage and whether yours can stay connected. Please check there are no leaks around the hoses and taps, as there are no isolation valves, and let us know if there are any. Your machine remains yours and you won't be charged for anything here. We'll update you by 29 December. Happy Christmas."
+      },
+      "key": "send_message:{body:\"Hello, thanks for letting us know you've swapped the machines. We've paused the engineer visit and are asking the landlord what they'd like done with their machine in the garage and whether yours can stay connected. Please check there are no leaks around the hoses and taps, as there are no isolation valves, and let us know if there are any. Your machine remains yours and you won't be charged for anything here. We'll update you by 29 December. Happy Christmas.\",channel:\"email\",contact:\"existing thread (event 008 email)\",recipient_name:\"Tenant\",recipient_role:\"tenant\",ticket_ref:\"NBL-040-4451\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-102",
+      "evidence": [
+        "MSG-102 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "add_note",
+      "args": {
+        "entity": "NBL-040-4451",
+        "note": "Event 008: tenant swapped in own machine, landlord's faulty one stored in garage. Event 009 (later): landlord agrees to a check, likely unaware of swap. Treated tenant fix as current; no contractor assigned. Names Rowan/Oliver differ from record roles; assumed tenant/landlord. Outstanding: landlord decision on faulty machine and tenant's machine staying connected; leak check. Tenant's machine not on inventory."
+      },
+      "key": "add_note:{entity:\"NBL-040-4451\",note:\"Event 008: tenant swapped in own machine, landlord's faulty one stored in garage. Event 009 (later): landlord agrees to a check, likely unaware of swap. Treated tenant fix as current; no contractor assigned. Names Rowan/Oliver differ from record roles; assumed tenant/landlord. Outstanding: landlord decision on faulty machine and tenant's machine staying connected; leak check. Tenant's machine not on inventory.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NOTE-103",
+      "evidence": [
+        "NOTE-103 found in the add_note log"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "schedule_follow_up",
+      "args": {
+        "ticket_ref": "NBL-040-4451",
+        "due_on": "2026-12-29",
+        "purpose": "Chase landlord on what to do with faulty machine; then close without payment",
+        "party": "Landlord"
+      },
+      "key": "schedule_follow_up:{due_on:\"2026-12-29\",party:\"Landlord\",purpose:\"Chase landlord on what to do with faulty machine; then close without payment\",ticket_ref:\"NBL-040-4451\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "FUP-104",
+      "evidence": [
+        "FUP-104 found in the schedule_follow_up log"
+      ]
+    },
+    {
+      "id": "A5",
+      "tool": "resume_auto",
+      "args": {
+        "ticket_ref": "NBL-040-4451"
+      },
+      "key": "resume_auto:{ticket_ref:\"NBL-040-4451\"}",
+      "attempts": 1,
+      "apiError": "not_found",
+      "status": "failed",
+      "evidence": [
+        "Ticket NBL-040-4451 not found on read-back"
+      ]
+    },
+    {
+      "id": "A6",
+      "tool": "resume_auto",
+      "args": {
+        "ticket_ref": "NBL-040-tenant-resolved"
+      },
+      "key": "resume_auto:{ticket_ref:\"NBL-040-tenant-resolved\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-040-tenant-resolved",
+      "evidence": [
+        "Ticket NBL-040-tenant-resolved read back after resume_auto"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-040-tenant-resolved",
+        "stage": "init",
+        "property": "Flat 15, 55 Alder Lane, Northbridge, ZZ1 6ZZ",
+        "description": "Request summary with context: The Juniper Services NBL-040-4451 washing machine fills with water but does not start the wash cycle.\n\nTenant's original query: The washing machine is no longer working.\n\nIt fills with water as normal, but the wash cycle never starts. There are no error codes displayed, and we've tried resetting the machine, and other settings, but unfortunately that hasn't resolved the issue.\n\nWe do have our own washing machine that could be installed as a replacement if necessary. However, I thought it would be best to have the existing machine checked first before making any changes.\n\nIf it does need replacing, could someone carry out the swap? There isn't any isolation valves on the water pipes.\n\nPlease let us know how you'd like to proceed.",
+        "landlord_approval": "required",
+        "mode": "auto"
+      }
+    ],
+    "records": [
+      {
+        "id": "APR-101",
+        "tool": "request_landlord_approval",
+        "args": {
+          "landlord": "Landlord (Oliver per event 009)",
+          "decision_needed": "Thanks for agreeing to a check. Since then the tenant has told us they have swapped in their own washing machine and stored your faulty one in the garage, so no visit is booked and we have not sent anyone. How would you like to handle your machine, and is the tenant's machine allowed to stay connected?",
+          "ticket_ref": "NBL-040-4451",
+          "options": [
+            "Leave it stored for now and we close the repair; you decide on the machine later (recommended if you are away)",
+            "We send our contractor to inspect or repair your machine in the garage (you approve any cost first)",
+            "Dispose of your machine, at your cost",
+            "Your own contractor deals with it (please give name and date)"
+          ],
+          "deadline": "2026-12-29",
+          "update": "Tenant's email today says they did the swap themselves. The flat has no isolation valves, so we will ask the tenant to confirm the connection is leak-free. The tenant's machine stays theirs and is not on the inventory. Nothing has been spent. We will chase for your answer by 2026-12-29."
+        },
+        "at": 1791642416487
+      },
+      {
+        "id": "MSG-102",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Tenant",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 008 email)",
+          "body": "Hello, thanks for letting us know you've swapped the machines. We've paused the engineer visit and are asking the landlord what they'd like done with their machine in the garage and whether yours can stay connected. Please check there are no leaks around the hoses and taps, as there are no isolation valves, and let us know if there are any. Your machine remains yours and you won't be charged for anything here. We'll update you by 29 December. Happy Christmas.",
+          "ticket_ref": "NBL-040-4451"
+        },
+        "at": 1791642416488
+      },
+      {
+        "id": "NOTE-103",
+        "tool": "add_note",
+        "args": {
+          "entity": "NBL-040-4451",
+          "note": "Event 008: tenant swapped in own machine, landlord's faulty one stored in garage. Event 009 (later): landlord agrees to a check, likely unaware of swap. Treated tenant fix as current; no contractor assigned. Names Rowan/Oliver differ from record roles; assumed tenant/landlord. Outstanding: landlord decision on faulty machine and tenant's machine staying connected; leak check. Tenant's machine not on inventory."
+        },
+        "at": 1791642416488
+      },
+      {
+        "id": "FUP-104",
+        "tool": "schedule_follow_up",
+        "args": {
+          "ticket_ref": "NBL-040-4451",
+          "due_on": "2026-12-29",
+          "party": "Landlord",
+          "purpose": "Chase landlord on what to do with faulty machine; then close without payment"
+        },
+        "at": 1791642416488
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 15, 55 Alder Lane, Northbridge, ZZ1 6ZZ",
+        "landlord": {
+          "contact": "agency landlord record",
+          "notes": [
+            "Contact details are held in the agency system and not shown in this case file; messages to the landlord go through it. Use contact \"agency landlord record\".",
+            "Landlord messages visible in this case: event 004 (email, to landlord); event 009 (email, from landlord)."
+          ]
+        }
+      }
+    ]
+  },
+  "usage": {
+    "input": 10,
+    "output": 3470,
+    "cost": 0.0998839,
+    "turns": 4,
+    "durationMs": 25570,
+    "retries": 0,
+    "thinkingTokens": 660
+  }
+}

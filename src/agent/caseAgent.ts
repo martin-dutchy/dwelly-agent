@@ -199,6 +199,14 @@ export async function runCase(opts: CaseRunOptions) {
   const policyBlocks = new Map<string, number>(); // tool|ticket -> policy blocks so far
   let preReviewBlocks = 0; // decision-point and packet blocks, capped so they can never stall the case
   let packetBlocks = 0;
+  // First write in the current assistant step that did not go through (failed, unverified or blocked).
+  // Outbound messages later in the same step were written before that was seen, so they are held.
+  // Reset on each assistant message_start.
+  let stepFailure: string | undefined;
+  const OUTBOUND = new Set(['send_message', 'request_information', 'request_landlord_approval']);
+  const blockedWrite = (tool: string) => {
+    if (getTool(tool)?.kind === 'write') stepFailure ??= `${tool} (blocked)`;
+  };
   let critic: CriticResult | undefined;
   let revisionMode = false;
   let draft: Partial<Decision> | undefined;
@@ -247,6 +255,7 @@ export async function runCase(opts: CaseRunOptions) {
       if (revisionMode && blockedAfterReview(toolCall.name, a)) {
         const reason = 'after the pre-submit review only reads, messages, notes, follow-ups, holds and escalation are allowed.';
         policyLog.push({ tool: toolCall.name, reason });
+        blockedWrite(toolCall.name);
         return { block: true, reason: `Blocked by policy: ${reason} Record what is still to do in remaining_work and call submit_decision.` };
       }
       // Run-level rules first (they know the ledger), then the toolset's own rules (they know the job record).
@@ -260,6 +269,7 @@ export async function runCase(opts: CaseRunOptions) {
       }
       if (policy) {
         policyLog.push({ tool: toolCall.name, reason: policy });
+        blockedWrite(toolCall.name);
         const key = `${toolCall.name}|${String(a.ticket_ref ?? a.ref ?? '')}`;
         const blocks = (policyBlocks.get(key) ?? 0) + 1;
         policyBlocks.set(key, blocks);
@@ -274,9 +284,15 @@ export async function runCase(opts: CaseRunOptions) {
         const gaps = escalationPacketProblems(a);
         if (gaps.length) {
           packetBlocks++;
+          blockedWrite(toolCall.name);
           return { block: true, reason: `Escalation packet incomplete: ${gaps.join(', ')}. Give what is known, what is missing, at least one option and your recommendation (a sentence each) so a person can decide from the packet alone.` };
         }
       }
+      if (OUTBOUND.has(toolCall.name) && stepFailure)
+        return {
+          block: true,
+          reason: `Not sent: ${stepFailure} did not go through earlier in this same step, so this message was written before you saw that result. Re-read the result, then send it again in a new step, stating only what is verified.`,
+        };
       // Jev message gate: a fast classifier checks outgoing messages before they leave.
       // Blocks at most twice per recipient so a false positive can never stall the case.
       if (toolCall.name === 'send_message' || toolCall.name === 'request_information') {
@@ -366,6 +382,7 @@ export async function runCase(opts: CaseRunOptions) {
       const v = toolset.verify(toolCall.name, a, raw?.ok ? raw : undefined, ctx);
       const apiError = raw?.ok === false ? String(raw.details ?? raw.error) : undefined;
       const entry = ledger.record(toolCall.name, a, apiError, v);
+      if (v.status !== 'verified') stepFailure ??= `${entry.id} (${toolCall.name})`;
       const note =
         v.status === 'verified' && isError
           ? `The API reported an error, but read-back shows the change IS in place (${v.evidence}). Do not retry.`
@@ -381,6 +398,7 @@ export async function runCase(opts: CaseRunOptions) {
     },
   });
   agent.subscribe((e) => {
+    if (e.type === 'message_start' && e.message.role === 'assistant') stepFailure = undefined;
     if (e.type !== 'message_update') trace.push({ ts: new Date().toISOString(), ...e });
   });
 

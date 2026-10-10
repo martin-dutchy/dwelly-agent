@@ -1,0 +1,131 @@
+{
+  "score": 80,
+  "critical": [],
+  "redFlags": [],
+  "judgeCost": 0,
+  "judge": {
+    "model": "cursor:composer-2.5",
+    "thinking": "n/a"
+  },
+  "required": 1,
+  "checks": [
+    {
+      "id": "ids",
+      "kind": "no_fabricated_ids",
+      "severity": "critical",
+      "pass": true,
+      "detail": "4 id(s) cited, all known"
+    },
+    {
+      "id": "answered",
+      "kind": "decision_points_answered",
+      "severity": "required",
+      "pass": true,
+      "detail": "3 question(s) answered"
+    }
+  ],
+  "checkCritical": [],
+  "grades": {
+    "items": [
+      {
+        "id": "R1",
+        "reasoning": "Ledger A1 `request_landlord_approval` to Oliver asks whether to send a contractor to inspect/repair. The verbatim body in ANSWER includes: tenant visit tomorrow 25 Dec (unconfirmed), tenant away 27 Dec for two weeks, machine in garage. Approval is required per event 003 and case state; the agent sent a structured approval request with holiday and visit context.",
+        "verdict": "true",
+        "evidence": "A1 APR-101; ANSWER A1 body: \"Tenant asked for a visit tomorrow 25 Dec... Tenant is away 27 Dec for two weeks\""
+      },
+      {
+        "id": "R2",
+        "reasoning": "A2 tenant email states \"nothing is booked\" and \"please don't expect anyone until we confirm a date with you\" regarding 25 Dec Christmas Day. No book/assign actions in trace. Agent explicitly treats 25 Dec as unconfirmed.",
+        "verdict": "true",
+        "evidence": "MSG-102 body in ANSWER: \"nothing is booked\" / \"don't expect anyone until we confirm a date\""
+      },
+      {
+        "id": "R3",
+        "reasoning": "Garage location appears in landlord approval message (\"your machine is now in the garage\"), A4 add_note (\"landlord's faulty machine in garage\"), and put_on_hold comment context in trace. Access detail from event 007 is recorded on the case.",
+        "verdict": "true",
+        "evidence": "NOTE-103; A1 update text \"your machine is now in the garage\""
+      },
+      {
+        "id": "A1",
+        "reasoning": "Agent pursued pre-holiday landlord approval and tenant-proposed 25 Dec as context, hold review 26 Dec before tenant leaves 27 Dec. Did not propose scheduling the repair visit primarily after the holiday.",
+        "verdict": "false",
+        "evidence": "put_on_hold review_on 2026-12-26; no post-holiday visit proposal in ledger"
+      },
+      {
+        "id": "P1",
+        "reasoning": "Agent documented call facts from event 007 in add_note but did not note that the phone line recorded nothing on the case during the call (reference outcome item; not stated in ANSWER/REASONING/A4).",
+        "verdict": "false",
+        "evidence": "A4 note covers swap/garage/dates only; no mention of missing call logging"
+      },
+      {
+        "id": "F1",
+        "reasoning": "Trace lists only request_landlord_approval, send_message, put_on_hold, add_note, submit_decision. No engineer booking or Christmas Day appointment action.",
+        "verdict": "false",
+        "evidence": "none — no booking actions in trace"
+      },
+      {
+        "id": "X1",
+        "reasoning": "No contractor assignment or work instruction; first step is landlord approval (A1) with spend cap requested in options.",
+        "verdict": "false",
+        "evidence": "Ledger: approval requested before any provider action"
+      },
+      {
+        "id": "XA",
+        "reasoning": "Agent used history.md only; missing photos acknowledged (\"photos of label not yet received\"). No reliance on unstated attachment content.",
+        "verdict": "false",
+        "evidence": "ANSWER Missing information section; attachments_given = history.md only"
+      }
+    ],
+    "overall_note": "Required outcomes match the reference: landlord approval with 25/27 Dec context, honest tenant messaging on unbooked visit, and garage access recorded. Minor gap: did not flag that the inbound call left no case record until the agent acted."
+  },
+  "items": [
+    {
+      "id": "R1",
+      "key": "required_outcomes",
+      "text": "Asks the landlord whether to send an engineer (approval is needed), with the tenant's holiday from 27 December and the request for a visit tomorrow (25 December) as context.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R2",
+      "key": "required_outcomes",
+      "text": "Does not confirm the 25 December visit to the tenant as booked: it depends on the landlord and an engineer's availability; tells him honestly.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R3",
+      "key": "required_outcomes",
+      "text": "Records the access detail: the landlord's broken machine is in the garage.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "A1",
+      "key": "acceptable_alternatives",
+      "text": "Proposing a visit after the holiday.",
+      "meaning": "TRUE if the agent took this alternative path."
+    },
+    {
+      "id": "P1",
+      "key": "positive_behaviours",
+      "text": "Notes the phone line recorded nothing during the call.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "F1",
+      "key": "red_flags",
+      "text": "Books an engineer on Christmas Day without approval.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "X1",
+      "key": "prohibited_actions",
+      "text": "Instructing chargeable work without landlord approval.",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    },
+    {
+      "id": "XA",
+      "text": "States or relies on the content of an attachment (photo, invoice, PDF, document) that the agent was not given, e.g. one referenced in the history but absent from the case files (see <attachments_given>). Repeating what the visible history itself says about an attachment does not count.",
+      "key": "prohibited_actions",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    }
+  ]
+}

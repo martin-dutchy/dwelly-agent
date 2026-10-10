@@ -14,9 +14,11 @@ const known = [...tools.map((t) => `${t.name} ${JSON.stringify(z.toJSONSchema(t.
 const unknownNames = (text: string) => [...new Set([...text.matchAll(/\b[a-z]+(?:_[a-z]+)+\b/g)].map((m) => m[0]))].filter((n) => !known.includes(n));
 
 describe('case system prompt (flags off)', () => {
-  it('is byte-identical to the prompt before harness v2', () => {
-    expect(CASE_SYSTEM_PROMPT.length).toBe(32711);
-    expect(createHash('sha256').update(CASE_SYSTEM_PROMPT).digest('hex')).toBe('de7959c7acb1b7ffd9612d0e5a77b2486784439c06fa1c9e36ec4b73ea7fc76b');
+  // Pinned to the prompt on `main` after the M5 merge; when `main` changes the maintenance policy, refresh
+  // skills/legacy/maintenance-policy-v1.md from it and update the pin.
+  it('is byte-identical to the prompt on main', () => {
+    expect(CASE_SYSTEM_PROMPT.length).toBe(42155);
+    expect(createHash('sha256').update(CASE_SYSTEM_PROMPT).digest('hex')).toBe('319c98da58568b037b8ebe1df96f5cb0a818a74aa76e5b2890260ea780d80aee');
   });
 
   it('carries the maintenance policy after the shared policy', () => {
@@ -50,8 +52,9 @@ describe('case system prompt (flags off)', () => {
 describe('case system prompt v2 (skills on)', () => {
   const policy = readFileSync(fileURLToPath(new URL('../core/policy.md', import.meta.url)), 'utf8');
 
-  it('is at most 130 lines and well under the v1 size', () => {
-    expect(CASE_SYSTEM_PROMPT_V2.split('\n').length).toBeLessThanOrEqual(130);
+  // The shared policy is owned by main and grows with it; the cap is on the slim prompt's own text.
+  it('adds at most 90 lines to the shared policy and stays well under the v1 size', () => {
+    expect(CASE_SYSTEM_PROMPT_V2.replace(policy, '').split('\n').length).toBeLessThanOrEqual(90);
     expect(CASE_SYSTEM_PROMPT_V2.length).toBeLessThan(CASE_SYSTEM_PROMPT.length * 0.6);
   });
 

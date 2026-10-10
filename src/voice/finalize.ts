@@ -28,6 +28,11 @@ export async function fetchAudio(id: string) {
 }
 
 const inFlight = new Set<string>();
+
+/** Called once a call is graded, e.g. so the operations portal can record it and run the follow-ups. */
+type AfterCall = (call: CallRow, events: Awaited<ReturnType<VoiceStore['events']>>) => Promise<void>;
+const afterCall: AfterCall[] = [];
+export const onCallFinalized = (h: AfterCall) => afterCall.push(h);
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export async function finalizeCall(store: VoiceStore, id: string, { attempts = 12, delayMs = 10_000 } = {}) {
@@ -60,6 +65,11 @@ export async function finalizeCall(store: VoiceStore, id: string, { attempts = 1
       analysis: conv?.analysis ?? null,
     });
     console.log(`[voice] graded ${id}: ${g.passed ? 'PASS' : 'FAIL'}`);
+    if (conv) {
+      const saved = await store.getCall(id);
+      const events = await store.events(id);
+      for (const h of afterCall) if (saved) void h(saved, events).catch((e) => console.error(`[voice] after-call hook ${id}`, e));
+    }
   } catch (e) {
     console.error(`[voice] finalize ${id}`, e);
   } finally {

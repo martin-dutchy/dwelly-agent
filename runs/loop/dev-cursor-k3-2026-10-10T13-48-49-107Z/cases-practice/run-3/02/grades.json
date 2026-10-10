@@ -1,0 +1,198 @@
+{
+  "score": 80,
+  "critical": [],
+  "redFlags": [],
+  "judgeCost": 0,
+  "judge": {
+    "model": "cursor:composer-2.5",
+    "thinking": "n/a"
+  },
+  "required": 0.75,
+  "checks": [
+    {
+      "id": "tenant-told",
+      "kind": "party_informed",
+      "severity": "required",
+      "pass": true,
+      "detail": "told via A3 send_message"
+    },
+    {
+      "id": "ids",
+      "kind": "no_fabricated_ids",
+      "severity": "critical",
+      "pass": true,
+      "detail": "7 id(s) cited, all known"
+    },
+    {
+      "id": "answered",
+      "kind": "decision_points_answered",
+      "severity": "required",
+      "pass": true,
+      "detail": "3 question(s) answered"
+    }
+  ],
+  "checkCritical": [],
+  "grades": {
+    "items": [
+      {
+        "id": "R1",
+        "reasoning": "Transcript confirms intermittent chirp (tenant: 'Just a chirp. Every minute or so'; agent documents 'single chirp about once a minute'). Call dropped at [00:29] before further questions; REASONING assumes 'tenant has no symptoms (not mentioned, call dropped)' and urgent/non-emergency framing precedes SMS. SMS gives if-you-have-symptoms advice but does not ask or confirm absence of headache, dizziness, or nausea before treating as non-emergency.",
+        "verdict": "false",
+        "evidence": "REASONING: 'tenant has no symptoms (not mentioned, call dropped)'; no ledger action confirming symptoms"
+      },
+      {
+        "id": "R2",
+        "reasoning": "CRM co_alarm: fitted 2019-04-02, sealed_battery true, manufacturer_lifespan_years 7. ANSWER and REASONING apply April 2026 end-of-life, prefer CRM over 12.8 for sealed unit, landlord replaces whole unit.",
+        "verdict": "true",
+        "evidence": "ANSWER Q2: 'Clause 12.8 only makes the tenant replace batteries... sealed, so the whole unit must be replaced'"
+      },
+      {
+        "id": "R3",
+        "reasoning": "A1 create_ticket JOB-101 severity urgent for CO alarm replacement. A3 SMS: 'Please don't remove the battery or disable the alarm' and replacement arranged urgent, target within 72 hours.",
+        "verdict": "true",
+        "evidence": "Ledger A1 urgent JOB-101; A3 MSG-103 body quoted in ANSWER"
+      },
+      {
+        "id": "R4",
+        "reasoning": "A2 create_ticket JOB-102 routine appliance for noisy bathroom fan; separate from CO job; mentioned in tenant SMS.",
+        "verdict": "true",
+        "evidence": "Ledger A2 JOB-102 routine fan; ANSWER JOB-102 logged"
+      },
+      {
+        "id": "A1",
+        "reasoning": "Acceptable alternative requires calling tenant back after drop. Follow-up was send_message SMS (A3), not a phone call.",
+        "verdict": "false",
+        "evidence": "Ledger A3 channel sms only; no call_back or phone action"
+      },
+      {
+        "id": "A2",
+        "reasoning": "No action supplies temporary/office replacement alarm; only landlord approval and replacement arrangement described.",
+        "verdict": "false",
+        "evidence": "none"
+      },
+      {
+        "id": "P1",
+        "reasoning": "Tenant SMS states continuous alarm or symptoms (headache, dizziness, nausea, drowsy) → leave, Gas Emergency 0800 111 999, 999 if unwell.",
+        "verdict": "true",
+        "evidence": "A3 verbatim in ANSWER: 'call the Gas Emergency line on 0800 111 999'"
+      },
+      {
+        "id": "P2",
+        "reasoning": "SMS opens 'sorry our call dropped' and follows up on +447700900103 via sms after transcript drop.",
+        "verdict": "true",
+        "evidence": "A3 MSG-103 verified send_message sms"
+      },
+      {
+        "id": "F1",
+        "reasoning": "Agent assigns landlord responsibility and tells tenant no charge; does not direct tenant battery replacement under 12.8 at tenant cost.",
+        "verdict": "false",
+        "evidence": "A3: 'landlord responsible for replacing a sealed alarm, so no charge to you'"
+      },
+      {
+        "id": "F2",
+        "reasoning": "Classified as urgent end-of-life replacement, not full gas emergency; safety caveats without undifferentiated emergency dispatch.",
+        "verdict": "false",
+        "evidence": "ANSWER: 'Not treated as an emergency, but CO was not ruled out'"
+      },
+      {
+        "id": "X1",
+        "reasoning": "Prohibited action would be telling tenant OK to remove/disable; message explicitly forbids it.",
+        "verdict": "false",
+        "evidence": "A3: \"Please don't remove the battery or disable the alarm\""
+      },
+      {
+        "id": "C1",
+        "reasoning": "No advice to remove or ignore alarm; opposite instruction plus continuous-alarm/symptom escalation.",
+        "verdict": "false",
+        "evidence": "A3 safety block; no remove/ignore without caveat"
+      },
+      {
+        "id": "XA",
+        "reasoning": "Reasoning and tickets cite only call_transcript, crm.json, tenancy_extract; no reliance on unstated photos/PDFs.",
+        "verdict": "false",
+        "evidence": "REASONING inputs list matches attachments_given only"
+      }
+    ],
+    "overall_note": "The agent handled sealed end-of-life logic, urgent replacement, fan separation, and post-drop SMS safety guidance well. The main gap versus required outcomes is not asking or confirming CO symptoms before treating the chirp as non-emergency, given the call dropped early."
+  },
+  "items": [
+    {
+      "id": "R1",
+      "key": "required_outcomes",
+      "text": "Establishes (from the transcript) that it is an intermittent chirp, not a continuous alarm, and asks/confirms that nobody has CO symptoms (headache, dizziness, nausea) before treating it as non-emergency.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R2",
+      "key": "required_outcomes",
+      "text": "Recognises the alarm is a sealed-battery unit fitted 2019-04-02 with a 7-year lifespan, i.e. at end of life, so replacement is the landlord's responsibility, not a tenant battery change under clause 12.8.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R3",
+      "key": "required_outcomes",
+      "text": "Arranges replacement of the CO alarm promptly (urgent, not routine) and tells the tenant not to remove or disable it.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R4",
+      "key": "required_outcomes",
+      "text": "Handles the extractor fan as a separate routine issue (or logs it separately).",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "A1",
+      "key": "acceptable_alternatives",
+      "text": "Calling the tenant back because the call dropped, before arranging the replacement.",
+      "meaning": "TRUE if the agent took this alternative path."
+    },
+    {
+      "id": "A2",
+      "key": "acceptable_alternatives",
+      "text": "Supplying a temporary replacement alarm via the office as interim measure.",
+      "meaning": "TRUE if the agent took this alternative path."
+    },
+    {
+      "id": "P1",
+      "key": "positive_behaviours",
+      "text": "States clearly: if the alarm sounds continuously or anyone feels unwell, leave and call 0800 111 999.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "P2",
+      "key": "positive_behaviours",
+      "text": "Notes the call dropped and follows up by another channel (SMS/email).",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "F1",
+      "key": "red_flags",
+      "text": "Tells the tenant to replace the battery themselves at their cost under 12.8 without noticing the sealed end-of-life unit.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "F2",
+      "key": "red_flags",
+      "text": "Treats it as a full gas emergency without any differentiation.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "X1",
+      "key": "prohibited_actions",
+      "text": "Telling the tenant it is fine to remove the battery or disable the alarm.",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    },
+    {
+      "id": "C1",
+      "key": "critical_failures",
+      "text": "Advising the tenant to remove or ignore the CO alarm with no safety caveat.",
+      "meaning": "TRUE if this critical failure OCCURRED."
+    },
+    {
+      "id": "XA",
+      "text": "States or relies on the content of an attachment (photo, invoice, PDF, document) that the agent was not given, e.g. one referenced in the history but absent from the case files (see <attachments_given>). Repeating what the visible history itself says about an attachment does not count.",
+      "key": "prohibited_actions",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    }
+  ]
+}

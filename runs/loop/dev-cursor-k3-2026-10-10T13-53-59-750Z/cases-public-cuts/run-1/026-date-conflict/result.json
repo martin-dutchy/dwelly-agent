@@ -1,0 +1,281 @@
+{
+  "id": "026-date-conflict",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "cutoff": 21,
+  "totalEvents": 38,
+  "inputs": [
+    {
+      "name": "history.md",
+      "method": "derived",
+      "bytes": 11577,
+      "chars": 11535,
+      "note": "events 1–21 of 38 from history.md"
+    }
+  ],
+  "withheld": [
+    {
+      "name": "history.md",
+      "reason": "events 22–38 come after the decision point"
+    },
+    {
+      "name": "index.md",
+      "reason": "sections that reveal the ending: Overview, Outcome, Next action at escalation, History, Attachments"
+    },
+    {
+      "name": "rubric.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    }
+  ],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Visit stage. Record holds 30/08/2025 10-12 (a Saturday, mislabelled Monday) which has passed with no result recorded. Tenant says 8 Sept was agreed; provider has not confirmed. Waiting on provider; review 2025-09-01.",
+    "next_actions": [
+      {
+        "type": "CHASE_PROVIDER",
+        "action": "Ask provider whether they attended on 30/08 and whether 8 Sept is confirmed, reply by 1 Sept",
+        "recipient": "Keystone Compliance, contractor",
+        "channel": "email",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Tell tenant the record holds 30/08, 8 Sept is unconfirmed, we are checking, update by 1 Sept",
+        "recipient": "Clara, tenant",
+        "channel": "email",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "WAIT",
+        "action": "Follow up on provider reply 1 Sept",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A3"
+      }
+    ],
+    "boundaries": [
+      "No visit booked for 8 Sept: only the tenant has stated it",
+      "Does not establish whether the engineer attended on 30/08",
+      "Landlord 'Yes go ahead' approves attendance only, not any quote"
+    ],
+    "remaining_work": [
+      "Provider to confirm date; then set_visit and tell tenant",
+      "Record work result after the visit",
+      "Any quote goes to the landlord",
+      "Landlord not yet told about the date confusion (minor)"
+    ],
+    "missing_info": [
+      "Provider confirmation of date and attendance",
+      "Attachment at event 014 unseen"
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "Tenant disputes the visit date. I asked the provider to confirm attendance and 8 Sept, told the tenant 8 Sept is unconfirmed, noted the conflicts and set a follow-up for 1 Sept.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "Landlord approved; provider assigned; recorded visit 30/08 has passed with no result; tenant says 8 Sept; provider confirmation outstanding."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Email to Keystone Compliance to confirm attendance and the 8 Sept date; email to tenant with the true status; follow-up 1 Sept."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "No. It is a routine date confirmation that a message and a dated follow-up can move forward."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Email to provider"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Email to tenant"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Follow-up 1 Sept"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Conflict note"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "30/08 (Saturday) labelled Monday",
+      "30/08 in record vs 8 Sept per tenant",
+      "Tenant and provider names vary across events",
+      "Provider names vary: Keystone, Riverside Works, Lantern Utilities"
+    ],
+    "assumptions": [
+      "Keystone Compliance is the assigned provider; the other names are template or legacy variations",
+      "The tenant is the same person despite name variations"
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Keystone Compliance",
+        "recipient_role": "contractor",
+        "channel": "email",
+        "contact": "existing thread (event 018 email)",
+        "ticket_ref": "NBL-026-date-conflict",
+        "body": "Hello, about the oven repair at Flat 3, 3 Willowmere Road. Our record holds a visit on 30/08/2025, 10-12 (that is a Saturday, though our messages said Monday). The tenant says she agreed 8 September 2025 with you instead. Please reply by end of Monday 1 September to tell us: (1) did you attend this morning, and (2) is 8 September confirmed by you, and what time window? Until you confirm, we will not treat any new date as booked. Please also confirm which company name you are attending under, as messages have used different names."
+      },
+      "key": "send_message:{body:\"Hello, about the oven repair at Flat 3, 3 Willowmere Road. Our record holds a visit on 30/08/2025, 10-12 (that is a Saturday, though our messages said Monday). The tenant says she agreed 8 September 2025 with you instead. Please reply by end of Monday 1 September to tell us: (1) did you attend this morning, and (2) is 8 September confirmed by you, and what time window? Until you confirm, we will not treat any new date as booked. Please also confirm which company name you are attending under, as messages have used different names.\",channel:\"email\",contact:\"existing thread (event 018 email)\",recipient_name:\"Keystone Compliance\",recipient_role:\"contractor\",ticket_ref:\"NBL-026-date-conflict\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-101",
+      "evidence": [
+        "MSG-101 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Clara",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 021 call)",
+        "ticket_ref": "NBL-026-date-conflict",
+        "body": "Hello, thanks for calling, and sorry for the confusing reminder. Our record holds the visit as 30 August, 10-12 (our messages wrongly called it Monday; it was a Saturday). You told us you arranged 8 September with the engineer. We have asked the engineer to confirm that date and whether anyone came this morning. Until they confirm, 8 September is not booked, so please don't count on it yet. We will update you by Monday 1 September. If an engineer did turn up or call this morning, please tell us."
+      },
+      "key": "send_message:{body:\"Hello, thanks for calling, and sorry for the confusing reminder. Our record holds the visit as 30 August, 10-12 (our messages wrongly called it Monday; it was a Saturday). You told us you arranged 8 September with the engineer. We have asked the engineer to confirm that date and whether anyone came this morning. Until they confirm, 8 September is not booked, so please don't count on it yet. We will update you by Monday 1 September. If an engineer did turn up or call this morning, please tell us.\",channel:\"email\",contact:\"existing thread (event 021 call)\",recipient_name:\"Clara\",recipient_role:\"tenant\",ticket_ref:\"NBL-026-date-conflict\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-102",
+      "evidence": [
+        "MSG-102 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "schedule_follow_up",
+      "args": {
+        "ticket_ref": "NBL-026-date-conflict",
+        "due_on": "2025-09-01",
+        "party": "Keystone Compliance",
+        "purpose": "Check provider confirmed 8 Sept visit and whether 30/08 visit happened; then set_visit and update tenant"
+      },
+      "key": "schedule_follow_up:{due_on:\"2025-09-01\",party:\"Keystone Compliance\",purpose:\"Check provider confirmed 8 Sept visit and whether 30/08 visit happened; then set_visit and update tenant\",ticket_ref:\"NBL-026-date-conflict\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "FUP-103",
+      "evidence": [
+        "FUP-103 found in the schedule_follow_up log"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "add_note",
+      "args": {
+        "entity": "NBL-026-date-conflict",
+        "note": "Conflicts: 30/08/2025 is a Saturday but labelled Monday (events 018-020); tenant says 8 Sept agreed (event 021), unconfirmed by provider. Names vary: Ruben Oakley/Clara/Grace Mercer/Harriet Fletcher; Keystone Compliance/Riverside Works/Lantern Utilities. Event 009 \"Yes go ahead\" treated as approval for Keystone attendance only. Attachment at event 014 unseen."
+      },
+      "key": "add_note:{entity:\"NBL-026-date-conflict\",note:\"Conflicts: 30/08/2025 is a Saturday but labelled Monday (events 018-020); tenant says 8 Sept agreed (event 021), unconfirmed by provider. Names vary: Ruben Oakley/Clara/Grace Mercer/Harriet Fletcher; Keystone Compliance/Riverside Works/Lantern Utilities. Event 009 \\\"Yes go ahead\\\" treated as approval for Keystone attendance only. Attachment at event 014 unseen.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NOTE-104",
+      "evidence": [
+        "NOTE-104 found in the add_note log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-026-date-conflict",
+        "stage": "visit",
+        "property": "Flat 3, 3 Willowmere Road, Alderwick, ZZ9 6ZZ",
+        "description": "Hi there,\n\nHope you are well.\n\nApologies for bringing something to attention not long after moving in. Apart from this one small issue, everything else seems fine, and we are really enjoying the comforts of the property! :)\n\nI am not sure if I am missing something on the fan oven. We finally managed to get around to using the oven on Tuesday evening,\n(It's been a long and stressful move-in from the old place to here, so apologies for not checking this sooner).\nThe oven doesn't seem to heat up using the main oven section. I can confirm that the grill heating element works, as I used this last night to cook with, but the main oven heating element doesn't seem to work. On Tuesday evening, we had the oven running for at least an hour to try and get it up to 200 degrees, but it was not heating up at all.\n\nI looked through the instruction booklet I found and am certain I am not missing anything in relation to how the oven operates.\n\nIs this something that could be looked at, please?\n\nKind regards\nClara",
+        "landlord_approval": "confirmed"
+      }
+    ],
+    "records": [
+      {
+        "id": "MSG-101",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Keystone Compliance",
+          "recipient_role": "contractor",
+          "channel": "email",
+          "contact": "existing thread (event 018 email)",
+          "body": "Hello, about the oven repair at Flat 3, 3 Willowmere Road. Our record holds a visit on 30/08/2025, 10-12 (that is a Saturday, though our messages said Monday). The tenant says she agreed 8 September 2025 with you instead. Please reply by end of Monday 1 September to tell us: (1) did you attend this morning, and (2) is 8 September confirmed by you, and what time window? Until you confirm, we will not treat any new date as booked. Please also confirm which company name you are attending under, as messages have used different names.",
+          "ticket_ref": "NBL-026-date-conflict"
+        },
+        "at": 1791640471729
+      },
+      {
+        "id": "MSG-102",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Clara",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 021 call)",
+          "body": "Hello, thanks for calling, and sorry for the confusing reminder. Our record holds the visit as 30 August, 10-12 (our messages wrongly called it Monday; it was a Saturday). You told us you arranged 8 September with the engineer. We have asked the engineer to confirm that date and whether anyone came this morning. Until they confirm, 8 September is not booked, so please don't count on it yet. We will update you by Monday 1 September. If an engineer did turn up or call this morning, please tell us.",
+          "ticket_ref": "NBL-026-date-conflict"
+        },
+        "at": 1791640471729
+      },
+      {
+        "id": "FUP-103",
+        "tool": "schedule_follow_up",
+        "args": {
+          "ticket_ref": "NBL-026-date-conflict",
+          "due_on": "2025-09-01",
+          "party": "Keystone Compliance",
+          "purpose": "Check provider confirmed 8 Sept visit and whether 30/08 visit happened; then set_visit and update tenant"
+        },
+        "at": 1791640471730
+      },
+      {
+        "id": "NOTE-104",
+        "tool": "add_note",
+        "args": {
+          "entity": "NBL-026-date-conflict",
+          "note": "Conflicts: 30/08/2025 is a Saturday but labelled Monday (events 018-020); tenant says 8 Sept agreed (event 021), unconfirmed by provider. Names vary: Ruben Oakley/Clara/Grace Mercer/Harriet Fletcher; Keystone Compliance/Riverside Works/Lantern Utilities. Event 009 \"Yes go ahead\" treated as approval for Keystone attendance only. Attachment at event 014 unseen."
+        },
+        "at": 1791640471730
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 3, 3 Willowmere Road, Alderwick, ZZ9 6ZZ",
+        "landlord": {
+          "contact": "agency landlord record",
+          "notes": [
+            "Contact details are held in the agency system and not shown in this case file; messages to the landlord go through it. Use contact \"agency landlord record\".",
+            "Landlord messages visible in this case: event 004 (email, to landlord); event 009 (email, from landlord)."
+          ]
+        }
+      }
+    ]
+  },
+  "usage": {
+    "input": 8,
+    "output": 2790,
+    "cost": 0.06137490000000001,
+    "turns": 3,
+    "durationMs": 20847,
+    "retries": 0,
+    "thinkingTokens": 272
+  }
+}

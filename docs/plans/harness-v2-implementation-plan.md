@@ -545,6 +545,19 @@ Run from the repo root (or from the workstream's worktree in Wave 1). Show the o
   - `createOpsToolset(seed, { v2 })` hides `verify_identity`, `share_tenant_contact` and the `update_ticket` `priority` field unless `guardsV2` is on, so a flags-off run sees the toolset it was tuned on.
 
   `pnpm verify` 56 files and 1,470 tests green.
+- [x] (16:20) Merged `origin/main` (`e3b4d6f`, including M5 and PR #45) into `h2/base`. Conflicts:
+  - `cases/splits.json`: took main's version, which adds an `expansion` group and a wider holdout, and appended practice 91-100 to main's practice `expansion` group. None of them collide with a main case or a holdout id.
+  - The plan: kept the `h2/base` copy, which is authoritative.
+  - `maintenance-policy.md`: kept the slim version, which only `CASE_SYSTEM_PROMPT_V2` reads, and refreshed `skills/legacy/maintenance-policy-v1.md` from main's M5 version. The M5 changes have not been ported into the slim file; port them before giving the slim prompt its own flag.
+
+  Checks:
+  - `CASE_SYSTEM_PROMPT` is byte-identical to main's (42,155 characters, compared against a checkout of `origin/main`), and the hash test is re-pinned to it.
+  - `createOpsToolset(seed, { v2: false })` is identical to main's toolset: 28 tools with the same names, descriptions and JSON schemas.
+  - The cap on the slim prompt now counts only its own lines (at most 90), because the shared `core/policy.md` grows with main.
+  - The `loadCase` snapshot gained main's 199 new folders, and no existing hash changed.
+  - `pnpm verify`: 57 files and 2,558 tests green.
+
+  With flags off, one difference from main remains: the optional `escalations`, `follow_ups` and `unknowns` fields in `submit_decision` and their ANSWER.md sections. They are score-neutral in run 1.
 - [ ] Wave 4
 
 ## Discoveries
