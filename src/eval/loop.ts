@@ -1,7 +1,8 @@
 // The test loop: one command runs a frozen split, grades it, and diffs against the baseline.
-// Usage: pnpm loop [--profile quick|final] [--split dev|holdout] [--k 3] [--chaos 0.15] [--seed 1] [--only 01,003]
+// Usage: pnpm loop [--profile quick|cursor|final] [--split dev|holdout] [--k 3] [--chaos 0.15] [--seed 1] [--only 01,003]
 //                  [--no-judge] [--baseline <file>] [--save-baseline] [--rescore <run-root>]
 //   quick (default): Haiku agent, Sonnet judge. Fast and cheap, for iterating.
+//   cursor:          Haiku agent, Cursor-plan judge (CURSOR_JUDGE_MODEL, default composer-2.5; needs CURSOR_API_KEY).
 //   final:           CASE_MODEL agent (Sonnet), JUDGE_MODEL judge (Opus). The real score, run before decisions that matter.
 //   Override any part with --model, --judge-model, --thinking, --concurrency.
 //   --k N:       run every case N times (same seed: chaos is a fixed perturbation, the variance is the model's);
@@ -42,6 +43,7 @@ const { values } = parseArgs({
 
 const PROFILES: Record<string, { model: string; judge: string; thinking: string; concurrency: string }> = {
   quick: { model: 'claude-haiku-5-5', judge: 'claude-sonnet-5-5', thinking: 'low', concurrency: '16' },
+  cursor: { model: 'claude-haiku-5-5', judge: `cursor:${process.env.CURSOR_JUDGE_MODEL || 'composer-2.5'}`, thinking: 'low', concurrency: '8' },
   final: { model: process.env.CASE_MODEL ?? 'claude-sonnet-5-5', judge: process.env.JUDGE_MODEL ?? 'claude-opus-5-5', thinking: 'medium', concurrency: '8' },
 };
 
