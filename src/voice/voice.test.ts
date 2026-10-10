@@ -251,6 +251,7 @@ describe('WhatsApp heads-up', () => {
     expect(toE164('+44 7877 094577')).toBe('+447877094577');
     expect(toE164('07877 094577')).toBe('+447877094577');
     expect(toE164('0044 7877 094577')).toBe('+447877094577');
+    expect(toE164('+44 (0)7877 094577')).toBe('+447877094577');
     expect(toE164('hello')).toBeUndefined();
   });
 

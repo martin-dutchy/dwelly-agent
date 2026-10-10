@@ -114,7 +114,8 @@ const E164 = /^\+[1-9]\d{7,14}$/;
 /** Normalise "+44 7877 094577" / "07877094577" to E.164; UK numbers assumed without a country code. */
 export const toE164 = (raw: unknown) => {
   if (typeof raw !== 'string') return undefined;
-  const digits = raw.replace(/[^\d+]/g, '');
+  // "+44 (0)7700 900123": drop the trunk zero written after the country code.
+  const digits = raw.replace(/\(0\)/g, '').replace(/[^\d+]/g, '');
   const n = digits.startsWith('+') ? digits : digits.startsWith('00') ? `+${digits.slice(2)}` : digits.startsWith('0') ? `+44${digits.slice(1)}` : `+${digits}`;
   return E164.test(n) ? n : undefined;
 };
@@ -173,7 +174,12 @@ async function testerRoutes(token: string, rest: string, req: IncomingMessage, r
     const used = await store.callsToday(tester.id);
     if (used >= tester.daily_cap || !mint(tester.id, tester.daily_cap) || !mint('all', Number(env.VOICE_DAILY_CALL_CAP ?? 200)))
       return send(res, 429, { error: "That's the limit for today. Thank you! Try again tomorrow." });
-    await placePhoneCall(env, store, { to: tester.phone, scenarioId, testerId: tester.id });
+    try {
+      await placePhoneCall(env, store, { to: tester.phone, scenarioId, testerId: tester.id });
+    } catch (e) {
+      console.error('[voice] call-me', e);
+      return send(res, 502, { error: "Sorry, we couldn't ring your phone just now. Try again in a minute, or use the browser option." });
+    }
     return send(res, 200, { ok: true });
   }
   if (rest === 'api/start' && req.method === 'POST') {
@@ -239,8 +245,12 @@ async function adminRoutes(path: string, req: IncomingMessage, res: ServerRespon
     const number = toE164(to);
     if (!s || !number) return send(res, 400, { error: 'pick a scenario and a number like +447700900123' });
     if (!env.ELEVENLABS_PHONE_NUMBER_ID) return send(res, 400, { error: 'ELEVENLABS_PHONE_NUMBER_ID is not set' });
-    const conversationId = await placePhoneCall(env, store, { to: number, scenarioId: s.id, testerId: null });
-    return send(res, 200, { conversationId, card: testerCard(s) });
+    try {
+      const conversationId = await placePhoneCall(env, store, { to: number, scenarioId: s.id, testerId: null });
+      return send(res, 200, { conversationId, card: testerCard(s), to: number });
+    } catch (e) {
+      return send(res, 502, { error: `Could not call ${number}: ${(e as Error).message.slice(0, 300)}` });
+    }
   }
   const regrade = api.match(/^calls\/([\w-]+)\/regrade$/)?.[1];
   if (regrade && req.method === 'POST') {

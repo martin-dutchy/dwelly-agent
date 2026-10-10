@@ -91,7 +91,7 @@ export function adminHomePage(testers: Tester[], calls: CallRow[], base: string,
     `const CARDS = ${JSON.stringify(cards).replace(/</g, '\\u003c')};
     const escH = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
     const phoneForm = document.getElementById('phone');
-    const showCard = (c, note) => { document.getElementById('card').innerHTML = c ? '<div class="panel" style="margin-top:10px"><h2>You are ' + escH(c.persona) + '</h2><p>' + escH(c.situation) + '</p><b>You know</b><ul>' + c.youKnow.map((k) => '<li>' + escH(k) + '</li>').join('') + '</ul><b>To make it realistic</b><ul>' + c.tips.map((k) => '<li>' + escH(k) + '</li>').join('') + '</ul>' + (note || '') + '</div>' : ''; };
+    const showCard = (c, note) => { document.getElementById('card').innerHTML = c ? '<div class="panel" style="margin-top:10px"><h2>You are ' + escH(c.persona) + '</h2><p>' + escH(c.situation) + '</p><b>You know</b><ul>' + c.youKnow.map((k) => '<li>' + escH(k) + '</li>').join('') + '</ul>' + (c.twist ? '<b>Twist</b><p>' + escH(c.twist) + '</p>' : '') + '<b>To make it realistic</b><ul>' + c.tips.map((k) => '<li>' + escH(k) + '</li>').join('') + '</ul>' + (note || '') + '</div>' : ''; };
     try { phoneForm.to.value = localStorage.getItem('voice-phone') || ''; } catch {}
     phoneForm.scenarioId.addEventListener('change', () => showCard(CARDS.find((c) => c.id === phoneForm.scenarioId.value)));
     showCard(CARDS.find((c) => c.id === phoneForm.scenarioId.value));
@@ -103,7 +103,7 @@ export function adminHomePage(testers: Tester[], calls: CallRow[], base: string,
       const out = await r.json().catch(() => ({}));
       btn.disabled = false; btn.textContent = 'Call';
       if (!r.ok) return alert(out.error || 'Call failed');
-      showCard(out.card, '<p><b>Ringing now.</b> <a href="/admin/calls/' + encodeURIComponent(out.conversationId) + '">Open this call</a> (graded after you hang up).</p>');
+      showCard(out.card, '<p><b>Ringing ' + escH(out.to) + ' now.</b> <a href="/admin/calls/' + encodeURIComponent(out.conversationId) + '">Open this call</a> (graded after you hang up).</p>');
     });
     document.getElementById('invite').addEventListener('submit', async (e) => {
       e.preventDefault(); const f = new FormData(e.target);
