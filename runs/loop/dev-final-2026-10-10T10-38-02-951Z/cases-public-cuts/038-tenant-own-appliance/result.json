@@ -1,0 +1,152 @@
+{
+  "id": "038-tenant-own-appliance",
+  "model": "claude-sonnet-5-5",
+  "cutoff": 2,
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "Tenant reports the landlord-supplied LG washing machine has failed and offers to replace it with their own. No existing ticket, so JOB-101 was logged as routine. The landlord was asked to decide how to proceed (APR-102) and the tenant was told and asked for a photo and error code.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "A routine appliance job is now logged (JOB-101). Outstanding: the landlord's decision on repair, replacement, or letting the tenant fit their own machine; the tenant's photo and error code; and the tenant's request to own and take the replacement."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Done now: landlord approval request APR-102 on the case channel, and an email to the tenant with the 14-day target. Next: once the landlord replies, confirm to the tenant and arrange a contractor or removal of the old unit."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "No human escalation. The decision belongs to the landlord, since the machine is their property and the tenant's own-machine proposal needs their consent. It has been requested and is pending."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Created routine appliance ticket JOB-101"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Requested landlord decision APR-102"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Emailed tenant update and photo request MSG-103"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [],
+    "assumptions": [
+      "Landlord name and contact are not in the case, so the approval request went by role.",
+      "The machine is the landlord's, as it was there at move-in, and the tenancy has no appliance clause that says otherwise.",
+      "The tenant's email on the thread is the channel on file."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "create_ticket",
+      "args": {
+        "property": "Flat 9, 59 Alder Lane, Eastmere, ZZ4 4ZZ",
+        "category": "appliance",
+        "severity": "routine",
+        "description": "LG washing machine (provided with the property at move-in) has stopped working with a power failure; tenant believes it is beyond repair. Tenant offers to buy a replacement at their own cost, which they would own and take with them on leaving. Needs landlord decision on whether the landlord's appliance is repaired/replaced or tenant's own machine is agreed. Tenant has been asked for photos/error code."
+      },
+      "key": "create_ticket:{category:\"appliance\",description:\"LG washing machine (provided with the property at move-in) has stopped working with a power failure; tenant believes it is beyond repair. Tenant offers to buy a replacement at their own cost, which they would own and take with them on leaving. Needs landlord decision on whether the landlord's appliance is repaired/replaced or tenant's own machine is agreed. Tenant has been asked for photos/error code.\",property:\"Flat 9, 59 Alder Lane, Eastmere, ZZ4 4ZZ\",severity:\"routine\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "JOB-101",
+      "evidence": [
+        "Ticket JOB-101 read back at stage init"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "request_landlord_approval",
+      "args": {
+        "landlord": "Landlord of Flat 9, 59 Alder Lane",
+        "decision_needed": "The LG washing machine supplied with the flat has failed (power failure, reportedly not repairable). Tenant offers to buy a replacement at their own cost, remain its owner and take it when they leave. Please tell us how you'd like to proceed.",
+        "options": [
+          "Agree the tenant installs their own machine (tenant owns and removes it; old unit is removed and disposed of)",
+          "Landlord has the machine inspected/repaired by a contractor",
+          "Landlord replaces the machine at their own cost"
+        ],
+        "ticket_ref": "JOB-101"
+      },
+      "key": "request_landlord_approval:{decision_needed:\"The LG washing machine supplied with the flat has failed (power failure, reportedly not repairable). Tenant offers to buy a replacement at their own cost, remain its owner and take it when they leave. Please tell us how you'd like to proceed.\",landlord:\"Landlord of Flat 9, 59 Alder Lane\",options:[\"Agree the tenant installs their own machine (tenant owns and removes it; old unit is removed and disposed of)\",\"Landlord has the machine inspected/repaired by a contractor\",\"Landlord replaces the machine at their own cost\"],ticket_ref:\"JOB-101\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "APR-102",
+      "evidence": [
+        "APR-102 found in the request_landlord_approval log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Tenant",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "body": "Hello, thanks for letting us know about the washing machine, and for offering to replace it. We've logged it as a routine job (ref JOB-101). As the machine came with the flat, we've asked the landlord how they'd like to proceed, including your offer to fit your own machine that you'd keep and take with you. Please don't dispose of or swap the old one until we confirm. Could you send a photo of the machine and any error code shown? We aim to get back to you within 14 days, and sooner if we can."
+      },
+      "key": "send_message:{body:\"Hello, thanks for letting us know about the washing machine, and for offering to replace it. We've logged it as a routine job (ref JOB-101). As the machine came with the flat, we've asked the landlord how they'd like to proceed, including your offer to fit your own machine that you'd keep and take with you. Please don't dispose of or swap the old one until we confirm. Could you send a photo of the machine and any error code shown? We aim to get back to you within 14 days, and sooner if we can.\",channel:\"email\",recipient_name:\"Tenant\",recipient_role:\"tenant\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-103",
+      "evidence": [
+        "MSG-103 found in the send_message log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "JOB-101",
+        "stage": "init",
+        "property": "Flat 9, 59 Alder Lane, Eastmere, ZZ4 4ZZ",
+        "category": "appliance",
+        "severity": "routine",
+        "description": "LG washing machine (provided with the property at move-in) has stopped working with a power failure; tenant believes it is beyond repair. Tenant offers to buy a replacement at their own cost, which they would own and take with them on leaving. Needs landlord decision on whether the landlord's appliance is repaired/replaced or tenant's own machine is agreed. Tenant has been asked for photos/error code."
+      }
+    ],
+    "records": [
+      {
+        "id": "APR-102",
+        "tool": "request_landlord_approval",
+        "args": {
+          "landlord": "Landlord of Flat 9, 59 Alder Lane",
+          "decision_needed": "The LG washing machine supplied with the flat has failed (power failure, reportedly not repairable). Tenant offers to buy a replacement at their own cost, remain its owner and take it when they leave. Please tell us how you'd like to proceed.",
+          "ticket_ref": "JOB-101",
+          "options": [
+            "Agree the tenant installs their own machine (tenant owns and removes it; old unit is removed and disposed of)",
+            "Landlord has the machine inspected/repaired by a contractor",
+            "Landlord replaces the machine at their own cost"
+          ]
+        },
+        "at": 1791628728092
+      },
+      {
+        "id": "MSG-103",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Tenant",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "body": "Hello, thanks for letting us know about the washing machine, and for offering to replace it. We've logged it as a routine job (ref JOB-101). As the machine came with the flat, we've asked the landlord how they'd like to proceed, including your offer to fit your own machine that you'd keep and take with you. Please don't dispose of or swap the old one until we confirm. Could you send a photo of the machine and any error code shown? We aim to get back to you within 14 days, and sooner if we can."
+        },
+        "at": 1791628728092
+      }
+    ]
+  },
+  "usage": {
+    "input": 10,
+    "output": 1914,
+    "cost": 0.031768,
+    "turns": 4,
+    "durationMs": 16725
+  }
+}

@@ -1,0 +1,248 @@
+{
+  "id": "037-landlord-thumbs-up",
+  "model": "claude-haiku-5-5",
+  "cutoff": 7,
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Intake/landlord gate. The landlord was asked on 2024-03-27 whether the repair is arranged by us or by them. Their only reply is a 👍 (event 007), which is not a usable decision. No provider is assigned and no visit is booked. The tenant has not sent the photos requested in event 004. The job is on hold for the landlord with a review date of 2024-03-28.",
+    "next_actions": [
+      {
+        "type": "REQUEST_LANDLORD_APPROVAL",
+        "action": "Ask the landlord a yes-or-no question: use our contractor, or arrange their own. The 👍 was recorded as unclear and no contractor is instructed.",
+        "recipient": "Freya, landlord",
+        "channel": "email",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Tell the tenant the landlord is being asked to confirm, and ask again for photos of the damaged cable and the leak.",
+        "recipient": "Eliza, tenant",
+        "channel": "email",
+        "ledger_id": "A3"
+      },
+      {
+        "type": "WAIT",
+        "action": "Hold the job for the landlord's answer, with a review on 2024-03-28. Chase by phone or SMS if still no clear answer.",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A4"
+      }
+    ],
+    "boundaries": [
+      "The 👍 does not authorise any repair, contractor or spend.",
+      "No contractor has been assigned and no visit is booked.",
+      "The cause, cost and who pays are not established.",
+      "Nothing has been sent to any provider."
+    ],
+    "remaining_work": [
+      "Landlord to give a clear yes or no: our contractor, or their own. Owner: landlord (chase 2024-03-28).",
+      "Once approved, assign a contractor and book a visit with the tenant. Owner: agency.",
+      "Tenant photos still outstanding (not blocking the decision). Owner: tenant."
+    ],
+    "missing_info": [
+      "Landlord's clear decision on who does the repair; no spend limit on file for this property.",
+      "Tenant photos of the cable and leak.",
+      "No provider or contractor named for this property."
+    ],
+    "outcome": "action_taken",
+    "severity": "urgent",
+    "summary": "The landlord replied only with a 👍 to the question on who should do the shower cable repair. That is not a usable decision, so it was recorded as unclear and the landlord was asked a yes-or-no question. The tenant was updated and asked again for photos, and the job is on hold until 2024-03-28.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "Landlord gate. The landlord has not given a usable decision: the 👍 at event 007 is recorded as unclear. No provider is assigned and no visit is booked. The tenant's photos are outstanding. The job is on hold for the landlord until 2024-03-28."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Email Freya (landlord) on the existing thread asking her to confirm YES for our contractor or NO for her own. Email Eliza (tenant) to say the landlord is being asked and to request photos. Review the hold on 2024-03-28 and chase if still unanswered."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "Not yet. The landlord must answer a yes-or-no question first. Escalate only if there is still no clear answer after the chase, or if the leak becomes urgent."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Recorded the landlord's 👍 as an unclear decision."
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Emailed the landlord asking a yes-or-no question on who does the repair."
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Emailed the tenant with a status update and a request for photos."
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Put the job on hold for the landlord with a review date of 2024-03-28."
+      },
+      {
+        "ledger_id": "A5",
+        "description": "Returned the job to auto mode after handling the landlord's message."
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "The landlord's 👍 may look like approval, but it does not say what was approved. Treated as unclear."
+    ],
+    "assumptions": [
+      "The landlord's email address is the existing thread from event 003. No separate contact was on file.",
+      "The tenant's contact is the existing thread from event 004.",
+      "The landlord's 👍 refers to the question asked in event 003."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "record_landlord_decision",
+      "args": {
+        "ticket_ref": "NBL-037-landlord-thumbs-up",
+        "decision": "unclear",
+        "evidence_quote": "👍",
+        "source": "event 007, email from Landlord to Northbridge Lettings, 2024-03-27 11:21:48 UTC"
+      },
+      "key": "record_landlord_decision:{decision:\"unclear\",evidence_quote:\"👍\",source:\"event 007, email from Landlord to Northbridge Lettings, 2024-03-27 11:21:48 UTC\",ticket_ref:\"NBL-037-landlord-thumbs-up\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-037-landlord-thumbs-up",
+      "evidence": [
+        "Ticket NBL-037-landlord-thumbs-up read back after record_landlord_decision"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Freya",
+        "recipient_role": "landlord",
+        "channel": "email",
+        "contact": "existing thread (event 003 email)",
+        "body": "Hi Freya,\n\nThank you for your reply. We received a thumbs-up emoji, but we need a clear answer before we instruct anyone.\n\nThe shower cable at Flat 14, 44 Lantern Quay is damaged and leaking. Please reply with one of the following:\n\n1. YES, arrange the repair through our contractor, or\n2. NO, I will arrange my own contractor.\n\nKind regards,\nNorthbridge Lettings"
+      },
+      "key": "send_message:{body:\"Hi Freya,\\n\\nThank you for your reply. We received a thumbs-up emoji, but we need a clear answer before we instruct anyone.\\n\\nThe shower cable at Flat 14, 44 Lantern Quay is damaged and leaking. Please reply with one of the following:\\n\\n1. YES, arrange the repair through our contractor, or\\n2. NO, I will arrange my own contractor.\\n\\nKind regards,\\nNorthbridge Lettings\",channel:\"email\",contact:\"existing thread (event 003 email)\",recipient_name:\"Freya\",recipient_role:\"landlord\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-101",
+      "evidence": [
+        "MSG-101 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Eliza",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 004 email)",
+        "body": "Hi Eliza,\n\nThank you for reporting the leaking shower at Flat 14, 44 Lantern Quay. We have asked the landlord to confirm how the repair should go ahead. We will update you as soon as we hear back.\n\nIf you can, please send a few photos of the damaged shower cable and where the leak is coming from. This will help the contractor when they attend.\n\nIf the leak gets worse, or water gets near any electrics, please turn off the water supply and the electrics in the bathroom and let us know straight away.\n\nKind regards,\nNorthbridge Lettings"
+      },
+      "key": "send_message:{body:\"Hi Eliza,\\n\\nThank you for reporting the leaking shower at Flat 14, 44 Lantern Quay. We have asked the landlord to confirm how the repair should go ahead. We will update you as soon as we hear back.\\n\\nIf you can, please send a few photos of the damaged shower cable and where the leak is coming from. This will help the contractor when they attend.\\n\\nIf the leak gets worse, or water gets near any electrics, please turn off the water supply and the electrics in the bathroom and let us know straight away.\\n\\nKind regards,\\nNorthbridge Lettings\",channel:\"email\",contact:\"existing thread (event 004 email)\",recipient_name:\"Eliza\",recipient_role:\"tenant\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-102",
+      "evidence": [
+        "MSG-102 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "put_on_hold",
+      "args": {
+        "ticket_ref": "NBL-037-landlord-thumbs-up",
+        "reason": "Waiting for Landlord",
+        "comment": "Landlord replied 👍 only (event 007), which is not a usable decision. Asked a yes/no question: repair via our contractor, or landlord's own contractor. No provider assigned yet. Also awaiting tenant photos.",
+        "review_on": "2024-03-28"
+      },
+      "key": "put_on_hold:{comment:\"Landlord replied 👍 only (event 007), which is not a usable decision. Asked a yes/no question: repair via our contractor, or landlord's own contractor. No provider assigned yet. Also awaiting tenant photos.\",reason:\"Waiting for Landlord\",review_on:\"2024-03-28\",ticket_ref:\"NBL-037-landlord-thumbs-up\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-037-landlord-thumbs-up",
+      "evidence": [
+        "Ticket NBL-037-landlord-thumbs-up read back after put_on_hold"
+      ]
+    },
+    {
+      "id": "A5",
+      "tool": "resume_auto",
+      "args": {
+        "ticket_ref": "NBL-037-landlord-thumbs-up"
+      },
+      "key": "resume_auto:{ticket_ref:\"NBL-037-landlord-thumbs-up\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-037-landlord-thumbs-up",
+      "evidence": [
+        "Ticket NBL-037-landlord-thumbs-up read back after resume_auto"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-037-landlord-thumbs-up",
+        "stage": "init",
+        "property": "Flat 14, 44 Lantern Quay, Alderwick, ZZ9 8ZZ",
+        "description": "Shower cable leading to the shower handle is damaged and leaking. \nPlease replace",
+        "landlord_decision": {
+          "decision": "unclear",
+          "evidence_quote": "👍",
+          "source": "event 007, email from Landlord to Northbridge Lettings, 2024-03-27 11:21:48 UTC"
+        },
+        "mode": "auto"
+      }
+    ],
+    "records": [
+      {
+        "id": "MSG-101",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Freya",
+          "recipient_role": "landlord",
+          "channel": "email",
+          "contact": "existing thread (event 003 email)",
+          "body": "Hi Freya,\n\nThank you for your reply. We received a thumbs-up emoji, but we need a clear answer before we instruct anyone.\n\nThe shower cable at Flat 14, 44 Lantern Quay is damaged and leaking. Please reply with one of the following:\n\n1. YES, arrange the repair through our contractor, or\n2. NO, I will arrange my own contractor.\n\nKind regards,\nNorthbridge Lettings"
+        },
+        "at": 1791632188996
+      },
+      {
+        "id": "MSG-102",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Eliza",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 004 email)",
+          "body": "Hi Eliza,\n\nThank you for reporting the leaking shower at Flat 14, 44 Lantern Quay. We have asked the landlord to confirm how the repair should go ahead. We will update you as soon as we hear back.\n\nIf you can, please send a few photos of the damaged shower cable and where the leak is coming from. This will help the contractor when they attend.\n\nIf the leak gets worse, or water gets near any electrics, please turn off the water supply and the electrics in the bathroom and let us know straight away.\n\nKind regards,\nNorthbridge Lettings"
+        },
+        "at": 1791632188996
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 14, 44 Lantern Quay, Alderwick, ZZ9 8ZZ"
+      }
+    ]
+  },
+  "usage": {
+    "input": 10,
+    "output": 5057,
+    "cost": 0.004056114999999999,
+    "turns": 4,
+    "durationMs": 21741,
+    "retries": 0
+  }
+}

@@ -1,0 +1,221 @@
+{
+  "id": "012",
+  "model": "claude-sonnet-5-5",
+  "cutoff": 18,
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Provider assigned (Riverside Compliance); visit recorded for Wed 29/04/2026 8am-12pm. Waiting on the visit and on the provider confirming its identity. No quote yet.",
+    "next_actions": [
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Told tenant the visit is recorded for 29/04 8-12 and what happens next",
+        "recipient": "Leo Turner, tenant",
+        "channel": "email",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "REQUEST_INFORMATION",
+        "action": "Asked provider to confirm the engineer is from Riverside Compliance (call said Cedar Utilities) and the slot",
+        "recipient": "Riverside Compliance, contractor",
+        "channel": "email",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "WAIT",
+        "action": "Review after the visit on 2026-04-30",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A3"
+      }
+    ],
+    "boundaries": [
+      "Messages do not confirm the repair, cost or who pays.",
+      "Landlord earlier agreed to an engineer attending; any quote still needs landlord approval.",
+      "Provider identity not yet confirmed."
+    ],
+    "remaining_work": [
+      "Visit 29/04, then record result",
+      "Provider reply on company identity",
+      "Quote to landlord if needed (agency, after visit)"
+    ],
+    "missing_info": [
+      "Confirmation that Cedar Utilities/Grant is Riverside Compliance"
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "Tenant's checks failed and the engineer was instructed. A visit is recorded for 29/04 8-12. I confirmed it with the tenant and asked the provider to confirm its identity, as the call named a different company. Follow-up set for 30/04.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "Troubleshooting failed, Riverside Compliance assigned, visit recorded 29/04/2026 8-12. Outstanding: the visit, the result, any quote and landlord approval, and the provider identity check."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Tenant email confirming the visit (A1) and provider email asking it to confirm identity and slot (A2), with a follow-up on 30/04 (A3)."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "No. It's routine, and the identity mismatch can be settled by asking the provider."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Email to tenant confirming visit"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Information request to provider"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Follow-up scheduled 2026-04-30"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Call note names Cedar Utilities but the assigned provider is Riverside Compliance.",
+      "Call note calls the tenant Leo Kendall; records say Leo Turner. Treated as a typo.",
+      "Event 004 says the original request may relate to a Sept 2025 email; treated as the same dishwasher issue since the tenant confirmed the checks."
+    ],
+    "assumptions": [
+      "Visit slot Wed 29/04 8-12 is the system-recorded booking (event 017)."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Leo Turner",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 011 email)",
+        "ticket_ref": "012",
+        "body": "Hi Leo, thanks for running the checks. The engineer visit for the dishwasher door is down in our record for Wednesday 29 April, between 8am and 12pm. Please make sure someone is home to let them in. This first visit is to inspect and repair if possible; if parts or a quote are needed we'll agree that with the landlord first and keep you posted. If the time doesn't suit, let us know. We are also confirming the engineer's company details with the provider."
+      },
+      "key": "send_message:{body:\"Hi Leo, thanks for running the checks. The engineer visit for the dishwasher door is down in our record for Wednesday 29 April, between 8am and 12pm. Please make sure someone is home to let them in. This first visit is to inspect and repair if possible; if parts or a quote are needed we'll agree that with the landlord first and keep you posted. If the time doesn't suit, let us know. We are also confirming the engineer's company details with the provider.\",channel:\"email\",contact:\"existing thread (event 011 email)\",recipient_name:\"Leo Turner\",recipient_role:\"tenant\",ticket_ref:\"012\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-101",
+      "evidence": [
+        "MSG-101 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "request_information",
+      "args": {
+        "recipient_name": "Riverside Compliance",
+        "recipient_role": "contractor",
+        "channel": "email",
+        "contact": "existing thread (event 015 email)",
+        "questions": [
+          "Please confirm that the engineer attending Flat 9, 89 Juniper Mews on Wed 29/04/2026, 8am-12pm is from Riverside Compliance. Our record shows a call from 'Grant from Cedar Utilities' about this visit.",
+          "Please confirm the 29/04 8-12 slot, and send any quote with photos before doing work beyond inspection."
+        ],
+        "why": "Company name on the call differs from the assigned provider; need to confirm before the visit."
+      },
+      "key": "request_information:{channel:\"email\",contact:\"existing thread (event 015 email)\",questions:[\"Please confirm that the engineer attending Flat 9, 89 Juniper Mews on Wed 29/04/2026, 8am-12pm is from Riverside Compliance. Our record shows a call from 'Grant from Cedar Utilities' about this visit.\",\"Please confirm the 29/04 8-12 slot, and send any quote with photos before doing work beyond inspection.\"],recipient_name:\"Riverside Compliance\",recipient_role:\"contractor\",why:\"Company name on the call differs from the assigned provider; need to confirm before the visit.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "REQ-102",
+      "evidence": [
+        "REQ-102 found in the request_information log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "schedule_follow_up",
+      "args": {
+        "ticket_ref": "012",
+        "due_on": "2026-04-30",
+        "party": "Riverside Compliance / tenant",
+        "purpose": "Check visit on 29/04 happened; record result, quote if needed. Also check provider confirmed company identity."
+      },
+      "key": "schedule_follow_up:{due_on:\"2026-04-30\",party:\"Riverside Compliance / tenant\",purpose:\"Check visit on 29/04 happened; record result, quote if needed. Also check provider confirmed company identity.\",ticket_ref:\"012\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "FUP-103",
+      "evidence": [
+        "FUP-103 found in the schedule_follow_up log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-012",
+        "stage": "visit",
+        "property": "Flat 9, 89 Juniper Mews, Willowbank, ZZ2 0ZZ",
+        "description": "Dishwasher door not closing,"
+      }
+    ],
+    "records": [
+      {
+        "id": "MSG-101",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Leo Turner",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 011 email)",
+          "body": "Hi Leo, thanks for running the checks. The engineer visit for the dishwasher door is down in our record for Wednesday 29 April, between 8am and 12pm. Please make sure someone is home to let them in. This first visit is to inspect and repair if possible; if parts or a quote are needed we'll agree that with the landlord first and keep you posted. If the time doesn't suit, let us know. We are also confirming the engineer's company details with the provider.",
+          "ticket_ref": "012"
+        },
+        "at": 1791632154354
+      },
+      {
+        "id": "REQ-102",
+        "tool": "request_information",
+        "args": {
+          "recipient_name": "Riverside Compliance",
+          "recipient_role": "contractor",
+          "channel": "email",
+          "contact": "existing thread (event 015 email)",
+          "questions": [
+            "Please confirm that the engineer attending Flat 9, 89 Juniper Mews on Wed 29/04/2026, 8am-12pm is from Riverside Compliance. Our record shows a call from 'Grant from Cedar Utilities' about this visit.",
+            "Please confirm the 29/04 8-12 slot, and send any quote with photos before doing work beyond inspection."
+          ],
+          "why": "Company name on the call differs from the assigned provider; need to confirm before the visit."
+        },
+        "at": 1791632154354
+      },
+      {
+        "id": "FUP-103",
+        "tool": "schedule_follow_up",
+        "args": {
+          "ticket_ref": "012",
+          "due_on": "2026-04-30",
+          "party": "Riverside Compliance / tenant",
+          "purpose": "Check visit on 29/04 happened; record result, quote if needed. Also check provider confirmed company identity."
+        },
+        "at": 1791632154355
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 9, 89 Juniper Mews, Willowbank, ZZ2 0ZZ"
+      }
+    ]
+  },
+  "usage": {
+    "input": 6,
+    "output": 2670,
+    "cost": 0.0392525,
+    "turns": 2,
+    "durationMs": 18672,
+    "retries": 0
+  }
+}

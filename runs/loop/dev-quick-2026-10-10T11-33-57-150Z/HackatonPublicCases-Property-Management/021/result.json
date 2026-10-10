@@ -1,0 +1,279 @@
+{
+  "id": "021",
+  "model": "claude-haiku-5-5",
+  "cutoff": 15,
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Ticket NBL-021 (Flat 22, 148 Lantern Quay). Landlord approved the lock replacement and 4 keys (event 006). Provider Alder Compliance assigned (event 010) but no visit booked. Provider (event 015) asked for the tenant's contact details to book. Now on hold waiting for the tenant's direct number and best times, review 2024-11-25.",
+    "next_actions": [
+      {
+        "type": "CHASE_PROVIDER",
+        "action": "Reply to Alder Compliance with the contact on file (07700 900625, with the calling code as recorded) and ask them to book the visit with the tenant; say the tenant's direct number is being confirmed.",
+        "recipient": "Alder Compliance, contractor",
+        "channel": "email",
+        "ledger_id": "A3"
+      },
+      {
+        "type": "CHASE_TENANT",
+        "action": "Ask Clara Jenkins for her direct phone number and best times to be called, and tell her the provider will arrange the visit.",
+        "recipient": "Clara Jenkins, tenant",
+        "channel": "email",
+        "ledger_id": "A4"
+      },
+      {
+        "type": "WAIT",
+        "action": "Hold for tenant's reply; review 2024-11-25 and pass the number to the provider if received.",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A6"
+      }
+    ],
+    "boundaries": [
+      "Landlord approval is recorded, but no contractor visit or quote is confirmed yet.",
+      "No provider visit date is booked; no appointment exists in the record.",
+      "The tenant's direct number is not yet confirmed."
+    ],
+    "remaining_work": [
+      "Tenant to give direct phone number and best call times (review 2024-11-25).",
+      "Provider to book the visit and confirm the date; then set_visit with provider evidence.",
+      "Provider to attend, replace lock, supply 4 keys; keys for office (agency and landlord) to be handed in.",
+      "Record the work result, invoice and keys, then close with tenant and landlord informed."
+    ],
+    "missing_info": [
+      "Tenant's direct phone number and best call times.",
+      "Provider's visit date.",
+      "Attachment 85 from event 012 is unavailable; not needed for the approval."
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "The landlord approved the lock replacement and four keys on 21 Nov, and the provider was assigned. The provider has asked for the tenant's contact details to book, so I sent them the contact on file, asked the tenant for her direct number and best times, and put the job on hold until 25 Nov.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "Landlord approved on 21 Nov (event 006). Alder Compliance is assigned but has no visit booked and is waiting for the tenant's contact details. Outstanding: tenant's direct number and times, provider's visit booking, lock replacement and key handover."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Email to Alder Compliance with the contact on file and a request to book (A3). Email to Clara Jenkins asking for her direct number and best times (A4). Job held until 2024-11-25 for review."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "No. The approval is clear and covers the requested work, and no spend cap is needed to proceed. The remaining steps are routine: the tenant's number and the provider's booking."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A2",
+        "description": "Landlord approval recorded on NBL-021 (Quinn, event 006)."
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Message to Alder Compliance with the contact on file and booking request."
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Message to tenant Clara Jenkins asking for direct number and best times."
+      },
+      {
+        "ledger_id": "A5",
+        "description": "Job returned to auto mode."
+      },
+      {
+        "ledger_id": "A6",
+        "description": "Job on hold, waiting for tenant, review 2024-11-25."
+      }
+    ],
+    "failed_actions": [
+      {
+        "ledger_id": "A1",
+        "handling": "Recorded against the wrong ref (case-021). Ticket is NBL-021; retried with the correct ref and it verified as A2."
+      }
+    ],
+    "conflicts": [
+      "The task reference case-021 does not match the system ticket NBL-021; used NBL-021."
+    ],
+    "assumptions": [
+      "The contact 07700 900625 on the provider email is the tenant's number on file and is valid for the provider to call.",
+      "The tenant reply will come through the existing email thread (event 011)."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "record_landlord_decision",
+      "args": {
+        "ticket_ref": "case-021",
+        "decision": "approved",
+        "evidence_quote": "Quinn approves the maintenance action regarding the broken key and requests new keys for the tenant, the landlord, and the property management.",
+        "source": "event 006, email 2024-11-21 11:00:42 UTC, from Landlord"
+      },
+      "key": "record_landlord_decision:{decision:\"approved\",evidence_quote:\"Quinn approves the maintenance action regarding the broken key and requests new keys for the tenant, the landlord, and the property management.\",source:\"event 006, email 2024-11-21 11:00:42 UTC, from Landlord\",ticket_ref:\"case-021\"}",
+      "attempts": 1,
+      "apiError": "not_found",
+      "status": "failed",
+      "evidence": [
+        "Ticket case-021 not found on read-back"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "record_landlord_decision",
+      "args": {
+        "ticket_ref": "NBL-021",
+        "decision": "approved",
+        "evidence_quote": "Quinn approves the maintenance action regarding the broken key and requests new keys for the tenant, the landlord, and the property management.",
+        "source": "event 006, email 2024-11-21 11:00:42 UTC, from Landlord"
+      },
+      "key": "record_landlord_decision:{decision:\"approved\",evidence_quote:\"Quinn approves the maintenance action regarding the broken key and requests new keys for the tenant, the landlord, and the property management.\",source:\"event 006, email 2024-11-21 11:00:42 UTC, from Landlord\",ticket_ref:\"NBL-021\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-021",
+      "evidence": [
+        "Ticket NBL-021 read back after record_landlord_decision"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "send_message",
+      "args": {
+        "ticket_ref": "NBL-021",
+        "recipient_name": "Alder Compliance",
+        "recipient_role": "contractor",
+        "channel": "email",
+        "contact": "existing thread (event 012 email)",
+        "body": "Hello,\n\nThank you for your reply on Flat 22, 148 Lantern Quay, Westmarsh, ZZ4 1ZZ (Key Replacement Request).\n\nThe tenant's contact number on file is 07700 900625. Please enter the code \"07700 900625\" when calling, as recorded on our job email. We are confirming the tenant's direct number and best call times with them now, and will pass them on as soon as we have them.\n\nPlease contact the tenant to arrange a visit to replace the lock and provide 4 new keys (2 for the tenants, 1 for the agency, 1 for the landlord). The landlord has approved this work.\n\nThank you."
+      },
+      "key": "send_message:{body:\"Hello,\\n\\nThank you for your reply on Flat 22, 148 Lantern Quay, Westmarsh, ZZ4 1ZZ (Key Replacement Request).\\n\\nThe tenant's contact number on file is 07700 900625. Please enter the code \\\"07700 900625\\\" when calling, as recorded on our job email. We are confirming the tenant's direct number and best call times with them now, and will pass them on as soon as we have them.\\n\\nPlease contact the tenant to arrange a visit to replace the lock and provide 4 new keys (2 for the tenants, 1 for the agency, 1 for the landlord). The landlord has approved this work.\\n\\nThank you.\",channel:\"email\",contact:\"existing thread (event 012 email)\",recipient_name:\"Alder Compliance\",recipient_role:\"contractor\",ticket_ref:\"NBL-021\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-101",
+      "evidence": [
+        "MSG-101 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "send_message",
+      "args": {
+        "ticket_ref": "NBL-021",
+        "recipient_name": "Clara Jenkins",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 011 email)",
+        "body": "Dear Clara,\n\nThank you for your patience. Your landlord has approved replacing the broken back door lock for the conservatory and providing new keys.\n\nAlder Compliance, our maintenance provider, has asked for your direct phone number and your best times to call so they can arrange a visit. Could you reply with your best contact number and the times you are available? We will pass these on to them.\n\nOnce the visit is booked, we will confirm the date with you.\n\nKind regards,\nNorthbridge Lettings"
+      },
+      "key": "send_message:{body:\"Dear Clara,\\n\\nThank you for your patience. Your landlord has approved replacing the broken back door lock for the conservatory and providing new keys.\\n\\nAlder Compliance, our maintenance provider, has asked for your direct phone number and your best times to call so they can arrange a visit. Could you reply with your best contact number and the times you are available? We will pass these on to them.\\n\\nOnce the visit is booked, we will confirm the date with you.\\n\\nKind regards,\\nNorthbridge Lettings\",channel:\"email\",contact:\"existing thread (event 011 email)\",recipient_name:\"Clara Jenkins\",recipient_role:\"tenant\",ticket_ref:\"NBL-021\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-102",
+      "evidence": [
+        "MSG-102 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A5",
+      "tool": "resume_auto",
+      "args": {
+        "ticket_ref": "NBL-021"
+      },
+      "key": "resume_auto:{ticket_ref:\"NBL-021\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-021",
+      "evidence": [
+        "Ticket NBL-021 read back after resume_auto"
+      ]
+    },
+    {
+      "id": "A6",
+      "tool": "put_on_hold",
+      "args": {
+        "ticket_ref": "NBL-021",
+        "reason": "Waiting for Tenant",
+        "comment": "Waiting for tenant's direct phone number and best call times so Alder Compliance can book the lock replacement and key visit. Provider has the contact on file in the meantime.",
+        "review_on": "2024-11-25"
+      },
+      "key": "put_on_hold:{comment:\"Waiting for tenant's direct phone number and best call times so Alder Compliance can book the lock replacement and key visit. Provider has the contact on file in the meantime.\",reason:\"Waiting for Tenant\",review_on:\"2024-11-25\",ticket_ref:\"NBL-021\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-021",
+      "evidence": [
+        "Ticket NBL-021 read back after put_on_hold"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-021",
+        "stage": "mp_time",
+        "property": "Flat 22, 148 Lantern Quay, Westmarsh, ZZ4 1ZZ",
+        "description": "Hi Clara,\n\nThe tenants have advised that the key snapped for the back door for the conservatory and they do not have a spare.\n\nPlease can you replace the lock and provide 4 new keys, 2 for the tenants, 1 for us and 1 for the landlord. The ones for us and the landlord will need to be given to the office.",
+        "landlord_approval": "confirmed",
+        "landlord_decision": {
+          "decision": "approved",
+          "evidence_quote": "Quinn approves the maintenance action regarding the broken key and requests new keys for the tenant, the landlord, and the property management.",
+          "source": "event 006, email 2024-11-21 11:00:42 UTC, from Landlord"
+        },
+        "mode": "manual",
+        "hold": {
+          "reason": "Waiting for Tenant",
+          "comment": "Waiting for tenant's direct phone number and best call times so Alder Compliance can book the lock replacement and key visit. Provider has the contact on file in the meantime.",
+          "review_on": "2024-11-25"
+        }
+      }
+    ],
+    "records": [
+      {
+        "id": "MSG-101",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Alder Compliance",
+          "recipient_role": "contractor",
+          "channel": "email",
+          "contact": "existing thread (event 012 email)",
+          "body": "Hello,\n\nThank you for your reply on Flat 22, 148 Lantern Quay, Westmarsh, ZZ4 1ZZ (Key Replacement Request).\n\nThe tenant's contact number on file is 07700 900625. Please enter the code \"07700 900625\" when calling, as recorded on our job email. We are confirming the tenant's direct number and best call times with them now, and will pass them on as soon as we have them.\n\nPlease contact the tenant to arrange a visit to replace the lock and provide 4 new keys (2 for the tenants, 1 for the agency, 1 for the landlord). The landlord has approved this work.\n\nThank you.",
+          "ticket_ref": "NBL-021"
+        },
+        "at": 1791632050473
+      },
+      {
+        "id": "MSG-102",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Clara Jenkins",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 011 email)",
+          "body": "Dear Clara,\n\nThank you for your patience. Your landlord has approved replacing the broken back door lock for the conservatory and providing new keys.\n\nAlder Compliance, our maintenance provider, has asked for your direct phone number and your best times to call so they can arrange a visit. Could you reply with your best contact number and the times you are available? We will pass these on to them.\n\nOnce the visit is booked, we will confirm the date with you.\n\nKind regards,\nNorthbridge Lettings",
+          "ticket_ref": "NBL-021"
+        },
+        "at": 1791632050473
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 22, 148 Lantern Quay, Westmarsh, ZZ4 1ZZ"
+      }
+    ]
+  },
+  "usage": {
+    "input": 16,
+    "output": 7907,
+    "cost": 0.007228625,
+    "turns": 7,
+    "durationMs": 35676,
+    "retries": 0
+  }
+}

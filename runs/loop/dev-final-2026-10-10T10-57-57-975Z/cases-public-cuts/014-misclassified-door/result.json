@@ -1,0 +1,164 @@
+{
+  "id": "014-misclassified-door",
+  "model": "claude-sonnet-5-5",
+  "cutoff": 2,
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Ticket NBL-014-misclassified-door at init. Misclassified as Appliances; actually a front/back door that needs slamming to shut. Waiting on tenant reply (REQ-101). No contractor assigned; landlord and spend limit unknown (property record has no details).",
+    "next_actions": [
+      {
+        "type": "RECLASSIFY",
+        "action": "Noted on the ticket that this is a door repair, not an appliance issue, routine severity",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "REQUEST_INFORMATION",
+        "action": "Asked the tenant about door security, glass condition, photo, access and availability; told them the 14-day routine target",
+        "recipient": "Tenant, Flat 12",
+        "channel": "email",
+        "ledger_id": "A2"
+      }
+    ],
+    "boundaries": [
+      "Reclassification does not confirm the cause or the extent of damage",
+      "No contractor booked and no appointment promised",
+      "The fridge engineer's report is hearsay and has not been received"
+    ],
+    "remaining_work": [
+      "On tenant reply: confirm severity (urgent if door cannot be secured or glass is cracked), check landlord/spend limit, assign a carpenter and book a visit",
+      "Fix the category on the ticket record if a human can edit it (the tool only allows notes)"
+    ],
+    "missing_info": [
+      "Whether the door secures and locks",
+      "Condition of any glass",
+      "Tenant availability and access",
+      "Landlord details and spend limit (not on property record)",
+      "Tenant's contact details (used existing thread)"
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "The intake wrongly classed a door problem as an appliance issue because of the fridge engineer's remark. I noted the correct category on the ticket and asked the tenant for security, glass, photo and access details. No human decision is needed yet.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "It is at intake stage and was misclassified as Appliances. It is really a front/back door that won't close without slamming, with a possible glass risk. Outstanding: tenant details, landlord approval and spend limit check, contractor and visit."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Information request REQ-101 to the tenant by email on the existing thread, asking about door security, glass, photo and access. After the reply, assign a carpenter and book a visit."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "No. It is routine and within normal process. Escalate only if the door cannot be secured or glass is damaged, or if spend exceeds limits."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Ticket note reclassifying the issue as a door repair, routine"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Information request REQ-101 sent to the tenant"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Intake classed the issue as Appliances/fridge, but the tenant's words describe a door that has to be slammed shut; I trusted the tenant's words. The fridge Q&A is irrelevant."
+    ],
+    "assumptions": [
+      "Severity is routine because the door does close; this may change on the tenant's reply",
+      "The tenant's thread is the right route as no contact details are on file"
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "update_ticket",
+      "args": {
+        "ref": "NBL-014-misclassified-door",
+        "note": "Reclassified: intake labelled \"Appliances\" in error. Issue is front door (and back door) that must be slammed to shut; glass could shatter per fridge engineer. Category: doors/locks (carpentry). Severity routine (14-day target), upgrade to urgent if door cannot be secured or glass is cracked. Fridge Q&A is irrelevant; no existing duplicate."
+      },
+      "key": "update_ticket:{note:\"Reclassified: intake labelled \\\"Appliances\\\" in error. Issue is front door (and back door) that must be slammed to shut; glass could shatter per fridge engineer. Category: doors/locks (carpentry). Severity routine (14-day target), upgrade to urgent if door cannot be secured or glass is cracked. Fridge Q&A is irrelevant; no existing duplicate.\",ref:\"NBL-014-misclassified-door\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-014-misclassified-door",
+      "evidence": [
+        "Ticket NBL-014-misclassified-door read back at stage init"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "request_information",
+      "args": {
+        "recipient_name": "Tenant, Flat 12",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 001 note)",
+        "questions": [
+          "Does the front door lock securely once it is shut, and can you lock it from inside and outside?",
+          "Is there any glass in or beside the front door or back door, and is it cracked or loose?",
+          "Please send a photo of the door and where it catches, if you can.",
+          "What times suit for a contractor visit, and is there anything we should know about access (alarm, entry codes, pets)?"
+        ],
+        "why": "Our intake mistakenly treated this as a fridge problem. It is a door repair; we need these details to book a carpenter. Target is within 14 days; sooner if the door will not secure."
+      },
+      "key": "request_information:{channel:\"email\",contact:\"existing thread (event 001 note)\",questions:[\"Does the front door lock securely once it is shut, and can you lock it from inside and outside?\",\"Is there any glass in or beside the front door or back door, and is it cracked or loose?\",\"Please send a photo of the door and where it catches, if you can.\",\"What times suit for a contractor visit, and is there anything we should know about access (alarm, entry codes, pets)?\"],recipient_name:\"Tenant, Flat 12\",recipient_role:\"tenant\",why:\"Our intake mistakenly treated this as a fridge problem. It is a door repair; we need these details to book a carpenter. Target is within 14 days; sooner if the door will not secure.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "REQ-101",
+      "evidence": [
+        "REQ-101 found in the request_information log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-014-misclassified-door",
+        "stage": "init",
+        "property": "Flat 12, 52 Meadow Row, Kingshaven, ZZ9 5ZZ",
+        "description": "Front door you have to slam to shut like the back. when fridge man arrived he even commented and said it will cause a shatter in glass- he said he was also going to report to you.",
+        "notes": [
+          "Reclassified: intake labelled \"Appliances\" in error. Issue is front door (and back door) that must be slammed to shut; glass could shatter per fridge engineer. Category: doors/locks (carpentry). Severity routine (14-day target), upgrade to urgent if door cannot be secured or glass is cracked. Fridge Q&A is irrelevant; no existing duplicate."
+        ]
+      }
+    ],
+    "records": [
+      {
+        "id": "REQ-101",
+        "tool": "request_information",
+        "args": {
+          "recipient_name": "Tenant, Flat 12",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 001 note)",
+          "questions": [
+            "Does the front door lock securely once it is shut, and can you lock it from inside and outside?",
+            "Is there any glass in or beside the front door or back door, and is it cracked or loose?",
+            "Please send a photo of the door and where it catches, if you can.",
+            "What times suit for a contractor visit, and is there anything we should know about access (alarm, entry codes, pets)?"
+          ],
+          "why": "Our intake mistakenly treated this as a fridge problem. It is a door repair; we need these details to book a carpenter. Target is within 14 days; sooner if the door will not secure."
+        },
+        "at": 1791629905174
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 12, 52 Meadow Row, Kingshaven, ZZ9 5ZZ"
+      }
+    ]
+  },
+  "usage": {
+    "input": 8,
+    "output": 2112,
+    "cost": 0.034290100000000004,
+    "turns": 3,
+    "durationMs": 17143
+  }
+}

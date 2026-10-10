@@ -1,0 +1,246 @@
+{
+  "id": "07",
+  "model": "claude-sonnet-5-5",
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {
+    "update_ticket": [
+      {
+        "call": 1,
+        "mode": "error"
+      },
+      {
+        "call": 2,
+        "mode": "error"
+      }
+    ],
+    "assign_contractor": [
+      {
+        "call": 1,
+        "mode": "silent_drop"
+      }
+    ],
+    "set_visit": [
+      {
+        "call": 2,
+        "mode": "timeout"
+      }
+    ],
+    "record_work_result": [
+      {
+        "call": 2,
+        "mode": "error"
+      }
+    ],
+    "confirm_keys_returned": [
+      {
+        "call": 1,
+        "mode": "error"
+      },
+      {
+        "call": 2,
+        "mode": "silent_drop"
+      }
+    ],
+    "log_call": [
+      {
+        "call": 2,
+        "mode": "timeout"
+      }
+    ],
+    "request_information": [
+      {
+        "call": 1,
+        "mode": "timeout"
+      }
+    ]
+  },
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "R-4801 at visit stage, booked 2026-10-15 08:00-12:00 with Swift Plumbing & Heating, confirmed with tenant. Nothing outstanding from us.",
+    "next_actions": [
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Told tenant the tap is already booked under R-4801 for 15 Oct 8-12, noted the worsening, gave isolation valve advice",
+        "recipient": "Amelia Clarke, tenant",
+        "channel": "email",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "OTHER",
+        "action": "Added note to R-4801 recording the duplicate report and worsening drip",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A1"
+      }
+    ],
+    "boundaries": [
+      "The reply does not move the visit date or change severity.",
+      "No contractor was contacted directly; the note is on the ticket only."
+    ],
+    "remaining_work": [
+      "Visit on 15 Oct by Swift Plumbing & Heating; the ops team should pass on the worsening if the contractor is not already aware."
+    ],
+    "missing_info": [],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "Tenant's email duplicates open job R-4801, which already has a confirmed visit on 15 Oct. I created no new job. I added a note about the worsening drip and replied to the tenant with the booking and interim advice.",
+    "answers": [
+      {
+        "question": "Should a new repair job be created?",
+        "answer": "No. R-4801 is an open job for the same tap, with a contractor assigned and a visit booked. A new job would be a duplicate."
+      },
+      {
+        "question": "What do you reply to the tenant?",
+        "answer": "Reply sent: the tap is already booked under R-4801 for Thu 15 Oct 8am-12pm with Swift Plumbing & Heating. The worsening is noted. She can turn off the isolation valve under the sink. She should tell us at once if it becomes a steady flow or reaches anything electrical."
+      },
+      {
+        "question": "What, if anything, do you change on existing records?",
+        "answer": "Added a note to R-4801 about the duplicate report and the worsening drip. Stage, visit and severity are unchanged."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Note added to R-4801"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Reply emailed to tenant"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [],
+    "assumptions": [
+      "The tap is still a routine drip, not a flood, so severity stays routine.",
+      "The tenant's 'still dripping' refers to R-4801."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "add_note",
+      "args": {
+        "entity": "R-4801",
+        "note": "2026-10-10: tenant emailed again (duplicate report, no new job). Says tap now drips constantly even when fully closed, getting worse. Visit remains 2026-10-15 08:00-12:00 with Swift Plumbing & Heating. Contractor to be told of the worsening before the visit."
+      },
+      "key": "add_note:{entity:\"R-4801\",note:\"2026-10-10: tenant emailed again (duplicate report, no new job). Says tap now drips constantly even when fully closed, getting worse. Visit remains 2026-10-15 08:00-12:00 with Swift Plumbing & Heating. Contractor to be told of the worsening before the visit.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NOTE-101",
+      "evidence": [
+        "NOTE-101 found in the add_note log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Amelia Clarke",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "amelia.clarke@mailbox.example",
+        "ticket_ref": "R-4801",
+        "body": "Hi Amelia, thanks for letting us know. Your tap is already booked in under job R-4801: Swift Plumbing & Heating are due on Thursday 15 October, 8am-12pm. I've added a note that it's now dripping constantly so the plumber knows. In the meantime, you could turn off the isolation valve under the sink if it's easy to find. If the leak becomes a steady flow or water reaches anything electrical, please tell us straight away."
+      },
+      "key": "send_message:{body:\"Hi Amelia, thanks for letting us know. Your tap is already booked in under job R-4801: Swift Plumbing & Heating are due on Thursday 15 October, 8am-12pm. I've added a note that it's now dripping constantly so the plumber knows. In the meantime, you could turn off the isolation valve under the sink if it's easy to find. If the leak becomes a steady flow or water reaches anything electrical, please tell us straight away.\",channel:\"email\",contact:\"amelia.clarke@mailbox.example\",recipient_name:\"Amelia Clarke\",recipient_role:\"tenant\",ticket_ref:\"R-4801\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-102",
+      "evidence": [
+        "MSG-102 found in the send_message log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "R-4801",
+        "tenant_id": "T-1001",
+        "category": "plumbing",
+        "urgency": "routine",
+        "stage": "visit",
+        "description": "Dripping kitchen tap",
+        "created": "2026-10-01",
+        "assigned_contractor": "C-12",
+        "visit": {
+          "date": "2026-10-15",
+          "window": "08:00-12:00",
+          "confirmed_with_tenant": true
+        }
+      }
+    ],
+    "records": [
+      {
+        "id": "NOTE-101",
+        "tool": "add_note",
+        "args": {
+          "entity": "R-4801",
+          "note": "2026-10-10: tenant emailed again (duplicate report, no new job). Says tap now drips constantly even when fully closed, getting worse. Visit remains 2026-10-15 08:00-12:00 with Swift Plumbing & Heating. Contractor to be told of the worsening before the visit."
+        },
+        "at": 1791632323920
+      },
+      {
+        "id": "MSG-102",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Amelia Clarke",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "amelia.clarke@mailbox.example",
+          "body": "Hi Amelia, thanks for letting us know. Your tap is already booked in under job R-4801: Swift Plumbing & Heating are due on Thursday 15 October, 8am-12pm. I've added a note that it's now dripping constantly so the plumber knows. In the meantime, you could turn off the isolation valve under the sink if it's easy to find. If the leak becomes a steady flow or water reaches anything electrical, please tell us straight away.",
+          "ticket_ref": "R-4801"
+        },
+        "at": 1791632323921
+      }
+    ],
+    "properties": [
+      {
+        "id": "P-201",
+        "address": "Flat 4, 12 Mare Street, London E8 1HL",
+        "tenanted": true,
+        "landlord": {
+          "name": "Benjamin Hartley",
+          "email": "ben.hartley@hartleyhomes.co.uk",
+          "phone": "+447700900201",
+          "spend_limit_gbp": 300,
+          "notes": [
+            "Prefers Ben (not Benjamin).",
+            "Call before anything over £300 (inc VAT).",
+            "Use HeatRight Ltd for boilers if possible."
+          ]
+        },
+        "contractors": [
+          {
+            "contractor_id": "C-12",
+            "name": "Swift Plumbing & Heating",
+            "trades": [
+              "plumbing",
+              "heating",
+              "gas"
+            ],
+            "gas_safe_no": "551987",
+            "phone": "+447700900312",
+            "out_of_hours": true
+          }
+        ]
+      }
+    ]
+  },
+  "usage": {
+    "input": 8,
+    "output": 1702,
+    "cost": 0.030234700000000003,
+    "turns": 3,
+    "durationMs": 12903,
+    "retries": 0
+  }
+}

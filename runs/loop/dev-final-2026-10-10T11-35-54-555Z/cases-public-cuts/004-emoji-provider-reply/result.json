@@ -1,0 +1,175 @@
+{
+  "id": "004-emoji-provider-reply",
+  "model": "claude-sonnet-5-5",
+  "cutoff": 9,
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Paused/waiting for provider. Landlord approval to proceed with provider selection is confirmed; quote requested from the contractor, who has only replied with a thumbs-up. No quote received. Property is void.",
+    "next_actions": [
+      {
+        "type": "REQUEST_INFORMATION",
+        "action": "Ask the contractor to confirm in words and send a priced quote (VAT stated)",
+        "recipient": "Contractor, provider",
+        "channel": "email",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "WAIT",
+        "action": "Hold waiting for provider, review 2025-10-27",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A2"
+      }
+    ],
+    "boundaries": [
+      "The thumbs-up is not a quote, acceptance or confirmed price",
+      "No spend approved and no visit booked",
+      "The attachment-86-document on event 006 was unavailable and not seen"
+    ],
+    "remaining_work": [
+      "Receive and record the quote, then approve within limit or send to landlord (agency, on review 2025-10-27)",
+      "Arrange keys/caretaker access for the void property once quote is approved",
+      "Separate failed pop-up plug and flaking paint issues are not in this cleaning scope; consider separate jobs"
+    ],
+    "missing_info": [
+      "Contractor's quote and VAT status",
+      "Meaning of the thumbs-up",
+      "Spend limit/access arrangements not checked"
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "Cleaning quote requested from the contractor; they replied with only a thumbs-up. I asked for written confirmation and a priced quote, and kept the job on hold for provider with review on 2025-10-27. No escalation needed.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "Quote requested from provider and job on hold; the provider's only reply is a thumbs-up, so no quote exists yet. Void property, no tenant."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Email to the contractor on the existing thread asking for a written confirmation and priced quote (A1); hold to 2025-10-27 (A2)."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "No. This is routine chasing; a human is needed only if the quote exceeds limits or the provider stays silent."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Requested written confirmation and quote from contractor"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Hold waiting for provider, review 2025-10-27"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Checkout report dates (23 June 2026 appointment, signed 24 Oct 2025) are inconsistent with the case date; treated as a data quirk, scope unaffected."
+    ],
+    "assumptions": [
+      "Thumbs-up is ambiguous, not treated as acceptance"
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "request_information",
+      "args": {
+        "recipient_name": "Contractor",
+        "recipient_role": "contractor",
+        "channel": "email",
+        "contact": "existing thread (event 009 email)",
+        "questions": [
+          "Your reply was a thumbs-up only, so we can't tell what it means. Can you confirm in words whether you can quote for the cleaning at Flat 2, 172 Alder Lane (living space vacuum and light clean; en-suite limescale removal)?",
+          "Please send your price, saying whether VAT is included, as a PDF or plain-text email. The checkout report is attached to our earlier email; tell us if you can't open it."
+        ],
+        "why": "A thumbs-up is not a quote or a confirmed acceptance; we need the price to take it to the landlord/approve."
+      },
+      "key": "request_information:{channel:\"email\",contact:\"existing thread (event 009 email)\",questions:[\"Your reply was a thumbs-up only, so we can't tell what it means. Can you confirm in words whether you can quote for the cleaning at Flat 2, 172 Alder Lane (living space vacuum and light clean; en-suite limescale removal)?\",\"Please send your price, saying whether VAT is included, as a PDF or plain-text email. The checkout report is attached to our earlier email; tell us if you can't open it.\"],recipient_name:\"Contractor\",recipient_role:\"contractor\",why:\"A thumbs-up is not a quote or a confirmed acceptance; we need the price to take it to the landlord/approve.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "REQ-101",
+      "evidence": [
+        "REQ-101 found in the request_information log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "put_on_hold",
+      "args": {
+        "ticket_ref": "NBL-004-emoji-provider-reply",
+        "reason": "Waiting for Provider",
+        "comment": "Provider replied with a thumbs-up only; asked for written confirmation and a quote with VAT status. Property is void, so no tenant contact.",
+        "review_on": "2025-10-27"
+      },
+      "key": "put_on_hold:{comment:\"Provider replied with a thumbs-up only; asked for written confirmation and a quote with VAT status. Property is void, so no tenant contact.\",reason:\"Waiting for Provider\",review_on:\"2025-10-27\",ticket_ref:\"NBL-004-emoji-provider-reply\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-004-emoji-provider-reply",
+      "evidence": [
+        "Ticket NBL-004-emoji-provider-reply read back after put_on_hold"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-004-emoji-provider-reply",
+        "stage": "mp_time",
+        "property": "Flat 2, 172 Alder Lane, Bellmere, ZZ3 1ZZ",
+        "description": "Quote for:\n\nLiving space:\n1. Vacuum\n2. Light clean\n\nEn-Suite:\n1. Limescale removal",
+        "landlord_approval": "confirmed",
+        "hold": {
+          "reason": "Waiting for Provider",
+          "comment": "Provider replied with a thumbs-up only; asked for written confirmation and a quote with VAT status. Property is void, so no tenant contact.",
+          "review_on": "2025-10-27"
+        },
+        "mode": "manual"
+      }
+    ],
+    "records": [
+      {
+        "id": "REQ-101",
+        "tool": "request_information",
+        "args": {
+          "recipient_name": "Contractor",
+          "recipient_role": "contractor",
+          "channel": "email",
+          "contact": "existing thread (event 009 email)",
+          "questions": [
+            "Your reply was a thumbs-up only, so we can't tell what it means. Can you confirm in words whether you can quote for the cleaning at Flat 2, 172 Alder Lane (living space vacuum and light clean; en-suite limescale removal)?",
+            "Please send your price, saying whether VAT is included, as a PDF or plain-text email. The checkout report is attached to our earlier email; tell us if you can't open it."
+          ],
+          "why": "A thumbs-up is not a quote or a confirmed acceptance; we need the price to take it to the landlord/approve."
+        },
+        "at": 1791632162903
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 2, 172 Alder Lane, Bellmere, ZZ3 1ZZ",
+        "tenanted": false
+      }
+    ]
+  },
+  "usage": {
+    "input": 8,
+    "output": 1895,
+    "cost": 0.0354344,
+    "turns": 3,
+    "durationMs": 15844,
+    "retries": 0
+  }
+}

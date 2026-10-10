@@ -1,0 +1,237 @@
+{
+  "id": "040-tenant-resolved",
+  "model": "claude-sonnet-5-5",
+  "cutoff": 9,
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Ticket at init/landlord gate, now on hold awaiting tenant confirmation (review 2026-12-29). No contractor assigned.",
+    "next_actions": [
+      {
+        "type": "REQUEST_INFORMATION",
+        "action": "Ask tenant to confirm own machine installed and working and that the original is stored in the garage",
+        "recipient": "Tenant",
+        "channel": "email",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Tell landlord the tenant reports a swap fix, no contractor sent yet, ask if they still want a check",
+        "recipient": "Landlord",
+        "channel": "email",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "WAIT",
+        "action": "Hold until 2026-12-29 for tenant confirmation",
+        "recipient": "Tenant",
+        "channel": "internal",
+        "ledger_id": "A4"
+      }
+    ],
+    "boundaries": [
+      "Nothing here confirms the machine works or that the job can be closed",
+      "The landlord's message is not treated as a recorded approval of spend or a contractor assignment",
+      "No visit booked"
+    ],
+    "remaining_work": [
+      "Tenant confirmation; then close without payment, or assign contractor if landlord still wants a check",
+      "Landlord to say whether they want the original machine checked/removed and whether they consent to the swap"
+    ],
+    "missing_info": [
+      "Whether tenant's swap is working",
+      "Who 'Rowan' and 'Oliver' are (names differ from tenant/landlord on file)"
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "Tenant reports the washing machine was fixed by swapping in their own; the landlord, apparently unaware, agreed to a visit. I held off assigning a contractor, asked the tenant to confirm, informed the landlord and put the job on hold to 29 Dec.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "Routine job at landlord gate; tenant says resolved by swap (event 008), landlord agreed to a check (event 009). Outstanding: tenant confirmation and landlord's wishes about the original machine."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Confirmation request to the tenant by email, and an update to the landlord by email; job on hold to 2026-12-29."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "No. It is routine and a confirmation question resolves it."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Information request to tenant"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Update to landlord"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Put ticket on hold with review date"
+      }
+    ],
+    "failed_actions": [
+      {
+        "ledger_id": "A3",
+        "handling": "Used wrong ref NBL-040-4451; retried with the correct ref NBL-040-tenant-resolved (A4 verified)."
+      }
+    ],
+    "conflicts": [
+      "Tenant says the issue is already fixed; the landlord's later email agrees to a visit. Names (Rowan/Oliver) don't match records. Treated as unresolved and asked the tenant."
+    ],
+    "assumptions": [
+      "Landlord replied without knowing of the swap."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "request_information",
+      "args": {
+        "recipient_name": "Tenant",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 008 email)",
+        "questions": [
+          "Thanks for letting us know. Can you confirm your own machine is now installed and working, so you no longer need anyone to check the original machine?",
+          "Please confirm the original machine is the landlord's and is now stored in the garage, so we can let the landlord know."
+        ],
+        "why": "Tenant says the issue is resolved by a swap, but the landlord has just agreed to a visit; we need to confirm before sending a contractor."
+      },
+      "key": "request_information:{channel:\"email\",contact:\"existing thread (event 008 email)\",questions:[\"Thanks for letting us know. Can you confirm your own machine is now installed and working, so you no longer need anyone to check the original machine?\",\"Please confirm the original machine is the landlord's and is now stored in the garage, so we can let the landlord know.\"],recipient_name:\"Tenant\",recipient_role:\"tenant\",why:\"Tenant says the issue is resolved by a swap, but the landlord has just agreed to a visit; we need to confirm before sending a contractor.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "REQ-101",
+      "evidence": [
+        "REQ-101 found in the request_information log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Landlord",
+        "recipient_role": "landlord",
+        "channel": "email",
+        "contact": "existing thread (event 009 email)",
+        "ticket_ref": "NBL-040-4451",
+        "body": "Hello, thank you for your reply. The tenant has just told us the washing machine problem has been sorted by swapping in their own machine, with the original stored in the garage. We are confirming this with them, so we are not sending a contractor yet. If you would still like the original machine checked or removed, please let us know. Thank you, Langley"
+      },
+      "key": "send_message:{body:\"Hello, thank you for your reply. The tenant has just told us the washing machine problem has been sorted by swapping in their own machine, with the original stored in the garage. We are confirming this with them, so we are not sending a contractor yet. If you would still like the original machine checked or removed, please let us know. Thank you, Langley\",channel:\"email\",contact:\"existing thread (event 009 email)\",recipient_name:\"Landlord\",recipient_role:\"landlord\",ticket_ref:\"NBL-040-4451\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-102",
+      "evidence": [
+        "MSG-102 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "put_on_hold",
+      "args": {
+        "ticket_ref": "NBL-040-4451",
+        "reason": "Waiting for Tenant",
+        "comment": "Tenant says resolved by own-machine swap; landlord agreed to a check. Confirming with tenant before any contractor is assigned.",
+        "review_on": "2026-12-29"
+      },
+      "key": "put_on_hold:{comment:\"Tenant says resolved by own-machine swap; landlord agreed to a check. Confirming with tenant before any contractor is assigned.\",reason:\"Waiting for Tenant\",review_on:\"2026-12-29\",ticket_ref:\"NBL-040-4451\"}",
+      "attempts": 1,
+      "apiError": "not_found",
+      "status": "failed",
+      "evidence": [
+        "Ticket NBL-040-4451 not found on read-back"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "put_on_hold",
+      "args": {
+        "ticket_ref": "NBL-040-tenant-resolved",
+        "reason": "Waiting for Tenant",
+        "comment": "Tenant says resolved by own-machine swap; landlord agreed to a check. Confirming with tenant before any contractor is assigned.",
+        "review_on": "2026-12-29"
+      },
+      "key": "put_on_hold:{comment:\"Tenant says resolved by own-machine swap; landlord agreed to a check. Confirming with tenant before any contractor is assigned.\",reason:\"Waiting for Tenant\",review_on:\"2026-12-29\",ticket_ref:\"NBL-040-tenant-resolved\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-040-tenant-resolved",
+      "evidence": [
+        "Ticket NBL-040-tenant-resolved read back after put_on_hold"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-040-tenant-resolved",
+        "stage": "init",
+        "property": "Flat 15, 55 Alder Lane, Northbridge, ZZ1 6ZZ",
+        "description": "Request summary with context: The Juniper Services NBL-040-4451 washing machine fills with water but does not start the wash cycle.\n\nTenant's original query: The washing machine is no longer working.\n\nIt fills with water as normal, but the wash cycle never starts. There are no error codes displayed, and we've tried resetting the machine, and other settings, but unfortunately that hasn't resolved the issue.\n\nWe do have our own washing machine that could be installed as a replacement if necessary. However, I thought it would be best to have the existing machine checked first before making any changes.\n\nIf it does need replacing, could someone carry out the swap? There isn't any isolation valves on the water pipes.\n\nPlease let us know how you'd like to proceed.",
+        "landlord_approval": "required",
+        "hold": {
+          "reason": "Waiting for Tenant",
+          "comment": "Tenant says resolved by own-machine swap; landlord agreed to a check. Confirming with tenant before any contractor is assigned.",
+          "review_on": "2026-12-29"
+        },
+        "mode": "manual"
+      }
+    ],
+    "records": [
+      {
+        "id": "REQ-101",
+        "tool": "request_information",
+        "args": {
+          "recipient_name": "Tenant",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 008 email)",
+          "questions": [
+            "Thanks for letting us know. Can you confirm your own machine is now installed and working, so you no longer need anyone to check the original machine?",
+            "Please confirm the original machine is the landlord's and is now stored in the garage, so we can let the landlord know."
+          ],
+          "why": "Tenant says the issue is resolved by a swap, but the landlord has just agreed to a visit; we need to confirm before sending a contractor."
+        },
+        "at": 1791632197021
+      },
+      {
+        "id": "MSG-102",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Landlord",
+          "recipient_role": "landlord",
+          "channel": "email",
+          "contact": "existing thread (event 009 email)",
+          "body": "Hello, thank you for your reply. The tenant has just told us the washing machine problem has been sorted by swapping in their own machine, with the original stored in the garage. We are confirming this with them, so we are not sending a contractor yet. If you would still like the original machine checked or removed, please let us know. Thank you, Langley",
+          "ticket_ref": "NBL-040-4451"
+        },
+        "at": 1791632197021
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 15, 55 Alder Lane, Northbridge, ZZ1 6ZZ"
+      }
+    ]
+  },
+  "usage": {
+    "input": 12,
+    "output": 2847,
+    "cost": 0.0558185,
+    "turns": 5,
+    "durationMs": 22381,
+    "retries": 0
+  }
+}

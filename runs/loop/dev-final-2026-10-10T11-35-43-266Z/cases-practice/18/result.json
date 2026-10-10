@@ -1,0 +1,248 @@
+{
+  "id": "18",
+  "model": "claude-sonnet-5-5",
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Tenant told notice is short; landlord asked whether he'll agree to an earlier end date; waiting on landlord, follow-up 2026-10-14.",
+    "next_actions": [
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Told tenant notice is invalid at one month, earliest end 10 Dec 2026, keys not yet, deposit via mydeposits after check-out",
+        "recipient": "Tom Achterberg, tenant",
+        "channel": "email",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "REQUEST_LANDLORD_APPROVAL",
+        "action": "Asked landlord whether he agrees in writing to an earlier end date (10 Nov)",
+        "recipient": "Ben Hartley, landlord",
+        "channel": "email",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "WAIT",
+        "action": "Wait for landlord decision; chase 14 Oct",
+        "recipient": "Ben Hartley, landlord",
+        "channel": "internal",
+        "ledger_id": "A3"
+      }
+    ],
+    "boundaries": [
+      "Nothing agreed on an earlier date; tenancy continues and rent is due to the end date",
+      "No deposit return date promised; deductions decided after check-out",
+      "Does not decide whether the landlord should accept early surrender"
+    ],
+    "remaining_work": [
+      "Landlord decision on shorter notice (agency, chase 14 Oct)",
+      "Confirm end date in writing, arrange check-out, key handover, deposit process via mydeposits",
+      "Send tenant 24h written notice for any viewings/inspections"
+    ],
+    "missing_info": [
+      "Landlord's decision on earlier end date",
+      "Key handover location/process not in records"
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "Tenant gave one month's notice for 10 Nov; the Renters' Rights Act requires two months, so the earliest end is 10 Dec 2026 unless the landlord agrees in writing to shorter. I replied to the tenant, asked the landlord about an earlier date, and set a follow-up.",
+    "answers": [
+      {
+        "question": "Is the notice valid as given? What is the earliest end date?",
+        "answer": "No: one month is too short. Two months' written notice is required; given by email on 10 Oct 2026, earliest end is 10 Dec 2026."
+      },
+      {
+        "question": "What options exist to end sooner?",
+        "answer": "Only the landlord's written agreement to a shorter period or a mutual surrender; the tenant can't force it. Finding a replacement tenant doesn't by itself end it earlier."
+      },
+      {
+        "question": "What do you reply and what do you start?",
+        "answer": "Replied explaining the two-month rule, the 10 Dec date, no keys yet, deposit via mydeposits after check-out with no date promised. Started landlord approval request for an early end date, a follow-up for 14 Oct and a property note."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Replied to tenant"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Asked landlord about early end date"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Follow-up scheduled 14 Oct"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Note added to property"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Tenant says 10 Nov end; law gives 10 Dec at the earliest"
+    ],
+    "assumptions": [
+      "Email counts as written notice",
+      "Notice date is the email date, 10 Oct 2026"
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Tom Achterberg",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "tom.a@mailbox.example",
+        "body": "Hi Tom,\n\nThanks for letting us know, and congratulations on the new job.\n\nSince 1 May 2026 tenants need to give two months' written notice, so one month isn't enough. Counting from your email today (10 October), the earliest your tenancy can end is 10 December 2026. Rent stays payable until then.\n\nYou can leave earlier only if your landlord agrees in writing to a shorter notice period. I'm asking him now and will tell you his answer. Nothing is agreed yet, so please don't plan around 10 November.\n\nKeys: please don't drop them anywhere yet. We'll confirm the handover and a check-out appointment once your end date is settled.\n\nDeposit: it's protected with mydeposits. Once you've moved out and handed the keys back, we'll do a check-out and any deductions or return will be dealt with through the scheme. I can't give a return date yet.\n\nKind regards,\nMare & Co Lettings"
+      },
+      "key": "send_message:{body:\"Hi Tom,\\n\\nThanks for letting us know, and congratulations on the new job.\\n\\nSince 1 May 2026 tenants need to give two months' written notice, so one month isn't enough. Counting from your email today (10 October), the earliest your tenancy can end is 10 December 2026. Rent stays payable until then.\\n\\nYou can leave earlier only if your landlord agrees in writing to a shorter notice period. I'm asking him now and will tell you his answer. Nothing is agreed yet, so please don't plan around 10 November.\\n\\nKeys: please don't drop them anywhere yet. We'll confirm the handover and a check-out appointment once your end date is settled.\\n\\nDeposit: it's protected with mydeposits. Once you've moved out and handed the keys back, we'll do a check-out and any deductions or return will be dealt with through the scheme. I can't give a return date yet.\\n\\nKind regards,\\nMare & Co Lettings\",channel:\"email\",contact:\"tom.a@mailbox.example\",recipient_name:\"Tom Achterberg\",recipient_role:\"tenant\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-101",
+      "evidence": [
+        "MSG-101 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "request_landlord_approval",
+      "args": {
+        "landlord": "Ben Hartley",
+        "decision_needed": "Tom Achterberg (Flat 2, 5 Navarino Road) emailed on 10 Oct 2026 giving one month's notice to leave on 10 Nov (new job in Manchester). Under the Renters' Rights Act two months is required, so the earliest valid end date is 10 Dec 2026. Would you agree in writing to an earlier end date of 10 Nov 2026? Either way, tell us if you'd like us to start marketing the flat.",
+        "options": [
+          "Keep the legal end date of 10 December 2026 (default)",
+          "Agree in writing to an earlier end date of 10 November 2026",
+          "Agree another date in between"
+        ],
+        "deadline": "2026-10-17"
+      },
+      "key": "request_landlord_approval:{deadline:\"2026-10-17\",decision_needed:\"Tom Achterberg (Flat 2, 5 Navarino Road) emailed on 10 Oct 2026 giving one month's notice to leave on 10 Nov (new job in Manchester). Under the Renters' Rights Act two months is required, so the earliest valid end date is 10 Dec 2026. Would you agree in writing to an earlier end date of 10 Nov 2026? Either way, tell us if you'd like us to start marketing the flat.\",landlord:\"Ben Hartley\",options:[\"Keep the legal end date of 10 December 2026 (default)\",\"Agree in writing to an earlier end date of 10 November 2026\",\"Agree another date in between\"]}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "APR-102",
+      "evidence": [
+        "APR-102 found in the request_landlord_approval log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "schedule_follow_up",
+      "args": {
+        "due_on": "2026-10-14",
+        "purpose": "Chase landlord Ben Hartley on early-end-date decision for Tom Achterberg's notice (P-250); then confirm end date, keys and check-out with tenant",
+        "party": "Ben Hartley"
+      },
+      "key": "schedule_follow_up:{due_on:\"2026-10-14\",party:\"Ben Hartley\",purpose:\"Chase landlord Ben Hartley on early-end-date decision for Tom Achterberg's notice (P-250); then confirm end date, keys and check-out with tenant\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "FUP-103",
+      "evidence": [
+        "FUP-103 found in the schedule_follow_up log"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "add_note",
+      "args": {
+        "entity": "P-250",
+        "note": "10 Oct 2026: tenant T-1050 gave notice by email stating 10 Nov. Only 1 month, invalid under RRA; earliest end 10 Dec 2026 unless landlord agrees in writing. Tenant and landlord told. Deposit £2019 (mydeposits) not to be released until check-out."
+      },
+      "key": "add_note:{entity:\"P-250\",note:\"10 Oct 2026: tenant T-1050 gave notice by email stating 10 Nov. Only 1 month, invalid under RRA; earliest end 10 Dec 2026 unless landlord agrees in writing. Tenant and landlord told. Deposit £2019 (mydeposits) not to be released until check-out.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NOTE-104",
+      "evidence": [
+        "NOTE-104 found in the add_note log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [],
+    "records": [
+      {
+        "id": "MSG-101",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Tom Achterberg",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "tom.a@mailbox.example",
+          "body": "Hi Tom,\n\nThanks for letting us know, and congratulations on the new job.\n\nSince 1 May 2026 tenants need to give two months' written notice, so one month isn't enough. Counting from your email today (10 October), the earliest your tenancy can end is 10 December 2026. Rent stays payable until then.\n\nYou can leave earlier only if your landlord agrees in writing to a shorter notice period. I'm asking him now and will tell you his answer. Nothing is agreed yet, so please don't plan around 10 November.\n\nKeys: please don't drop them anywhere yet. We'll confirm the handover and a check-out appointment once your end date is settled.\n\nDeposit: it's protected with mydeposits. Once you've moved out and handed the keys back, we'll do a check-out and any deductions or return will be dealt with through the scheme. I can't give a return date yet.\n\nKind regards,\nMare & Co Lettings"
+        },
+        "at": 1791632183248
+      },
+      {
+        "id": "APR-102",
+        "tool": "request_landlord_approval",
+        "args": {
+          "landlord": "Ben Hartley",
+          "decision_needed": "Tom Achterberg (Flat 2, 5 Navarino Road) emailed on 10 Oct 2026 giving one month's notice to leave on 10 Nov (new job in Manchester). Under the Renters' Rights Act two months is required, so the earliest valid end date is 10 Dec 2026. Would you agree in writing to an earlier end date of 10 Nov 2026? Either way, tell us if you'd like us to start marketing the flat.",
+          "options": [
+            "Keep the legal end date of 10 December 2026 (default)",
+            "Agree in writing to an earlier end date of 10 November 2026",
+            "Agree another date in between"
+          ],
+          "deadline": "2026-10-17"
+        },
+        "at": 1791632183248
+      },
+      {
+        "id": "FUP-103",
+        "tool": "schedule_follow_up",
+        "args": {
+          "due_on": "2026-10-14",
+          "party": "Ben Hartley",
+          "purpose": "Chase landlord Ben Hartley on early-end-date decision for Tom Achterberg's notice (P-250); then confirm end date, keys and check-out with tenant"
+        },
+        "at": 1791632183249
+      },
+      {
+        "id": "NOTE-104",
+        "tool": "add_note",
+        "args": {
+          "entity": "P-250",
+          "note": "10 Oct 2026: tenant T-1050 gave notice by email stating 10 Nov. Only 1 month, invalid under RRA; earliest end 10 Dec 2026 unless landlord agrees in writing. Tenant and landlord told. Deposit £2019 (mydeposits) not to be released until check-out."
+        },
+        "at": 1791632183249
+      }
+    ],
+    "properties": [
+      {
+        "id": "P-250",
+        "address": "Flat 2, 5 Navarino Road, London E8 1AD",
+        "tenanted": true,
+        "landlord": {
+          "name": "Benjamin Hartley",
+          "email": "ben.hartley@hartleyhomes.co.uk",
+          "phone": "+447700900201",
+          "spend_limit_gbp": 300,
+          "notes": [
+            "Prefers Ben (not Benjamin).",
+            "Call before anything over £300 (inc VAT).",
+            "Use HeatRight Ltd for boilers if possible."
+          ]
+        }
+      }
+    ]
+  },
+  "usage": {
+    "input": 6,
+    "output": 2875,
+    "cost": 0.0408463,
+    "turns": 2,
+    "durationMs": 20378,
+    "retries": 0
+  }
+}

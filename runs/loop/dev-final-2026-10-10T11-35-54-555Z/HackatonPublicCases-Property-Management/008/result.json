@@ -1,0 +1,205 @@
+{
+  "id": "008",
+  "model": "claude-sonnet-5-5",
+  "cutoff": 25,
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [
+    {
+      "tool": "send_message",
+      "reason": "The message mentions Flat 18, 8 Alder Lane, Flat 3, 43 Willowmere Road, which is not the property on this job (Flat 5, 55 Lantern Quay, Cedarford, ZZ2 4ZZ / Flat 5, 55 Lantern Quay, Cedarford, ZZ2 4ZZ). Fix the address before sending."
+    }
+  ],
+  "decision": {
+    "case_state": "Paused, void property. Two quotes on file (£1,370.00 and £1,700.00 + VAT). No landlord approval recorded; no contractor assigned. Waiting on landlord; hold review 2025-05-09.",
+    "next_actions": [
+      {
+        "type": "REQUEST_LANDLORD_APPROVAL",
+        "action": "Ask landlord to confirm their last reply concerned this property and give a yes/no on the £1,370.00 quote, flagging the scope differences",
+        "recipient": "Langley, landlord",
+        "channel": "email",
+        "ledger_id": "A3"
+      },
+      {
+        "type": "WAIT",
+        "action": "Hold for landlord, review 2025-05-09",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A1"
+      }
+    ],
+    "boundaries": [
+      "The message is not approval and commits no spend",
+      "No contractor assigned, no quote approved",
+      "Does not settle the quote scope, the unpaid previous invoice query or which company quoted"
+    ],
+    "remaining_work": [
+      "Landlord to confirm property and decision",
+      "Check scope of the £1,370 quote (carpet omitted, tap included) against the original request",
+      "Clarify the previous invoice the landlord was asked about",
+      "Chase the landlord on a second channel if no answer by review date"
+    ],
+    "missing_info": [
+      "Landlord's clear decision for this property",
+      "Attachment-04 invoice not seen",
+      "Who issued the £1,370 quote (Eliza Bennett vs Alder Compliance)"
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "Landlord's latest reply named other properties, so it is not usable as approval. I asked them to confirm the property and give a yes/no on the £1,370 quote, noting the scope differences, and put the job on hold to 2025-05-09.",
+    "answers": [
+      {
+        "question": "Where does this case stand and what is outstanding?",
+        "answer": "Paused on a void property awaiting the landlord's decision between two quotes (£1,370.00 vs £1,700.00 + VAT). Their last replies referenced other addresses, so no valid approval exists."
+      },
+      {
+        "question": "What is the next action, for whom, via which channel?",
+        "answer": "Email to Langley (landlord) asking them to confirm the property and give a yes/no on the £1,370 quote; hold with review on 2025-05-09."
+      },
+      {
+        "question": "Does anything need a human decision?",
+        "answer": "No. Routine landlord approval is pending; escalate only if the landlord stays silent after a second-channel chase."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A3",
+        "description": "Emailed landlord to confirm property and give yes/no on quote"
+      },
+      {
+        "ledger_id": "A1",
+        "description": "Put job on hold waiting for landlord, review 2025-05-09"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Added note recording conflicts"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Events 021 and 023 name other properties than ZZ2 4ZZ",
+      "Estimate attachment shows Alder Compliance; history names Eliza Bennett",
+      "Inspection dated 5 Jan 2026 but signed 3 Apr 2025",
+      "Estimate omits the carpet replacement and includes a tap replacement, unlike the request"
+    ],
+    "assumptions": [
+      "The landlord's reply may have been about this property but this cannot be assumed"
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "put_on_hold",
+      "args": {
+        "ticket_ref": "NBL-008-3466",
+        "reason": "Waiting for Landlord",
+        "comment": "Landlord reply (event 023) names other properties, so not usable. Asked which property and a yes/no on the £1,370 quote (scope omits carpet, includes tap).",
+        "review_on": "2025-05-09"
+      },
+      "key": "put_on_hold:{comment:\"Landlord reply (event 023) names other properties, so not usable. Asked which property and a yes/no on the £1,370 quote (scope omits carpet, includes tap).\",reason:\"Waiting for Landlord\",review_on:\"2025-05-09\",ticket_ref:\"NBL-008-3466\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-008-3466",
+      "evidence": [
+        "Ticket NBL-008-3466 read back after put_on_hold"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "add_note",
+      "args": {
+        "entity": "NBL-008-3466",
+        "note": "Conflicts: events 021/023 name other addresses; estimate attachment-02 issued by Alder Compliance vs event 024 naming Eliza Bennett; inspection dated 5 Jan 2026 but signed 3 Apr 2025; attachment-04 invoice not seen; event 024 asks about an unpaid previous invoice. No approval recorded, no contractor assigned. Property void, no tenant messages."
+      },
+      "key": "add_note:{entity:\"NBL-008-3466\",note:\"Conflicts: events 021/023 name other addresses; estimate attachment-02 issued by Alder Compliance vs event 024 naming Eliza Bennett; inspection dated 5 Jan 2026 but signed 3 Apr 2025; attachment-04 invoice not seen; event 024 asks about an unpaid previous invoice. No approval recorded, no contractor assigned. Property void, no tenant messages.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NOTE-101",
+      "evidence": [
+        "NOTE-101 found in the add_note log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Langley",
+        "recipient_role": "landlord",
+        "channel": "email",
+        "contact": "existing thread (event 023 email)",
+        "ticket_ref": "NBL-008-3466",
+        "body": "Hi Langley, thanks for your last email. It referred to other properties, so I can't treat it as an answer for Flat 5, 55 Lantern Quay, Cedarford, ZZ2 4ZZ. Could you confirm that your reply was about this property? For this flat the two quotes for the check-out works are £1,370.00 and £1,700.00 + VAT. Please note the £1,370.00 estimate leaves the burnt bedroom carpet in place and includes replacing the bathroom tap, which differs from our original request. Do you want us to go ahead with the £1,370.00 quote for this flat: yes or no? We won't instruct anyone until we have your clear answer. Kind regards, Northbridge Lettings"
+      },
+      "key": "send_message:{body:\"Hi Langley, thanks for your last email. It referred to other properties, so I can't treat it as an answer for Flat 5, 55 Lantern Quay, Cedarford, ZZ2 4ZZ. Could you confirm that your reply was about this property? For this flat the two quotes for the check-out works are £1,370.00 and £1,700.00 + VAT. Please note the £1,370.00 estimate leaves the burnt bedroom carpet in place and includes replacing the bathroom tap, which differs from our original request. Do you want us to go ahead with the £1,370.00 quote for this flat: yes or no? We won't instruct anyone until we have your clear answer. Kind regards, Northbridge Lettings\",channel:\"email\",contact:\"existing thread (event 023 email)\",recipient_name:\"Langley\",recipient_role:\"landlord\",ticket_ref:\"NBL-008-3466\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-102",
+      "evidence": [
+        "MSG-102 found in the send_message log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-008-3466",
+        "stage": "mp_time",
+        "property": "Flat 5, 55 Lantern Quay, Cedarford, ZZ2 4ZZ",
+        "description": "Following the tenant vacating please provide an estimate to; \nRepaint bedroom any other rooms if needed\nReplace bedroom carpet that is burnt\nReplace bathroom flooring \nRepair broken plug \nRepair dripping bath tap \nRepair damaged shelf in bathroom",
+        "hold": {
+          "reason": "Waiting for Landlord",
+          "comment": "Landlord reply (event 023) names other properties, so not usable. Asked which property and a yes/no on the £1,370 quote (scope omits carpet, includes tap).",
+          "review_on": "2025-05-09"
+        },
+        "mode": "manual"
+      }
+    ],
+    "records": [
+      {
+        "id": "NOTE-101",
+        "tool": "add_note",
+        "args": {
+          "entity": "NBL-008-3466",
+          "note": "Conflicts: events 021/023 name other addresses; estimate attachment-02 issued by Alder Compliance vs event 024 naming Eliza Bennett; inspection dated 5 Jan 2026 but signed 3 Apr 2025; attachment-04 invoice not seen; event 024 asks about an unpaid previous invoice. No approval recorded, no contractor assigned. Property void, no tenant messages."
+        },
+        "at": 1791632165688
+      },
+      {
+        "id": "MSG-102",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Langley",
+          "recipient_role": "landlord",
+          "channel": "email",
+          "contact": "existing thread (event 023 email)",
+          "body": "Hi Langley, thanks for your last email. It referred to other properties, so I can't treat it as an answer for Flat 5, 55 Lantern Quay, Cedarford, ZZ2 4ZZ. Could you confirm that your reply was about this property? For this flat the two quotes for the check-out works are £1,370.00 and £1,700.00 + VAT. Please note the £1,370.00 estimate leaves the burnt bedroom carpet in place and includes replacing the bathroom tap, which differs from our original request. Do you want us to go ahead with the £1,370.00 quote for this flat: yes or no? We won't instruct anyone until we have your clear answer. Kind regards, Northbridge Lettings",
+          "ticket_ref": "NBL-008-3466"
+        },
+        "at": 1791632168610
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 5, 55 Lantern Quay, Cedarford, ZZ2 4ZZ",
+        "tenanted": false
+      }
+    ]
+  },
+  "usage": {
+    "input": 8,
+    "output": 3090,
+    "cost": 0.05619650000000001,
+    "turns": 3,
+    "durationMs": 21860,
+    "retries": 0
+  }
+}

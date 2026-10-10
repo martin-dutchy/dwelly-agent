@@ -1,0 +1,215 @@
+{
+  "id": "047-three-chases",
+  "model": "claude-sonnet-5-5",
+  "cutoff": 26,
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Ticket at mp_time. Oscar Turner assigned 1 Mar, no reply to four email+SMS chases, no visit booked. Landlord approval for the window not clearly recorded. Tenant now updated; escalated to maintenance.",
+    "next_actions": [
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Update tenant on delay, ask for availability and whether the contractor has been in touch",
+        "recipient": "Eliza Jenkins, tenant",
+        "channel": "email",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "ESCALATE_TO_HUMAN",
+        "action": "Maintenance to phone the contractor or reassign, and confirm landlord approval",
+        "recipient": "internal maintenance",
+        "channel": "internal",
+        "ledger_id": "A3"
+      },
+      {
+        "type": "WAIT",
+        "action": "Follow-up on 12 Mar to check a visit is booked",
+        "recipient": "Oscar Turner, contractor",
+        "channel": "internal",
+        "ledger_id": "A2"
+      }
+    ],
+    "boundaries": [
+      "Updating the tenant does not book a visit or confirm a date",
+      "Escalation does not approve spend or reassign the contractor",
+      "Nothing confirms the cause of the window fault"
+    ],
+    "remaining_work": [
+      "Maintenance team: reach contractor by phone or reassign",
+      "Landlord decision/approval for the window repair to be confirmed",
+      "Visit to be booked, then work result, invoice and close"
+    ],
+    "missing_info": [
+      "Whether the contractor has contacted the tenant",
+      "Landlord approval and spend limit for this property (property record has no landlord data)"
+    ],
+    "outcome": "escalated",
+    "severity": "routine",
+    "summary": "The window repair has stalled: the contractor has ignored four chases over 9 days. I updated the tenant, set a follow-up for 12 Mar and escalated to maintenance to phone the contractor or reassign. Landlord approval for this repair is unclear.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "Routine window repair, stage mp_time. Contractor Oscar Turner was assigned on 1 Mar and has not booked a visit despite chases on 4, 6 and 8 Mar. Outstanding: a visit, a clear landlord approval, and the work result, invoice and close."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "An email update to tenant Eliza Jenkins (sent), and an internal escalation to maintenance to phone the contractor or reassign. A follow-up is set for 12 Mar."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "Yes, a low-priority one. Further email and SMS chases have not worked, so someone needs to phone the contractor or reassign. The landlord's only reply (event 010) was about a different property and a plumber, so approval for the window is unclear."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Email update to tenant"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Follow-up scheduled for 12 Mar"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Escalated to maintenance"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Landlord reply (event 010) names Flat 18, 88 Alder Lane and a plumber, not this property or the window; treated as not an approval for this job.",
+      "Agency messages are signed by Ashford, Meadow Solutions and Northbridge Lettings, so the branding is inconsistent."
+    ],
+    "assumptions": [
+      "The contractor assignment on 1 Mar was made under the agency's normal process, but the approval basis is not visible."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Eliza Jenkins",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 006 email)",
+        "ticket_ref": "NBL-047-three-chases",
+        "body": "Hello Eliza, an update on your bedroom window repair. We asked our contractor, Oscar Turner, to contact you to book a visit, but we haven't had confirmation from him yet, and we're sorry for the delay. Our team is now following this up directly and we will aim to get a visit arranged as soon as we can. If he has already been in touch with you, please let us know the date. Please also tell us any days and times that suit you for access. Kind regards, Northbridge Lettings"
+      },
+      "key": "send_message:{body:\"Hello Eliza, an update on your bedroom window repair. We asked our contractor, Oscar Turner, to contact you to book a visit, but we haven't had confirmation from him yet, and we're sorry for the delay. Our team is now following this up directly and we will aim to get a visit arranged as soon as we can. If he has already been in touch with you, please let us know the date. Please also tell us any days and times that suit you for access. Kind regards, Northbridge Lettings\",channel:\"email\",contact:\"existing thread (event 006 email)\",recipient_name:\"Eliza Jenkins\",recipient_role:\"tenant\",ticket_ref:\"NBL-047-three-chases\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-101",
+      "evidence": [
+        "MSG-101 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "schedule_follow_up",
+      "args": {
+        "ticket_ref": "NBL-047-three-chases",
+        "due_on": "2024-03-12",
+        "purpose": "Check visit is booked; if not, reassign contractor",
+        "party": "Oscar Turner / maintenance team"
+      },
+      "key": "schedule_follow_up:{due_on:\"2024-03-12\",party:\"Oscar Turner / maintenance team\",purpose:\"Check visit is booked; if not, reassign contractor\",ticket_ref:\"NBL-047-three-chases\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "FUP-102",
+      "evidence": [
+        "FUP-102 found in the schedule_follow_up log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "escalate_to_human",
+      "args": {
+        "priority": "P3",
+        "team": "maintenance",
+        "reason": "Contractor unresponsive after 4 chases (1, 4, 6, 8 Mar, email+SMS); no visit booked; landlord approval for window unclear",
+        "known": "Ticket NBL-047 at mp_time. Tenant Eliza Jenkins reported bedroom window not closing 21 Feb; toilet issue resolved by tenant. Oscar Turner assigned 1 Mar; no reply to reminders. Landlord Isaac Oakley's only reply (event 010) concerned a plumber at a different property (Flat 18, 88 Alder Lane), not this window; no recorded approval or spend limit for this property (record has no landlord/limit data).",
+        "missing": "Whether Oscar has contacted the tenant; landlord's decision on the window; spend limit; contractor alternatives.",
+        "options": [
+          "Phone Oscar Turner and get a visit date",
+          "Reassign to another contractor",
+          "Confirm landlord approval/preference for this property"
+        ],
+        "recommendation": "Phone Oscar today; if no answer by 12 Mar, reassign contractor after confirming landlord approval for Flat 24."
+      },
+      "key": "escalate_to_human:{known:\"Ticket NBL-047 at mp_time. Tenant Eliza Jenkins reported bedroom window not closing 21 Feb; toilet issue resolved by tenant. Oscar Turner assigned 1 Mar; no reply to reminders. Landlord Isaac Oakley's only reply (event 010) concerned a plumber at a different property (Flat 18, 88 Alder Lane), not this window; no recorded approval or spend limit for this property (record has no landlord/limit data).\",missing:\"Whether Oscar has contacted the tenant; landlord's decision on the window; spend limit; contractor alternatives.\",options:[\"Phone Oscar Turner and get a visit date\",\"Reassign to another contractor\",\"Confirm landlord approval/preference for this property\"],priority:\"P3\",reason:\"Contractor unresponsive after 4 chases (1, 4, 6, 8 Mar, email+SMS); no visit booked; landlord approval for window unclear\",recommendation:\"Phone Oscar today; if no answer by 12 Mar, reassign contractor after confirming landlord approval for Flat 24.\",team:\"maintenance\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "ESC-103",
+      "evidence": [
+        "ESC-103 found in the escalate_to_human log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-047-three-chases",
+        "stage": "mp_time",
+        "property": "Flat 24, 150 Copperfield Walk, Kingshaven, ZZ3 7ZZ",
+        "description": "Hello. can come and fix the window from the bedroom because it isn’t closing properly.Thank you!"
+      }
+    ],
+    "records": [
+      {
+        "id": "MSG-101",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Eliza Jenkins",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 006 email)",
+          "body": "Hello Eliza, an update on your bedroom window repair. We asked our contractor, Oscar Turner, to contact you to book a visit, but we haven't had confirmation from him yet, and we're sorry for the delay. Our team is now following this up directly and we will aim to get a visit arranged as soon as we can. If he has already been in touch with you, please let us know the date. Please also tell us any days and times that suit you for access. Kind regards, Northbridge Lettings",
+          "ticket_ref": "NBL-047-three-chases"
+        },
+        "at": 1791629946078
+      },
+      {
+        "id": "FUP-102",
+        "tool": "schedule_follow_up",
+        "args": {
+          "ticket_ref": "NBL-047-three-chases",
+          "due_on": "2024-03-12",
+          "party": "Oscar Turner / maintenance team",
+          "purpose": "Check visit is booked; if not, reassign contractor"
+        },
+        "at": 1791629946079
+      },
+      {
+        "id": "ESC-103",
+        "tool": "escalate_to_human",
+        "args": {
+          "priority": "P3",
+          "team": "maintenance",
+          "reason": "Contractor unresponsive after 4 chases (1, 4, 6, 8 Mar, email+SMS); no visit booked; landlord approval for window unclear",
+          "known": "Ticket NBL-047 at mp_time. Tenant Eliza Jenkins reported bedroom window not closing 21 Feb; toilet issue resolved by tenant. Oscar Turner assigned 1 Mar; no reply to reminders. Landlord Isaac Oakley's only reply (event 010) concerned a plumber at a different property (Flat 18, 88 Alder Lane), not this window; no recorded approval or spend limit for this property (record has no landlord/limit data).",
+          "missing": "Whether Oscar has contacted the tenant; landlord's decision on the window; spend limit; contractor alternatives.",
+          "options": [
+            "Phone Oscar Turner and get a visit date",
+            "Reassign to another contractor",
+            "Confirm landlord approval/preference for this property"
+          ],
+          "recommendation": "Phone Oscar today; if no answer by 12 Mar, reassign contractor after confirming landlord approval for Flat 24."
+        },
+        "at": 1791629949584
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 24, 150 Copperfield Walk, Kingshaven, ZZ3 7ZZ"
+      }
+    ]
+  },
+  "usage": {
+    "input": 12,
+    "output": 3332,
+    "cost": 0.0666081,
+    "turns": 5,
+    "durationMs": 25895
+  }
+}

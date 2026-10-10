@@ -1,0 +1,261 @@
+{
+  "id": "017",
+  "model": "claude-haiku-5-5",
+  "cutoff": 8,
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Ticket NBL-017 is at the landlord approval gate. The landlord's reply (event 008, 15 Sep) describes a switch on the right-hand side of the hob but does not approve a contractor, own contractor, or tenant fix. Recorded as unclear. Held until 2026-09-18 waiting for the landlord and tenant.",
+    "next_actions": [
+      {
+        "type": "CHASE_TENANT",
+        "action": "Ask the tenant to check whether the switch on the right-hand side of the hob is on, and to report back if the fan still does not run.",
+        "recipient": "Clara, tenant",
+        "channel": "email",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "REQUEST_LANDLORD_APPROVAL",
+        "action": "Ask the landlord one yes/no question: if the fan still fails with the switch on, approve our contractor, or do they want their own contractor (name needed).",
+        "recipient": "Landlord, Flat 1, 31 Juniper Mews",
+        "channel": "email",
+        "ledger_id": "A3"
+      },
+      {
+        "type": "WAIT",
+        "action": "Hold the job until 2026-09-18 for replies from landlord or tenant, then review.",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A5"
+      }
+    ],
+    "boundaries": [
+      "The landlord's reply does not establish a fault, a cause, or that the fan is fixed.",
+      "No contractor has been instructed and no spend is approved.",
+      "The switch comment does not confirm the tenant may carry out any repair; it only asks the tenant to check a switch.",
+      "The ticket reference in the case (017) was not found; the live record is NBL-017 and all actions were taken on it."
+    ],
+    "remaining_work": [
+      "Landlord to answer the yes/no question on our contractor or their own contractor (owner: landlord, review 2026-09-18).",
+      "Tenant to confirm whether the switch fixed the fan (owner: tenant, review 2026-09-18).",
+      "If the fan still fails, assign a contractor only after a clear landlord approval."
+    ],
+    "missing_info": [
+      "Whether the hob-side switch is on and whether the fan works after that.",
+      "Landlord's decision on our contractor or their own.",
+      "The landlord's photo was unavailable and has not been seen."
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "The landlord replied that a switch on the right-hand side of the hob needs turning on, but gave no approval for a contractor. I recorded the reply as unclear, asked the tenant to check the switch, asked the landlord a yes/no question on sending our contractor if the fan still fails, and put the job on hold until 2026-09-18.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "At the landlord approval gate on NBL-017. The landlord's reply does not authorise a contractor, so no provider can be assigned. Outstanding: the tenant checking the switch, and the landlord's yes/no on our contractor or their own."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Email the tenant (Clara) to check the hob-side switch (A2), and email the landlord a yes/no question on contractor (A3). Job held until 2026-09-18 for review."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "No. The routine steps are in hand and no spend or legal decision is needed yet. Escalate only if the landlord or tenant gives a conflicting instruction or the fault is confirmed and unresolved."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A2",
+        "description": "Email to tenant Clara asking her to check the right-hand hob switch and report back"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Email to landlord asking yes/no on our contractor if the fan still fails"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Recorded landlord reply as unclear on NBL-017"
+      },
+      {
+        "ledger_id": "A5",
+        "description": "Put NBL-017 on hold for landlord, review 2026-09-18"
+      }
+    ],
+    "failed_actions": [
+      {
+        "ledger_id": "A1",
+        "handling": "First record_landlord_decision used the case ref 017, which was not found. Listed tickets, found NBL-017, and retried on that ref (A4), which verified."
+      }
+    ],
+    "conflicts": [
+      "The case reference is 017 but the live ticket is NBL-017; used NBL-017."
+    ],
+    "assumptions": [
+      "Today is 2026-09-15 as given in the case.",
+      "The landlord's email address and the tenant's email from the existing thread are the correct contacts."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "record_landlord_decision",
+      "args": {
+        "ticket_ref": "017",
+        "decision": "unclear",
+        "evidence_quote": "There is a switch to the righthand side of the hob when needs to be switched on.",
+        "source": "event 008, email from Landlord, 2026-09-15 22:29 UTC"
+      },
+      "key": "record_landlord_decision:{decision:\"unclear\",evidence_quote:\"There is a switch to the righthand side of the hob when needs to be switched on.\",source:\"event 008, email from Landlord, 2026-09-15 22:29 UTC\",ticket_ref:\"017\"}",
+      "attempts": 1,
+      "apiError": "not_found",
+      "status": "failed",
+      "evidence": [
+        "Ticket 017 not found on read-back"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "send_message",
+      "args": {
+        "ticket_ref": "017",
+        "recipient_name": "Clara",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 003 email)",
+        "body": "Hello Clara,\n\nThank you for your message about the kitchen extractor fan. The landlord has said there is a switch on the right-hand side of the hob that needs to be switched on. Could you please check whether that switch is on and whether the fan then runs?\n\nIf the fan still does not work, please reply to let us know, and we will arrange for it to be looked at. Please do not open the fan or touch any wiring.\n\nKind regards,\nNorthbridge Lettings"
+      },
+      "key": "send_message:{body:\"Hello Clara,\\n\\nThank you for your message about the kitchen extractor fan. The landlord has said there is a switch on the right-hand side of the hob that needs to be switched on. Could you please check whether that switch is on and whether the fan then runs?\\n\\nIf the fan still does not work, please reply to let us know, and we will arrange for it to be looked at. Please do not open the fan or touch any wiring.\\n\\nKind regards,\\nNorthbridge Lettings\",channel:\"email\",contact:\"existing thread (event 003 email)\",recipient_name:\"Clara\",recipient_role:\"tenant\",ticket_ref:\"017\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-101",
+      "evidence": [
+        "MSG-101 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "send_message",
+      "args": {
+        "ticket_ref": "017",
+        "recipient_name": "Landlord, Flat 1, 31 Juniper Mews",
+        "recipient_role": "landlord",
+        "channel": "email",
+        "contact": "existing thread (event 004 email)",
+        "body": "Good evening,\n\nThank you for your reply about the kitchen extractor fan. We have asked the tenant to check the switch on the right-hand side of the hob.\n\nOne question so we can plan next steps: if the fan still does not work once that switch is on, would you like us to send one of our contractors to look at it? Please reply yes or no. If you would rather use your own contractor, please let us know their name.\n\nKind regards,\nNorthbridge Lettings"
+      },
+      "key": "send_message:{body:\"Good evening,\\n\\nThank you for your reply about the kitchen extractor fan. We have asked the tenant to check the switch on the right-hand side of the hob.\\n\\nOne question so we can plan next steps: if the fan still does not work once that switch is on, would you like us to send one of our contractors to look at it? Please reply yes or no. If you would rather use your own contractor, please let us know their name.\\n\\nKind regards,\\nNorthbridge Lettings\",channel:\"email\",contact:\"existing thread (event 004 email)\",recipient_name:\"Landlord, Flat 1, 31 Juniper Mews\",recipient_role:\"landlord\",ticket_ref:\"017\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-102",
+      "evidence": [
+        "MSG-102 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "record_landlord_decision",
+      "args": {
+        "ticket_ref": "NBL-017",
+        "decision": "unclear",
+        "evidence_quote": "There is a switch to the righthand side of the hob when needs to be switched on.",
+        "source": "event 008, email from Landlord, 2026-09-15 22:29 UTC"
+      },
+      "key": "record_landlord_decision:{decision:\"unclear\",evidence_quote:\"There is a switch to the righthand side of the hob when needs to be switched on.\",source:\"event 008, email from Landlord, 2026-09-15 22:29 UTC\",ticket_ref:\"NBL-017\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-017",
+      "evidence": [
+        "Ticket NBL-017 read back after record_landlord_decision"
+      ]
+    },
+    {
+      "id": "A5",
+      "tool": "put_on_hold",
+      "args": {
+        "ticket_ref": "NBL-017",
+        "reason": "Waiting for Landlord",
+        "comment": "Landlord reply (event 008) does not authorise a contractor. Asked tenant to check the hob-side switch (MSG-101) and asked landlord yes/no on sending our contractor if fan still fails (MSG-102). Resume when either replies.",
+        "review_on": "2026-09-18"
+      },
+      "key": "put_on_hold:{comment:\"Landlord reply (event 008) does not authorise a contractor. Asked tenant to check the hob-side switch (MSG-101) and asked landlord yes/no on sending our contractor if fan still fails (MSG-102). Resume when either replies.\",reason:\"Waiting for Landlord\",review_on:\"2026-09-18\",ticket_ref:\"NBL-017\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-017",
+      "evidence": [
+        "Ticket NBL-017 read back after put_on_hold"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-017",
+        "stage": "init",
+        "property": "Flat 1, 31 Juniper Mews, Cedarford, ZZ7 7ZZ",
+        "description": "Extractor fan in kitchen does not seem to work (turn on). May be a simple technician fix. Thank you",
+        "landlord_approval": "required",
+        "landlord_decision": {
+          "decision": "unclear",
+          "evidence_quote": "There is a switch to the righthand side of the hob when needs to be switched on.",
+          "source": "event 008, email from Landlord, 2026-09-15 22:29 UTC"
+        },
+        "hold": {
+          "reason": "Waiting for Landlord",
+          "comment": "Landlord reply (event 008) does not authorise a contractor. Asked tenant to check the hob-side switch (MSG-101) and asked landlord yes/no on sending our contractor if fan still fails (MSG-102). Resume when either replies.",
+          "review_on": "2026-09-18"
+        },
+        "mode": "manual"
+      }
+    ],
+    "records": [
+      {
+        "id": "MSG-101",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Clara",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 003 email)",
+          "body": "Hello Clara,\n\nThank you for your message about the kitchen extractor fan. The landlord has said there is a switch on the right-hand side of the hob that needs to be switched on. Could you please check whether that switch is on and whether the fan then runs?\n\nIf the fan still does not work, please reply to let us know, and we will arrange for it to be looked at. Please do not open the fan or touch any wiring.\n\nKind regards,\nNorthbridge Lettings",
+          "ticket_ref": "017"
+        },
+        "at": 1791632164324
+      },
+      {
+        "id": "MSG-102",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Landlord, Flat 1, 31 Juniper Mews",
+          "recipient_role": "landlord",
+          "channel": "email",
+          "contact": "existing thread (event 004 email)",
+          "body": "Good evening,\n\nThank you for your reply about the kitchen extractor fan. We have asked the tenant to check the switch on the right-hand side of the hob.\n\nOne question so we can plan next steps: if the fan still does not work once that switch is on, would you like us to send one of our contractors to look at it? Please reply yes or no. If you would rather use your own contractor, please let us know their name.\n\nKind regards,\nNorthbridge Lettings",
+          "ticket_ref": "017"
+        },
+        "at": 1791632164324
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 1, 31 Juniper Mews, Cedarford, ZZ7 7ZZ"
+      }
+    ]
+  },
+  "usage": {
+    "input": 12,
+    "output": 5546,
+    "cost": 0.00460399,
+    "turns": 5,
+    "durationMs": 25067,
+    "retries": 0
+  }
+}
