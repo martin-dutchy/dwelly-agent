@@ -155,7 +155,14 @@ export function agentConfig({ name, brain, voiceId }: AgentOptions) {
           prompt: brain.kind === 'pi' ? `${VOICE_PROMPT}\n\n# Call\n${CONVERSATION_ID_LINE}` : VOICE_PROMPT,
           temperature: 0.2,
           ...llmSettings(brain),
-          built_in_tools: { end_call: system('end_call'), skip_turn: system('skip_turn') },
+          built_in_tools: {
+            end_call: system('end_call'),
+            skip_turn: system('skip_turn'),
+            // Outbound calls can land on voicemail: leave one line and hang up instead of talking to the greeting.
+            voicemail_detection: system('voicemail_detection', {
+              voicemail_message: "Hello, this is the maintenance desk at Northbridge Lettings, an AI assistant. Sorry we missed you. Please use your link to try again when you're free. Thank you.",
+            }),
+          },
         },
       },
       asr: { provider: 'scribe_realtime', quality: 'high', keywords: asrKeywords() },

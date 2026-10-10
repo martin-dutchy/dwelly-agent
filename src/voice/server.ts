@@ -120,9 +120,18 @@ export const toE164 = (raw: unknown) => {
   return E164.test(n) ? n : undefined;
 };
 
+// One call per number at a time: two quick dials race, and the person answers a different case than their card.
+const DIAL_GAP_MS = 3 * 60_000;
+const lastDial = new Map<string, { at: number; scenarioId: string }>();
+export class BusyNumber extends Error {}
+
 /** Ring a number with the agent from our Twilio number, register the call, and grade it when it ends. */
 async function placePhoneCall(env: Env, store: VoiceStore, o: { to: string; scenarioId: string; testerId: string | null }) {
   if (!env.ELEVENLABS_PHONE_NUMBER_ID) throw new Error('ELEVENLABS_PHONE_NUMBER_ID is not set');
+  const prev = lastDial.get(o.to);
+  if (prev && Date.now() - prev.at < DIAL_GAP_MS)
+    throw new BusyNumber(`a call to this number (${scenarioById(prev.scenarioId)?.title ?? prev.scenarioId}) started ${Math.round((Date.now() - prev.at) / 1000)}s ago; wait until it has ended`);
+  lastDial.set(o.to, { at: Date.now(), scenarioId: o.scenarioId });
   const r = await fetch('https://api.elevenlabs.io/v1/convai/twilio/outbound-call', {
     method: 'POST',
     headers: { 'xi-api-key': env.ELEVENLABS_API_KEY || env.ELEVEN_API_KEY || '', 'content-type': 'application/json' },
@@ -178,6 +187,7 @@ async function testerRoutes(token: string, rest: string, req: IncomingMessage, r
       await placePhoneCall(env, store, { to: tester.phone, scenarioId, testerId: tester.id });
     } catch (e) {
       console.error('[voice] call-me', e);
+      if (e instanceof BusyNumber) return send(res, 429, { error: "We're already calling you: pick up that call, or wait three minutes and try again." });
       return send(res, 502, { error: "Sorry, we couldn't ring your phone just now. Try again in a minute, or use the browser option." });
     }
     return send(res, 200, { ok: true });

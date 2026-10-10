@@ -544,8 +544,9 @@ export function firstMessage(s: Scenario, viaPhone: boolean) {
     const name = s.counterparty.split(',')[0].replace(/\s*\(.*\)$/, '');
     return `Hello, this is the maintenance desk at Northbridge Lettings. I'm an AI assistant. Am I speaking with ${name}?`;
   }
+  // For an inbound case rung by phone, the volunteer is "calling us": open as if we picked up their call.
   return viaPhone
-    ? "Hi, this is the maintenance desk at Northbridge Lettings returning your call. I'm an AI assistant. How can I help?"
+    ? "Hello, Northbridge Lettings maintenance desk. I'm an AI assistant. How can I help?"
     : "Hello, you're through to the maintenance desk at Northbridge Lettings. I'm an AI assistant. How can I help?";
 }
 
