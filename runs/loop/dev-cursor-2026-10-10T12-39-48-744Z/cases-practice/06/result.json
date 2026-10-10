@@ -1,0 +1,422 @@
+{
+  "id": "06",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "inputs": [
+    {
+      "name": "inputs/crm.json",
+      "method": "text",
+      "bytes": 1379,
+      "chars": 1379
+    },
+    {
+      "name": "inputs/ticket.json",
+      "method": "text",
+      "bytes": 283,
+      "chars": 283
+    },
+    {
+      "name": "inputs/visit_log_2026-10-11.json",
+      "method": "text",
+      "bytes": 537,
+      "chars": 537
+    },
+    {
+      "name": "inputs/weather.txt",
+      "method": "text",
+      "bytes": 55,
+      "chars": 55
+    }
+  ],
+  "withheld": [
+    {
+      "name": "checks.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    },
+    {
+      "name": "rubric.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    },
+    {
+      "name": "tool_failures.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    }
+  ],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Ticket R-4820 at visit/mp_time_force stage. Swift assigned for requested 11 Oct 14:00-18:00, not yet confirmed by provider. Tenant told by email; landlord emailed; human escalated P1 to confirm Swift by phone. Follow-up FUP-103 set.",
+    "next_actions": [
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Emailed apology, reassignment, unconfirmed slot, warmth/safety advice, next update by 16:00",
+        "recipient": "Jonah Okafor, tenant",
+        "channel": "email",
+        "ledger_id": "A4"
+      },
+      {
+        "type": "ESCALATE_TO_HUMAN",
+        "action": "P1 escalation to phone Swift and arrange fallback",
+        "recipient": "internal maintenance",
+        "channel": "internal",
+        "ledger_id": "A7"
+      },
+      {
+        "type": "WAIT",
+        "action": "Follow-up to confirm Swift attendance and update tenant",
+        "recipient": "Swift Plumbing & Heating",
+        "channel": "internal",
+        "ledger_id": "A6"
+      }
+    ],
+    "boundaries": [
+      "Assignment is a request; it does not confirm Swift will attend",
+      "No cause, cost or who pays established",
+      "No compensation promised"
+    ],
+    "remaining_work": [
+      "Human to phone Swift and confirm visit; then set_visit",
+      "Update tenant by 16:00 on 11 Oct",
+      "Record result and invoice after visit; check against £250 limit"
+    ],
+    "missing_info": [
+      "Swift's confirmation of the slot",
+      "Cause of the heating fault"
+    ],
+    "outcome": "escalated",
+    "severity": "emergency",
+    "summary": "No heating/hot water for a vulnerable tenant. HeatRight was assigned (first attempt failed, retry verified), then no-showed. Recorded the missed appointment, reassigned to Swift, emailed tenant and landlord, set follow-up and escalated P1.",
+    "answers": [
+      {
+        "question": "1. What happened when you assigned the contractor and how did you verify it?",
+        "answer": "First assign_contractor to HeatRight returned HTTP 500 and ledger A1 attempt 1 was NOT APPLIED (ticket still at init). I retried once; attempt 2 verified by read-back with the ticket at stage visit. I did not tell anyone it was done until verified."
+      },
+      {
+        "question": "2. What do you tell the tenant at each point?",
+        "answer": "Nothing was sent at the first failure. After the no-show I emailed (his preferred channel) an apology, said Swift was requested for 14:00-18:00 but not yet confirmed, gave the 24h target, warmth/safety and gas helpline advice, and said when he would hear next (by 16:00)."
+      },
+      {
+        "question": "3. After the no-show, what do you do?",
+        "answer": "Recorded the missed appointment, reassigned to Swift (second contractor on file, out-of-hours), emailed tenant and landlord, set a follow-up, and escalated P1 to confirm Swift by phone and arrange a fallback; goodwill is for a human."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Assigned HeatRight (verified on retry)"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Reassigned to Swift 14:00-18:00 requested"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Recorded missed appointment"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Emailed tenant"
+      },
+      {
+        "ledger_id": "A5",
+        "description": "Landlord email MSG-102 (API errored but read-back shows sent)"
+      },
+      {
+        "ledger_id": "A6",
+        "description": "Follow-up FUP-103"
+      },
+      {
+        "ledger_id": "A7",
+        "description": "Escalation ESC-104"
+      }
+    ],
+    "failed_actions": [
+      {
+        "ledger_id": "A1",
+        "handling": "Attempt 1 NOT APPLIED (HTTP 500); retried once, verified."
+      },
+      {
+        "ledger_id": "A5",
+        "handling": "API error but read-back confirmed MSG-102 sent; not retried."
+      }
+    ],
+    "conflicts": [
+      "Ticket urgency 'urgent' but policy treats no heating with a vulnerable occupant as emergency; treated as emergency."
+    ],
+    "assumptions": [
+      "Swift's 14:00-18:00 window is my proposal, not provider-confirmed.",
+      "Landlord's standing emergency approval covers the work within the £250 limit."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "assign_contractor",
+      "args": {
+        "ticket_ref": "R-4820",
+        "contractor": "HeatRight Ltd",
+        "visit_window": "2026-10-11 08:00-12:00"
+      },
+      "key": "assign_contractor:{contractor:\"HeatRight Ltd\",ticket_ref:\"R-4820\",visit_window:\"2026-10-11 08:00-12:00\"}",
+      "attempts": 2,
+      "status": "verified",
+      "ref": "R-4820",
+      "evidence": [
+        "Ticket R-4820 is at stage init, expected visit",
+        "Ticket R-4820 read back at stage visit"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "assign_contractor",
+      "args": {
+        "ticket_ref": "R-4820",
+        "contractor": "Swift Plumbing & Heating",
+        "visit_window": "2026-10-11 14:00-18:00"
+      },
+      "key": "assign_contractor:{contractor:\"Swift Plumbing & Heating\",ticket_ref:\"R-4820\",visit_window:\"2026-10-11 14:00-18:00\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "R-4820",
+      "evidence": [
+        "Ticket R-4820 read back at stage visit"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "record_work_result",
+      "args": {
+        "ticket_ref": "R-4820",
+        "outcome": "missed_appointment",
+        "evidence": "Visit log 2026-10-11: HeatRight (C-11) no-show for 08:00-12:00 window, note \"Engineer off sick, no cover\"; tenant email 12:41 confirms nobody came."
+      },
+      "key": "record_work_result:{evidence:\"Visit log 2026-10-11: HeatRight (C-11) no-show for 08:00-12:00 window, note \\\"Engineer off sick, no cover\\\"; tenant email 12:41 confirms nobody came.\",outcome:\"missed_appointment\",ticket_ref:\"R-4820\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "R-4820",
+      "evidence": [
+        "Ticket R-4820 read back after record_work_result"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Jonah Okafor",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "jonah.ok@mailbox.example",
+        "ticket_ref": "R-4820",
+        "body": "Hi Jonah, I'm really sorry nobody came this morning, and that you lost time off work. HeatRight's engineer was off sick and they had no cover. We have now moved your job to a second heating engineer, Swift Plumbing & Heating, and asked them to attend this afternoon (14:00-18:00). That slot is a request: it is not confirmed with them yet, and I will email you as soon as they confirm or if we need another plan. As this is an urgent no-heating job, our target is to get you heating and hot water within 24 hours. In the meantime, please keep warm layers and blankets to hand, and a hot drink if you can. If you feel unwell or unsafe, call 999 in an emergency. If you smell gas, leave the property and call 0800 111 999. You will next hear from us by email by 16:00 today, or sooner."
+      },
+      "key": "send_message:{body:\"Hi Jonah, I'm really sorry nobody came this morning, and that you lost time off work. HeatRight's engineer was off sick and they had no cover. We have now moved your job to a second heating engineer, Swift Plumbing & Heating, and asked them to attend this afternoon (14:00-18:00). That slot is a request: it is not confirmed with them yet, and I will email you as soon as they confirm or if we need another plan. As this is an urgent no-heating job, our target is to get you heating and hot water within 24 hours. In the meantime, please keep warm layers and blankets to hand, and a hot drink if you can. If you feel unwell or unsafe, call 999 in an emergency. If you smell gas, leave the property and call 0800 111 999. You will next hear from us by email by 16:00 today, or sooner.\",channel:\"email\",contact:\"jonah.ok@mailbox.example\",recipient_name:\"Jonah Okafor\",recipient_role:\"tenant\",ticket_ref:\"R-4820\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-101",
+      "evidence": [
+        "MSG-101 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A5",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Margaret Ellison",
+        "recipient_role": "landlord",
+        "channel": "email",
+        "contact": "margaret@ellisonlettings.co.uk",
+        "ticket_ref": "R-4820",
+        "body": "Dear Margaret, an update on 27 Bethnal Green Road: the tenant (who has a disclosed vulnerability) has had no heating or hot water since Friday evening. HeatRight missed this morning's visit (engineer off sick), so we have reassigned to Swift Plumbing & Heating, requested for this afternoon. Per your standing instruction on emergencies we are proceeding; we will come back to you if any quote exceeds your £250 limit."
+      },
+      "key": "send_message:{body:\"Dear Margaret, an update on 27 Bethnal Green Road: the tenant (who has a disclosed vulnerability) has had no heating or hot water since Friday evening. HeatRight missed this morning's visit (engineer off sick), so we have reassigned to Swift Plumbing & Heating, requested for this afternoon. Per your standing instruction on emergencies we are proceeding; we will come back to you if any quote exceeds your £250 limit.\",channel:\"email\",contact:\"margaret@ellisonlettings.co.uk\",recipient_name:\"Margaret Ellison\",recipient_role:\"landlord\",ticket_ref:\"R-4820\"}",
+      "attempts": 1,
+      "apiError": "Error: Request timed out after 10000ms",
+      "status": "verified",
+      "ref": "MSG-102",
+      "evidence": [
+        "MSG-102 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A6",
+      "tool": "schedule_follow_up",
+      "args": {
+        "ticket_ref": "R-4820",
+        "due_on": "2026-10-11",
+        "purpose": "Confirm Swift attends 14:00-18:00 and update tenant by 16:00",
+        "party": "Swift Plumbing & Heating"
+      },
+      "key": "schedule_follow_up:{due_on:\"2026-10-11\",party:\"Swift Plumbing & Heating\",purpose:\"Confirm Swift attends 14:00-18:00 and update tenant by 16:00\",ticket_ref:\"R-4820\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "FUP-103",
+      "evidence": [
+        "FUP-103 found in the schedule_follow_up log"
+      ]
+    },
+    {
+      "id": "A7",
+      "tool": "escalate_to_human",
+      "args": {
+        "priority": "P1",
+        "team": "maintenance",
+        "reason": "No heating/hot water, vulnerable tenant, first contractor no-show; second contractor needs phone confirmation today",
+        "known": "R-4820 at 27 Bethnal Green Road. Tenant Jonah Okafor, anxiety, prefers email, no heat since Fri evening, lows 3-5C. HeatRight assigned (A1 failed once with HTTP 500, verified on retry), no-show 11 Oct 08:00-12:00 (engineer sick). Reassigned to Swift 14:00-18:00 (A2); tenant and landlord emailed.",
+        "missing": "Swift has not confirmed the slot. No fallback if they decline. Tenant may want goodwill/compensation response (needs human).",
+        "options": [
+          "Phone Swift (+447700900312) to confirm attendance today",
+          "If Swift declines, try other out-of-hours Gas Safe contractor or temporary heaters",
+          "Consider goodwill response to tenant"
+        ],
+        "recommendation": "Phone Swift now to confirm a same-day slot; have a fallback ready; review goodwill for tenant.",
+        "deadline": "2026-10-11 14:00"
+      },
+      "key": "escalate_to_human:{deadline:\"2026-10-11 14:00\",known:\"R-4820 at 27 Bethnal Green Road. Tenant Jonah Okafor, anxiety, prefers email, no heat since Fri evening, lows 3-5C. HeatRight assigned (A1 failed once with HTTP 500, verified on retry), no-show 11 Oct 08:00-12:00 (engineer sick). Reassigned to Swift 14:00-18:00 (A2); tenant and landlord emailed.\",missing:\"Swift has not confirmed the slot. No fallback if they decline. Tenant may want goodwill/compensation response (needs human).\",options:[\"Phone Swift (+447700900312) to confirm attendance today\",\"If Swift declines, try other out-of-hours Gas Safe contractor or temporary heaters\",\"Consider goodwill response to tenant\"],priority:\"P1\",reason:\"No heating/hot water, vulnerable tenant, first contractor no-show; second contractor needs phone confirmation today\",recommendation:\"Phone Swift now to confirm a same-day slot; have a fallback ready; review goodwill for tenant.\",team:\"maintenance\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "ESC-104",
+      "evidence": [
+        "ESC-104 found in the escalate_to_human log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "R-4820",
+        "tenant_id": "T-1002",
+        "property_id": "P-202",
+        "category": "heating",
+        "urgency": "urgent",
+        "stage": "mp_time_force",
+        "description": "No heating or hot water since Friday evening. Tenant has anxiety, prefers email.",
+        "created": "2026-10-10T08:12:00+01:00",
+        "contractor": "Swift Plumbing & Heating",
+        "visit_window": "2026-10-11 14:00-18:00",
+        "work_result": {
+          "outcome": "missed_appointment",
+          "evidence": "Visit log 2026-10-11: HeatRight (C-11) no-show for 08:00-12:00 window, note \"Engineer off sick, no cover\"; tenant email 12:41 confirms nobody came."
+        }
+      }
+    ],
+    "records": [
+      {
+        "id": "MSG-101",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Jonah Okafor",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "jonah.ok@mailbox.example",
+          "body": "Hi Jonah, I'm really sorry nobody came this morning, and that you lost time off work. HeatRight's engineer was off sick and they had no cover. We have now moved your job to a second heating engineer, Swift Plumbing & Heating, and asked them to attend this afternoon (14:00-18:00). That slot is a request: it is not confirmed with them yet, and I will email you as soon as they confirm or if we need another plan. As this is an urgent no-heating job, our target is to get you heating and hot water within 24 hours. In the meantime, please keep warm layers and blankets to hand, and a hot drink if you can. If you feel unwell or unsafe, call 999 in an emergency. If you smell gas, leave the property and call 0800 111 999. You will next hear from us by email by 16:00 today, or sooner.",
+          "ticket_ref": "R-4820"
+        },
+        "at": 1791636009872
+      },
+      {
+        "id": "MSG-102",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Margaret Ellison",
+          "recipient_role": "landlord",
+          "channel": "email",
+          "contact": "margaret@ellisonlettings.co.uk",
+          "body": "Dear Margaret, an update on 27 Bethnal Green Road: the tenant (who has a disclosed vulnerability) has had no heating or hot water since Friday evening. HeatRight missed this morning's visit (engineer off sick), so we have reassigned to Swift Plumbing & Heating, requested for this afternoon. Per your standing instruction on emergencies we are proceeding; we will come back to you if any quote exceeds your £250 limit.",
+          "ticket_ref": "R-4820"
+        },
+        "at": 1791636009872
+      },
+      {
+        "id": "FUP-103",
+        "tool": "schedule_follow_up",
+        "args": {
+          "ticket_ref": "R-4820",
+          "due_on": "2026-10-11",
+          "party": "Swift Plumbing & Heating",
+          "purpose": "Confirm Swift attends 14:00-18:00 and update tenant by 16:00"
+        },
+        "at": 1791636009873
+      },
+      {
+        "id": "ESC-104",
+        "tool": "escalate_to_human",
+        "args": {
+          "priority": "P1",
+          "team": "maintenance",
+          "reason": "No heating/hot water, vulnerable tenant, first contractor no-show; second contractor needs phone confirmation today",
+          "known": "R-4820 at 27 Bethnal Green Road. Tenant Jonah Okafor, anxiety, prefers email, no heat since Fri evening, lows 3-5C. HeatRight assigned (A1 failed once with HTTP 500, verified on retry), no-show 11 Oct 08:00-12:00 (engineer sick). Reassigned to Swift 14:00-18:00 (A2); tenant and landlord emailed.",
+          "missing": "Swift has not confirmed the slot. No fallback if they decline. Tenant may want goodwill/compensation response (needs human).",
+          "options": [
+            "Phone Swift (+447700900312) to confirm attendance today",
+            "If Swift declines, try other out-of-hours Gas Safe contractor or temporary heaters",
+            "Consider goodwill response to tenant"
+          ],
+          "recommendation": "Phone Swift now to confirm a same-day slot; have a fallback ready; review goodwill for tenant.",
+          "deadline": "2026-10-11 14:00"
+        },
+        "at": 1791636013262
+      }
+    ],
+    "properties": [
+      {
+        "id": "P-202",
+        "address": "27 Bethnal Green Road, London E1 6LA",
+        "tenanted": true,
+        "landlord": {
+          "name": "Margaret Ellison",
+          "email": "margaret@ellisonlettings.co.uk",
+          "phone": "+447700900202",
+          "spend_limit_gbp": 250,
+          "notes": [
+            "Overseas Oct-Dec, email preferred.",
+            "Approve emergencies without asking, routine over £250 needs approval."
+          ]
+        },
+        "contractors": [
+          {
+            "contractor_id": "C-11",
+            "name": "HeatRight Ltd",
+            "trades": [
+              "gas",
+              "heating"
+            ],
+            "gas_safe_no": "550123",
+            "phone": "+447700900311",
+            "out_of_hours": true
+          },
+          {
+            "contractor_id": "C-12",
+            "name": "Swift Plumbing & Heating",
+            "trades": [
+              "plumbing",
+              "heating",
+              "gas"
+            ],
+            "gas_safe_no": "551987",
+            "phone": "+447700900312",
+            "out_of_hours": true
+          }
+        ]
+      }
+    ]
+  },
+  "usage": {
+    "input": 16,
+    "output": 4695,
+    "cost": 0.0860213,
+    "turns": 7,
+    "durationMs": 34410,
+    "retries": 0,
+    "thinkingTokens": 305
+  }
+}

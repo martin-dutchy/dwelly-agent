@@ -1,0 +1,365 @@
+{
+  "id": "007-invoice-40pct-over-quote",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "cutoff": 31,
+  "totalEvents": 31,
+  "inputs": [
+    {
+      "name": "history.md",
+      "method": "derived",
+      "bytes": 7605,
+      "chars": 7536,
+      "note": "events 1–31 of 31 from history.md"
+    },
+    {
+      "name": "attachments/attachment-01-check-out-inspection-report.pdf",
+      "method": "pdftotext",
+      "bytes": 153153,
+      "chars": 10918
+    }
+  ],
+  "withheld": [
+    {
+      "name": "index.md",
+      "reason": "sections that reveal the ending: Next action at escalation, History, Attachments"
+    },
+    {
+      "name": "checks.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    },
+    {
+      "name": "rubric.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    }
+  ],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Stage result, on hold (Waiting for Provider, review 2025-10-13). Works reported done; invoice 2311 £333.26 inc VAT is about 40% over the approved £238.04 inc VAT; payment held. Awaiting provider explanation, invoice PDF and photos.",
+    "next_actions": [
+      {
+        "type": "REQUEST_INFORMATION",
+        "action": "Ask Clarke to explain the invoice overage and send invoice PDF and photos",
+        "recipient": "Clarke, contractor",
+        "channel": "email",
+        "ledger_id": "A4"
+      },
+      {
+        "type": "OTHER",
+        "action": "Tell landlord of the overage, that payment is held, and when they will next hear",
+        "recipient": "Landlord",
+        "channel": "email",
+        "ledger_id": "A5"
+      },
+      {
+        "type": "WAIT",
+        "action": "Wait for provider reply; review 13 Oct",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A7"
+      }
+    ],
+    "boundaries": [
+      "Recording the invoice does not approve it; only £238.04 inc VAT is authorised",
+      "Completion is the contractor's claim; no photos or PDF seen yet",
+      "Holding payment does not decide whether the extra is justified"
+    ],
+    "remaining_work": [
+      "Review provider's explanation by 13 Oct; if unsettled, escalate to accounts P2 or ask landlord to approve the variance",
+      "Obtain photos and invoice PDF",
+      "Close ticket (final_checks) once invoice is resolved and landlord informed",
+      "Confirm caretaker keys are back, if applicable"
+    ],
+    "missing_info": [
+      "Reason for the £79.35 + VAT increase",
+      "Invoice PDF",
+      "Completion photos",
+      "Attachment-07 on event 005 not in case files"
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "Clarke reports the lounge works done, but invoice 2311 is £333.26 inc VAT against an approved £238.04. I recorded the landlord approval and the invoice, held payment, asked Clarke to explain and send the PDF and photos, and told the landlord. The property is void, so there is no tenant to message.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "Works reported complete by the provider. The invoice is about 40% over the approved quote. Outstanding: the provider's explanation, the invoice PDF and photos, the landlord's view on any variance, then close."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Email to Clarke asking for an explanation, the PDF and photos (done), and an email to the landlord with an update (done). Review 13 Oct."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "Not yet. Payment is held and the provider has been asked. If the answer does not settle it by 13 Oct, escalate to accounts (P2) or ask the landlord to approve the variance."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Recorded landlord approval 'Pls go ahead' capped at £238.04"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Recorded invoice 2311, flagged above approval"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Held payment HOLD-101"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Emailed provider for explanation, PDF, photos"
+      },
+      {
+        "ledger_id": "A5",
+        "description": "Emailed landlord update"
+      },
+      {
+        "ledger_id": "A6",
+        "description": "Ticket note added"
+      },
+      {
+        "ledger_id": "A7",
+        "description": "On hold with review 2025-10-13"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Inspection report is dated 25 August 2026, after the 2025 case dates, and the emails call the flat a 'studio'; treated as data errors, not a different property.",
+      "Provider email event 023 is signed Harriet; the contractor is Clarke. Same thread, treated as the same firm."
+    ],
+    "assumptions": [
+      "The landlord's 'Pls go ahead' covers the quote of £198.37 + VAT only, so the cap is £238.04 inc VAT.",
+      "The property is void, so no tenant confirmation is needed."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "record_landlord_decision",
+      "args": {
+        "ticket_ref": "NBL-007-0235",
+        "decision": "approved",
+        "evidence_quote": "Pls go ahead",
+        "source": "event 011, email 28/09, in reply to quote of £198.37 plus VAT (event 009)",
+        "cap_gbp": 238.04
+      },
+      "key": "record_landlord_decision:{cap_gbp:238.04,decision:\"approved\",evidence_quote:\"Pls go ahead\",source:\"event 011, email 28/09, in reply to quote of £198.37 plus VAT (event 009)\",ticket_ref:\"NBL-007-0235\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-007-0235",
+      "evidence": [
+        "Ticket NBL-007-0235 read back after record_landlord_decision"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "record_invoice",
+      "args": {
+        "ticket_ref": "NBL-007-0235",
+        "issuer": "Clarke (contractor)",
+        "amount_gbp": 333.26,
+        "who_pays": "agency",
+        "source": "Provider email event 031, 2025-10-08, invoice no. 2311, £277.72 + VAT; PDF not seen"
+      },
+      "key": "record_invoice:{amount_gbp:333.26,issuer:\"Clarke (contractor)\",source:\"Provider email event 031, 2025-10-08, invoice no. 2311, £277.72 + VAT; PDF not seen\",ticket_ref:\"NBL-007-0235\",who_pays:\"agency\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-007-0235",
+      "evidence": [
+        "Ticket NBL-007-0235 read back after record_invoice"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "hold_payment",
+      "args": {
+        "payee": "Clarke (contractor), invoice 2311, NBL-007-0235",
+        "reason": "Invoice £333.26 inc VAT (£277.72 + VAT) is about 40% above approved quote £198.37 + VAT (£238.04 inc VAT); no variation approved."
+      },
+      "key": "hold_payment:{payee:\"Clarke (contractor), invoice 2311, NBL-007-0235\",reason:\"Invoice £333.26 inc VAT (£277.72 + VAT) is about 40% above approved quote £198.37 + VAT (£238.04 inc VAT); no variation approved.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "HOLD-101",
+      "evidence": [
+        "HOLD-101 found in the hold_payment log"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Clarke",
+        "recipient_role": "contractor",
+        "channel": "email",
+        "contact": "existing thread (event 031 email)",
+        "ticket_ref": "NBL-007-0235",
+        "body": "Hi Clarke, thanks for letting us know the works are done. Invoice 2311 is £277.72 + VAT (£333.26 inc VAT), but the approved quote was £198.37 + VAT for two spotlights and one ceiling board. Please can you explain the difference, and send the invoice as a PDF plus the photos of the completed work. Payment is on hold until this is cleared. Any extra work needed landlord approval first. Regards, Maya"
+      },
+      "key": "send_message:{body:\"Hi Clarke, thanks for letting us know the works are done. Invoice 2311 is £277.72 + VAT (£333.26 inc VAT), but the approved quote was £198.37 + VAT for two spotlights and one ceiling board. Please can you explain the difference, and send the invoice as a PDF plus the photos of the completed work. Payment is on hold until this is cleared. Any extra work needed landlord approval first. Regards, Maya\",channel:\"email\",contact:\"existing thread (event 031 email)\",recipient_name:\"Clarke\",recipient_role:\"contractor\",ticket_ref:\"NBL-007-0235\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-102",
+      "evidence": [
+        "MSG-102 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A5",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Landlord",
+        "recipient_role": "landlord",
+        "channel": "email",
+        "contact": "agency landlord record",
+        "ticket_ref": "NBL-007-0235",
+        "body": "Good afternoon. Clarke reports the lounge works at Flat 8, 168 Alder Lane are done (two spotlights and one ceiling board). His invoice is £277.72 + VAT (£333.26 inc VAT), against the £198.37 + VAT quote you approved. We have not approved the extra and have put payment on hold while we ask him to explain the difference. We will update you by 15 October. No action needed from you yet."
+      },
+      "key": "send_message:{body:\"Good afternoon. Clarke reports the lounge works at Flat 8, 168 Alder Lane are done (two spotlights and one ceiling board). His invoice is £277.72 + VAT (£333.26 inc VAT), against the £198.37 + VAT quote you approved. We have not approved the extra and have put payment on hold while we ask him to explain the difference. We will update you by 15 October. No action needed from you yet.\",channel:\"email\",contact:\"agency landlord record\",recipient_name:\"Landlord\",recipient_role:\"landlord\",ticket_ref:\"NBL-007-0235\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-103",
+      "evidence": [
+        "MSG-103 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A6",
+      "tool": "update_ticket",
+      "args": {
+        "ref": "NBL-007-0235",
+        "note": "Provider reports completion (event 031); property void so no tenant confirmation needed. Invoice 2311 40% over quote, payment held HOLD-101; awaiting explanation, PDF and photos."
+      },
+      "key": "update_ticket:{note:\"Provider reports completion (event 031); property void so no tenant confirmation needed. Invoice 2311 40% over quote, payment held HOLD-101; awaiting explanation, PDF and photos.\",ref:\"NBL-007-0235\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-007-0235",
+      "evidence": [
+        "Ticket NBL-007-0235 read back at stage result"
+      ]
+    },
+    {
+      "id": "A7",
+      "tool": "put_on_hold",
+      "args": {
+        "ticket_ref": "NBL-007-0235",
+        "reason": "Waiting for Provider",
+        "comment": "Explanation of invoice 2311 being above quote, invoice PDF and completion photos",
+        "review_on": "2025-10-13"
+      },
+      "key": "put_on_hold:{comment:\"Explanation of invoice 2311 being above quote, invoice PDF and completion photos\",reason:\"Waiting for Provider\",review_on:\"2025-10-13\",ticket_ref:\"NBL-007-0235\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-007-0235",
+      "evidence": [
+        "Ticket NBL-007-0235 read back after put_on_hold"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-007-0235",
+        "stage": "result",
+        "property": "Flat 8, 168 Alder Lane, Kingshaven, ZZ4 3ZZ",
+        "description": "Please quote for the following works based on the check out report:\n\n Lounge:\n1. Two spotlights not working\n2. Fix water damage to ceiling tile",
+        "landlord_approval": "confirmed",
+        "hold": {
+          "reason": "Waiting for Provider",
+          "comment": "Explanation of invoice 2311 being above quote, invoice PDF and completion photos",
+          "review_on": "2025-10-13"
+        },
+        "landlord_decision": {
+          "decision": "approved",
+          "evidence_quote": "Pls go ahead",
+          "source": "event 011, email 28/09, in reply to quote of £198.37 plus VAT (event 009)",
+          "cap_gbp": 238.04
+        },
+        "approved_gbp": 238.04,
+        "invoice": {
+          "issuer": "Clarke (contractor)",
+          "amount_gbp": 333.26,
+          "who_pays": "agency",
+          "source": "Provider email event 031, 2025-10-08, invoice no. 2311, £277.72 + VAT; PDF not seen",
+          "flags": [
+            "Invoice £333.26 is above the approved £238.04."
+          ]
+        },
+        "notes": [
+          "Provider reports completion (event 031); property void so no tenant confirmation needed. Invoice 2311 40% over quote, payment held HOLD-101; awaiting explanation, PDF and photos."
+        ],
+        "mode": "manual"
+      }
+    ],
+    "records": [
+      {
+        "id": "HOLD-101",
+        "tool": "hold_payment",
+        "args": {
+          "payee": "Clarke (contractor), invoice 2311, NBL-007-0235",
+          "reason": "Invoice £333.26 inc VAT (£277.72 + VAT) is about 40% above approved quote £198.37 + VAT (£238.04 inc VAT); no variation approved."
+        },
+        "at": 1791637178767
+      },
+      {
+        "id": "MSG-102",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Clarke",
+          "recipient_role": "contractor",
+          "channel": "email",
+          "contact": "existing thread (event 031 email)",
+          "body": "Hi Clarke, thanks for letting us know the works are done. Invoice 2311 is £277.72 + VAT (£333.26 inc VAT), but the approved quote was £198.37 + VAT for two spotlights and one ceiling board. Please can you explain the difference, and send the invoice as a PDF plus the photos of the completed work. Payment is on hold until this is cleared. Any extra work needed landlord approval first. Regards, Maya",
+          "ticket_ref": "NBL-007-0235"
+        },
+        "at": 1791637185061
+      },
+      {
+        "id": "MSG-103",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Landlord",
+          "recipient_role": "landlord",
+          "channel": "email",
+          "contact": "agency landlord record",
+          "body": "Good afternoon. Clarke reports the lounge works at Flat 8, 168 Alder Lane are done (two spotlights and one ceiling board). His invoice is £277.72 + VAT (£333.26 inc VAT), against the £198.37 + VAT quote you approved. We have not approved the extra and have put payment on hold while we ask him to explain the difference. We will update you by 15 October. No action needed from you yet.",
+          "ticket_ref": "NBL-007-0235"
+        },
+        "at": 1791637185062
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 8, 168 Alder Lane, Kingshaven, ZZ4 3ZZ",
+        "tenanted": false,
+        "landlord": {
+          "contact": "agency landlord record",
+          "notes": [
+            "Contact details are held in the agency system and not shown in this case file; messages to the landlord go through it. Use contact \"agency landlord record\".",
+            "Landlord messages visible in this case: event 009 (email, to landlord); event 011 (email, from landlord)."
+          ]
+        }
+      }
+    ]
+  },
+  "usage": {
+    "input": 8,
+    "output": 3584,
+    "cost": 0.1205322,
+    "turns": 3,
+    "durationMs": 24906,
+    "retries": 0,
+    "thinkingTokens": 470
+  }
+}

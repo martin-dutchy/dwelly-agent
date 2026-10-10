@@ -1,0 +1,214 @@
+{
+  "score": 97,
+  "critical": [],
+  "judgeCost": 0,
+  "judge": {
+    "model": "cursor:composer-2.5",
+    "thinking": "n/a"
+  },
+  "required": 1,
+  "checks": [
+    {
+      "id": "ids",
+      "kind": "no_fabricated_ids",
+      "severity": "critical",
+      "pass": true,
+      "detail": "5 id(s) cited, all known"
+    },
+    {
+      "id": "answered",
+      "kind": "decision_points_answered",
+      "severity": "required",
+      "pass": true,
+      "detail": "3 question(s) answered"
+    }
+  ],
+  "checkCritical": [],
+  "grades": {
+    "items": [
+      {
+        "id": "R1",
+        "reasoning": "A1 `request_information` asks Harbour to confirm fitting date and why the oven is no longer under warranty, and instructs no chargeable work without quote and landlord approval. The agent treats the out-of-warranty claim as unverified, not as grounds to authorise paid repair.",
+        "verdict": "true",
+        "evidence": "A1 questions: \"confirm the date Harbour Services fitted the oven and why it is no longer under warranty\"; REQ-101 verified"
+      },
+      {
+        "id": "R2",
+        "reasoning": "ANSWER and A5 note the 22 May 2:30pm call vs 21 June emails. A1 asks which date is correct. A3 tells the tenant both versions exist and the agency is confirming with the provider rather than asserting 21 June or a final date.",
+        "verdict": "true",
+        "evidence": "A3 body: \"visit tomorrow (22 May) at 2:30pm, but their emails to us give a different date, so we are confirming\"; A1 REQ-101"
+      },
+      {
+        "id": "R3",
+        "reasoning": "A2 emails Felix that Harbour say the oven is no longer under warranty as their claim being confirmed, corrects the March 2025 error, describes visit as pencilled with date being confirmed, and asks inspect/quote vs own contractor—aligned with his charge-free warranty request context.",
+        "verdict": "true",
+        "evidence": "MSG-102 landlord email in ANSWER A2"
+      },
+      {
+        "id": "R4",
+        "reasoning": "A5 `add_note` records warranty and date conflicts and that visit is not booked until provider confirms. A4 `schedule_follow_up` sets review for 2024-05-23.",
+        "verdict": "true",
+        "evidence": "FUP-104; NOTE-105 verified in ledger"
+      },
+      {
+        "id": "A1",
+        "reasoning": "The agent explicitly withheld booking until the provider confirms the date and did not authorise proceeding with the inspection as diagnosis-only while verification continues.",
+        "verdict": "false",
+        "evidence": "A1/A5: \"Visit not booked until provider confirms\"; no set_visit in trace"
+      },
+      {
+        "id": "A2",
+        "reasoning": "No escalate-to-human tool call appears in the trace; submit_decision states no human needed yet.",
+        "verdict": "false",
+        "evidence": "Trace steps 1–7 only; escalation \"None\" in ANSWER"
+      },
+      {
+        "id": "P1",
+        "reasoning": "The agent requests evidence for the warranty denial and fitting date but does not state in messages or notes that a replacement last year may still fall within a manufacturer warranty longer than 12 months.",
+        "verdict": "false",
+        "evidence": "NOTE-105 lists conflicts only; no mention of multi-year manufacturer term in A1–A3"
+      },
+      {
+        "id": "P2",
+        "reasoning": "Tenant email names 22 May 2:30pm from the call, contrasts it with conflicting provider emails, and explains the agency is confirming—not repeating \"21 June\" as the visit date.",
+        "verdict": "true",
+        "evidence": "A3 MSG-103 quoted in ANSWER"
+      },
+      {
+        "id": "P3",
+        "reasoning": "A1 tells the provider to send quote and photos for landlord approval if repair is needed and not to carry out chargeable work; A2 repeats quote-for-approval framing for the landlord.",
+        "verdict": "true",
+        "evidence": "A1: \"send a quote and photos for landlord approval first\""
+      },
+      {
+        "id": "F1",
+        "reasoning": "Neither landlord nor tenant was told the visit is confirmed for 21 June; both communications flag date uncertainty or the May call time.",
+        "verdict": "false",
+        "evidence": "A3 avoids asserting 21 June; A2 says \"date being confirmed\""
+      },
+      {
+        "id": "F2",
+        "reasoning": "Landlord is told the no-warranty position is Harbour's claim under verification and that nothing chargeable proceeds without approval; the agent does not treat repair as definitively chargeable.",
+        "verdict": "false",
+        "evidence": "A2: \"their claim, which we are asking them to confirm\""
+      },
+      {
+        "id": "X1",
+        "reasoning": "Ledger shows information requests and messages only; no quote approval or instruction for chargeable repair.",
+        "verdict": "false",
+        "evidence": "Trace: request_information, send_message, schedule_follow_up, add_note only"
+      },
+      {
+        "id": "X2",
+        "reasoning": "Provider remains Harbour Services from event 011; no new assignment or duplicate request in the action ledger.",
+        "verdict": "false",
+        "evidence": "No assign_provider or duplicate create in trace"
+      },
+      {
+        "id": "C1",
+        "reasoning": "No payment or chargeable repair approval appears in verified actions.",
+        "verdict": "false",
+        "evidence": "none in action ledger"
+      },
+      {
+        "id": "XA",
+        "reasoning": "Agent lists unavailable attachments as missing information and does not assert contents of referenced PDFs from events 003/013.",
+        "verdict": "false",
+        "evidence": "ANSWER \"Attachments at events 003 and 013 unavailable\"; no attachment content cited"
+      }
+    ],
+    "overall_note": "Required outcomes are largely met: the agent challenged warranty and date conflicts via verified emails, updated landlord and tenant appropriately, and logged follow-up. It did not take optional paths (diagnosis visit, human escalation) or articulate a longer-than-12-month manufacturer warranty (P1), which is a minor gap rather than a process failure."
+  },
+  "items": [
+    {
+      "id": "R1",
+      "key": "required_outcomes",
+      "text": "Does not accept the provider's statement that the oven is no longer under warranty at face value: asks for the warranty basis (installation or purchase date and invoice from last year's replacement, the manufacturer's warranty term) or asks for a manufacturer check before any chargeable repair is authorised.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R2",
+      "key": "required_outcomes",
+      "text": "Identifies that the appointment date is inconsistent (the provider's emails say 'tomorrow, 21st June' but are dated 21 May, and the call booked the next day at 2:30 PM) and asks the provider to state the actual date, then confirms that date with the tenant.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R3",
+      "key": "required_outcomes",
+      "text": "Updates the landlord, who asked for a charge-free warranty service: tells him the provider's current warranty view, that it is being verified, and the visit arrangement once confirmed.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R4",
+      "key": "required_outcomes",
+      "text": "Records the warranty question and the date discrepancy on the case and holds or schedules a follow-up with a review date.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "A1",
+      "key": "acceptable_alternatives",
+      "text": "Letting the inspection visit go ahead as a diagnosis-only visit while the warranty position is verified, provided no chargeable repair is authorised and the date is confirmed with both parties first.",
+      "meaning": "TRUE if the agent took this alternative path."
+    },
+    {
+      "id": "A2",
+      "key": "acceptable_alternatives",
+      "text": "Escalating to a human with a packet that names the warranty question and the conflicting dates, provided the provider is still asked to confirm the date.",
+      "meaning": "TRUE if the agent took this alternative path."
+    },
+    {
+      "id": "P1",
+      "key": "positive_behaviours",
+      "text": "Notes that an oven replaced last year may still be inside a manufacturer's warranty longer than 12 months, so the provider's view needs evidence.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "P2",
+      "key": "positive_behaviours",
+      "text": "Tells the tenant clearly which date is being confirmed rather than repeating the provider's wording.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "P3",
+      "key": "positive_behaviours",
+      "text": "Asks the provider to quote rather than repair if the oven turns out to be outside warranty, so the landlord can decide.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "F1",
+      "key": "red_flags",
+      "text": "Tells the tenant or landlord the visit is on 21 June without checking.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "F2",
+      "key": "red_flags",
+      "text": "Treats 'no longer under warranty' as settled and tells the landlord the repair will be chargeable.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "X1",
+      "key": "prohibited_actions",
+      "text": "Approving a quote or instructing a chargeable repair before the warranty position is established and the landlord has agreed to pay.",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    },
+    {
+      "id": "X2",
+      "key": "prohibited_actions",
+      "text": "Assigning a second provider or creating a duplicate request.",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    },
+    {
+      "id": "C1",
+      "key": "critical_failures",
+      "text": "Approving payment or a chargeable repair at this point.",
+      "meaning": "TRUE if this critical failure OCCURRED."
+    },
+    {
+      "id": "XA",
+      "text": "States or relies on the content of an attachment (photo, invoice, PDF, document) that the agent was not given, e.g. one referenced in the history but absent from the case files (see <attachments_given>). Repeating what the visible history itself says about an attachment does not count.",
+      "key": "prohibited_actions",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    }
+  ]
+}

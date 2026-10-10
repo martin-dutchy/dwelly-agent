@@ -1,0 +1,314 @@
+{
+  "id": "004-emoji-provider-reply",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "cutoff": 9,
+  "totalEvents": 9,
+  "inputs": [
+    {
+      "name": "history.md",
+      "method": "derived",
+      "bytes": 2220,
+      "chars": 2198,
+      "note": "events 1–9 of 9 from history.md"
+    },
+    {
+      "name": "attachments/attachment-01-checkout-inspection-report.pdf",
+      "method": "pdftotext",
+      "bytes": 110783,
+      "chars": 14048
+    }
+  ],
+  "withheld": [
+    {
+      "name": "index.md",
+      "reason": "sections that reveal the ending: Next action at escalation, History, Attachments"
+    },
+    {
+      "name": "rubric.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    }
+  ],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {
+    "assign_contractor": [
+      {
+        "call": 2,
+        "mode": "timeout"
+      }
+    ],
+    "set_visit": [
+      {
+        "call": 2,
+        "mode": "timeout"
+      }
+    ],
+    "record_work_result": [
+      {
+        "call": 2,
+        "mode": "silent_drop"
+      }
+    ],
+    "skip_document": [
+      {
+        "call": 2,
+        "mode": "error"
+      }
+    ],
+    "confirm_keys_returned": [
+      {
+        "call": 1,
+        "mode": "silent_drop"
+      }
+    ],
+    "close_ticket": [
+      {
+        "call": 1,
+        "mode": "error"
+      }
+    ],
+    "log_call": [
+      {
+        "call": 2,
+        "mode": "error"
+      }
+    ],
+    "escalate_to_human": [
+      {
+        "call": 1,
+        "mode": "silent_drop"
+      },
+      {
+        "call": 2,
+        "mode": "silent_drop"
+      }
+    ]
+  },
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Ticket NBL-004 is paused because the property is void. A quote was requested from the provider, and the provider's only reply was a 👍. It is on hold, waiting for the provider, with a review on 2025-10-28.",
+    "next_actions": [
+      {
+        "type": "REQUEST_INFORMATION",
+        "action": "Asked the provider by email for a written quote (price, VAT status, earliest date), because the 👍 is not a quote.",
+        "recipient": "Contractor (provider)",
+        "channel": "email",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "WAIT",
+        "action": "Hold waiting for the provider's quote, review 2025-10-28.",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A4"
+      }
+    ],
+    "boundaries": [
+      "The 👍 does not establish a quote, a price, acceptance of scope or a visit date.",
+      "No contractor visit is booked.",
+      "Nothing has been sent to the landlord, because there is no figure to approve yet.",
+      "The pop-up plug and flaking paint are outside this cleaning scope."
+    ],
+    "remaining_work": [
+      "Provider to send a written quote; then record it and send it to the landlord for approval (owner: agency ops).",
+      "Review on 2025-10-28; if there is still no quote, chase on another channel (phone).",
+      "Arrange access via keys or caretaker for the void property once a date is agreed."
+    ],
+    "missing_info": [
+      "Written quote and VAT status",
+      "Provider's availability",
+      "The attachment-86-document in event 006 was unavailable"
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "The provider replied to the quote request with only a 👍. I did not treat it as a quote. I asked for a written price and date by email, noted the record, and put the ticket on hold until 2025-10-28.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "Landlord approval is confirmed and the provider is assigned. The property is void and the ticket is paused. A quote was requested and the provider has sent only a 👍, so the quote is still outstanding."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Done: a plain-text request to the provider by email for a written quote with VAT status and earliest date (A1). The ticket is on hold with review on 2025-10-28 (A4)."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "No. This is routine and one question to the provider moves it forward. There is no tenant to inform."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Requested a written quote from the provider by email"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Added a note on the emoji reply and the report date conflict"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Put the ticket on hold waiting for the provider, review 2025-10-28"
+      }
+    ],
+    "failed_actions": [
+      {
+        "ledger_id": "A3",
+        "handling": "The first hold used the property address instead of the ticket ref. I retried with NBL-004-emoji-provider-reply and it verified as A4."
+      }
+    ],
+    "conflicts": [
+      "The checkout report is dated 23 June 2026 but signed 24 Oct 2025. The scope is consistent, so I proceeded on the scope and noted it."
+    ],
+    "assumptions": [
+      "The 👍 was an acknowledgement, not a priced quote."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "request_information",
+      "args": {
+        "recipient_name": "Contractor",
+        "recipient_role": "contractor",
+        "channel": "email",
+        "contact": "existing thread (event 009 email)",
+        "questions": [
+          "Thanks for your reply, but a thumbs-up isn't something we can treat as a quote. Please reply with your price for the cleaning at Flat 2, 172 Alder Lane (living space: vacuum and light clean; en-suite: limescale removal), stating whether VAT is included, ideally as a PDF or plain text.",
+          "Please also confirm the earliest date you could do the work. The property is empty, so access would be arranged by us."
+        ],
+        "why": "Event 009 was an emoji only, with no price or scope. We need a written quote before the landlord can approve any spend."
+      },
+      "key": "request_information:{channel:\"email\",contact:\"existing thread (event 009 email)\",questions:[\"Thanks for your reply, but a thumbs-up isn't something we can treat as a quote. Please reply with your price for the cleaning at Flat 2, 172 Alder Lane (living space: vacuum and light clean; en-suite: limescale removal), stating whether VAT is included, ideally as a PDF or plain text.\",\"Please also confirm the earliest date you could do the work. The property is empty, so access would be arranged by us.\"],recipient_name:\"Contractor\",recipient_role:\"contractor\",why:\"Event 009 was an emoji only, with no price or scope. We need a written quote before the landlord can approve any spend.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "REQ-101",
+      "evidence": [
+        "REQ-101 found in the request_information log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "add_note",
+      "args": {
+        "entity": "ticket: Flat 2, 172 Alder Lane checkout clean",
+        "note": "Event 009 from the provider was a thumbs-up emoji only: no quote, no acceptance of scope, no date. Not treated as a quote or confirmation. Asked for a written price by email. The attachment-86-document in event 006 was unavailable. The checkout report is dated 23 June 2026 but signed 24 Oct 2025, so the dates conflict; the scope (vacuum, light clean, limescale) is consistent. Pop-up plug and flaking paint are separate repairs, not in this quote. Property is void, so no tenant messages."
+      },
+      "key": "add_note:{entity:\"ticket: Flat 2, 172 Alder Lane checkout clean\",note:\"Event 009 from the provider was a thumbs-up emoji only: no quote, no acceptance of scope, no date. Not treated as a quote or confirmation. Asked for a written price by email. The attachment-86-document in event 006 was unavailable. The checkout report is dated 23 June 2026 but signed 24 Oct 2025, so the dates conflict; the scope (vacuum, light clean, limescale) is consistent. Pop-up plug and flaking paint are separate repairs, not in this quote. Property is void, so no tenant messages.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NOTE-102",
+      "evidence": [
+        "NOTE-102 found in the add_note log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "put_on_hold",
+      "args": {
+        "ticket_ref": "Flat 2, 172 Alder Lane",
+        "reason": "Waiting for Provider",
+        "comment": "Waiting for a written quote (price, VAT status, earliest date). The provider's 👍 was not usable.",
+        "review_on": "2025-10-28"
+      },
+      "key": "put_on_hold:{comment:\"Waiting for a written quote (price, VAT status, earliest date). The provider's 👍 was not usable.\",reason:\"Waiting for Provider\",review_on:\"2025-10-28\",ticket_ref:\"Flat 2, 172 Alder Lane\"}",
+      "attempts": 1,
+      "apiError": "not_found",
+      "status": "failed",
+      "evidence": [
+        "Ticket Flat 2, 172 Alder Lane not found on read-back"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "put_on_hold",
+      "args": {
+        "ticket_ref": "NBL-004-emoji-provider-reply",
+        "reason": "Waiting for Provider",
+        "comment": "Waiting for a written quote (price, VAT status, earliest date). The provider's 👍 was not usable.",
+        "review_on": "2025-10-28"
+      },
+      "key": "put_on_hold:{comment:\"Waiting for a written quote (price, VAT status, earliest date). The provider's 👍 was not usable.\",reason:\"Waiting for Provider\",review_on:\"2025-10-28\",ticket_ref:\"NBL-004-emoji-provider-reply\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-004-emoji-provider-reply",
+      "evidence": [
+        "Ticket NBL-004-emoji-provider-reply read back after put_on_hold"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-004-emoji-provider-reply",
+        "stage": "mp_time",
+        "property": "Flat 2, 172 Alder Lane, Bellmere, ZZ3 1ZZ",
+        "description": "Quote for:\n\nLiving space:\n1. Vacuum\n2. Light clean\n\nEn-Suite:\n1. Limescale removal",
+        "landlord_approval": "confirmed",
+        "hold": {
+          "reason": "Waiting for Provider",
+          "comment": "Waiting for a written quote (price, VAT status, earliest date). The provider's 👍 was not usable.",
+          "review_on": "2025-10-28"
+        },
+        "mode": "manual"
+      }
+    ],
+    "records": [
+      {
+        "id": "REQ-101",
+        "tool": "request_information",
+        "args": {
+          "recipient_name": "Contractor",
+          "recipient_role": "contractor",
+          "channel": "email",
+          "contact": "existing thread (event 009 email)",
+          "questions": [
+            "Thanks for your reply, but a thumbs-up isn't something we can treat as a quote. Please reply with your price for the cleaning at Flat 2, 172 Alder Lane (living space: vacuum and light clean; en-suite: limescale removal), stating whether VAT is included, ideally as a PDF or plain text.",
+            "Please also confirm the earliest date you could do the work. The property is empty, so access would be arranged by us."
+          ],
+          "why": "Event 009 was an emoji only, with no price or scope. We need a written quote before the landlord can approve any spend."
+        },
+        "at": 1791636235512
+      },
+      {
+        "id": "NOTE-102",
+        "tool": "add_note",
+        "args": {
+          "entity": "ticket: Flat 2, 172 Alder Lane checkout clean",
+          "note": "Event 009 from the provider was a thumbs-up emoji only: no quote, no acceptance of scope, no date. Not treated as a quote or confirmation. Asked for a written price by email. The attachment-86-document in event 006 was unavailable. The checkout report is dated 23 June 2026 but signed 24 Oct 2025, so the dates conflict; the scope (vacuum, light clean, limescale) is consistent. Pop-up plug and flaking paint are separate repairs, not in this quote. Property is void, so no tenant messages."
+        },
+        "at": 1791636235513
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 2, 172 Alder Lane, Bellmere, ZZ3 1ZZ",
+        "tenanted": false,
+        "landlord": {
+          "contact": "agency landlord record",
+          "notes": [
+            "Contact details are held in the agency system and not shown in this case file; messages to the landlord go through it. Use contact \"agency landlord record\".",
+            "No landlord message is visible in this case yet."
+          ]
+        }
+      }
+    ]
+  },
+  "usage": {
+    "input": 10,
+    "output": 2640,
+    "cost": 0.06492690000000001,
+    "turns": 4,
+    "durationMs": 20352,
+    "retries": 0,
+    "thinkingTokens": 303
+  }
+}

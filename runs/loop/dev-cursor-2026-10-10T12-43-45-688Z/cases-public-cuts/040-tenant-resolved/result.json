@@ -1,0 +1,459 @@
+{
+  "id": "040-tenant-resolved",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "cutoff": 9,
+  "totalEvents": 13,
+  "inputs": [
+    {
+      "name": "history.md",
+      "method": "derived",
+      "bytes": 5250,
+      "chars": 5229,
+      "note": "events 1–9 of 13 from history.md"
+    }
+  ],
+  "withheld": [
+    {
+      "name": "history.md",
+      "reason": "events 10–13 come after the decision point"
+    },
+    {
+      "name": "index.md",
+      "reason": "sections that reveal the ending: Overview, Outcome, Next action at escalation, History, Attachments"
+    },
+    {
+      "name": "checks.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    },
+    {
+      "name": "rubric.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    }
+  ],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {
+    "create_ticket": [
+      {
+        "call": 1,
+        "mode": "silent_drop"
+      }
+    ],
+    "update_ticket": [
+      {
+        "call": 1,
+        "mode": "silent_drop"
+      }
+    ],
+    "resume_auto": [
+      {
+        "call": 1,
+        "mode": "silent_drop"
+      }
+    ],
+    "record_landlord_decision": [
+      {
+        "call": 2,
+        "mode": "timeout"
+      }
+    ],
+    "set_visit": [
+      {
+        "call": 1,
+        "mode": "timeout"
+      }
+    ],
+    "record_work_result": [
+      {
+        "call": 1,
+        "mode": "error"
+      }
+    ],
+    "record_quote": [
+      {
+        "call": 2,
+        "mode": "timeout"
+      }
+    ],
+    "record_invoice": [
+      {
+        "call": 2,
+        "mode": "timeout"
+      }
+    ],
+    "schedule_follow_up": [
+      {
+        "call": 1,
+        "mode": "silent_drop"
+      }
+    ],
+    "request_landlord_approval": [
+      {
+        "call": 2,
+        "mode": "timeout"
+      }
+    ],
+    "approve_quote": [
+      {
+        "call": 1,
+        "mode": "error"
+      }
+    ]
+  },
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Ticket NBL-040-tenant-resolved closed without payment. Tenant self-fixed by swapping machines. Outstanding: landlord decision on the original machine in the garage and on the tenant's machine staying connected; follow-up set for 2026-12-29.",
+    "next_actions": [
+      {
+        "type": "REQUEST_INFORMATION",
+        "action": "Tell landlord the tenant already swapped machines, no contractor booked; ask what to do with original machine and whether tenant's may stay connected",
+        "recipient": "Landlord",
+        "channel": "email",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Confirm the fix is noted, job closing, landlord asked about the old machine",
+        "recipient": "Tenant",
+        "channel": "email",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "WAIT",
+        "action": "Chase landlord on appliance questions on 2026-12-29",
+        "recipient": "Landlord",
+        "channel": "internal",
+        "ledger_id": "A7"
+      },
+      {
+        "type": "CLOSE_WITHOUT_PAYMENT",
+        "action": "Closed ticket without payment, tenant self-fix",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A8"
+      }
+    ],
+    "boundaries": [
+      "Closing does not establish the original machine's fault or its fate, or consent for the tenant's machine to remain.",
+      "Landlord's event 009 agreement was not recorded as a decision and no contractor was assigned because the fault was already bypassed."
+    ],
+    "remaining_work": [
+      "Landlord to decide on the original machine (inspect/repair/dispose) and consent to tenant's machine; follow-up 2026-12-29 (agency)."
+    ],
+    "missing_info": [
+      "Landlord decision on the original machine and the tenant's machine.",
+      "Who 'Rowan' is (tenant presumably) versus landlord 'Oliver'."
+    ],
+    "outcome": "resolved",
+    "severity": "routine",
+    "summary": "Tenant reported they had fixed the problem by swapping in their own machine, just before the landlord agreed to a check. I told the landlord and tenant, recorded the result, noted the appliance questions, set a follow-up and closed the job without payment.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "Resolved and closed by tenant self-fix. Outstanding: landlord decision on the original machine and on the tenant's machine staying connected."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Email to the landlord (sent) asking about the original machine; follow-up on 2026-12-29. Tenant informed by email."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "No human escalation. The landlord's decision on the appliance is theirs and has been requested."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Emailed landlord"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Emailed tenant"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Internal note"
+      },
+      {
+        "ledger_id": "A5",
+        "description": "Follow-up FUP-105 (duplicate) scheduled"
+      },
+      {
+        "ledger_id": "A6",
+        "description": "Work result recorded"
+      },
+      {
+        "ledger_id": "A7",
+        "description": "Follow-up 2026-12-29"
+      },
+      {
+        "ledger_id": "A8",
+        "description": "Ticket closed without payment"
+      }
+    ],
+    "failed_actions": [
+      {
+        "ledger_id": "A3",
+        "handling": "Used the wrong ref (NBL-040-4451, the machine/job label); retried with the correct ref NBL-040-tenant-resolved as A6, verified."
+      }
+    ],
+    "conflicts": [
+      "Landlord (event 009) agreed to a check but did not know the tenant had already swapped machines (event 008); treated the tenant's report as current and told the landlord.",
+      "Names differ: tenant email says 'Rowan', landlord email says 'Oliver'."
+    ],
+    "assumptions": [
+      "Rowan is the tenant or a household member who did the swap."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Landlord",
+        "recipient_role": "landlord",
+        "channel": "email",
+        "contact": "existing thread (event 009 email)",
+        "ticket_ref": "NBL-040-4451",
+        "body": "Hello, thank you for your reply. Before we send anyone: the tenant has told us they have already swapped in their own washing machine, so the laundry is working again, and the original machine is stored in the garage. We have therefore not booked a contractor and are closing this job with no charge. Two questions: 1) Would you like the original machine inspected, repaired or disposed of? 2) Are you happy for the tenant's own machine to stay connected? If you would like the original checked, just say so and we will arrange it. We will check back with you on 2026-12-29."
+      },
+      "key": "send_message:{body:\"Hello, thank you for your reply. Before we send anyone: the tenant has told us they have already swapped in their own washing machine, so the laundry is working again, and the original machine is stored in the garage. We have therefore not booked a contractor and are closing this job with no charge. Two questions: 1) Would you like the original machine inspected, repaired or disposed of? 2) Are you happy for the tenant's own machine to stay connected? If you would like the original checked, just say so and we will arrange it. We will check back with you on 2026-12-29.\",channel:\"email\",contact:\"existing thread (event 009 email)\",recipient_name:\"Landlord\",recipient_role:\"landlord\",ticket_ref:\"NBL-040-4451\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-101",
+      "evidence": [
+        "MSG-101 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Tenant",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 008 email)",
+        "ticket_ref": "NBL-040-4451",
+        "body": "Hello, thanks for letting us know the washing machine is working again after the swap. We won't send a contractor and will close the job. We've asked the landlord what they'd like done with the original machine in the garage and whether your machine can stay connected. Your machine remains yours. Please leave the old one where it is for now. We'll update you after 29 December. If the new machine leaks or has problems, tell us."
+      },
+      "key": "send_message:{body:\"Hello, thanks for letting us know the washing machine is working again after the swap. We won't send a contractor and will close the job. We've asked the landlord what they'd like done with the original machine in the garage and whether your machine can stay connected. Your machine remains yours. Please leave the old one where it is for now. We'll update you after 29 December. If the new machine leaks or has problems, tell us.\",channel:\"email\",contact:\"existing thread (event 008 email)\",recipient_name:\"Tenant\",recipient_role:\"tenant\",ticket_ref:\"NBL-040-4451\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-102",
+      "evidence": [
+        "MSG-102 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "record_work_result",
+      "args": {
+        "ticket_ref": "NBL-040-4451",
+        "outcome": "completed",
+        "evidence": "Tenant email 2026-12-24 (event 008): issue resolved by swapping in own machine; faulty landlord machine stored in garage. No contractor attended."
+      },
+      "key": "record_work_result:{evidence:\"Tenant email 2026-12-24 (event 008): issue resolved by swapping in own machine; faulty landlord machine stored in garage. No contractor attended.\",outcome:\"completed\",ticket_ref:\"NBL-040-4451\"}",
+      "attempts": 2,
+      "apiError": "not_found",
+      "status": "failed",
+      "evidence": [
+        "Ticket NBL-040-4451 not found on read-back",
+        "Ticket NBL-040-4451 not found on read-back"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "add_note",
+      "args": {
+        "entity": "NBL-040-4451",
+        "note": "Tenant self-fixed by swapping in own machine (event 008) before landlord's event 009 agreement to a check; no contractor assigned. Tenant's machine stays theirs, not on inventory. Landlord's original machine in garage: awaiting landlord decision (inspect/repair/dispose) and consent for tenant's machine to stay connected. Event 008 names \"Rowan\" and landlord event 009 names \"Oliver\"; not resolved, treated as tenant/landlord respectively."
+      },
+      "key": "add_note:{entity:\"NBL-040-4451\",note:\"Tenant self-fixed by swapping in own machine (event 008) before landlord's event 009 agreement to a check; no contractor assigned. Tenant's machine stays theirs, not on inventory. Landlord's original machine in garage: awaiting landlord decision (inspect/repair/dispose) and consent for tenant's machine to stay connected. Event 008 names \\\"Rowan\\\" and landlord event 009 names \\\"Oliver\\\"; not resolved, treated as tenant/landlord respectively.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NOTE-103",
+      "evidence": [
+        "NOTE-103 found in the add_note log"
+      ]
+    },
+    {
+      "id": "A5",
+      "tool": "schedule_follow_up",
+      "args": {
+        "ticket_ref": "NBL-040-4451",
+        "due_on": "2026-12-29",
+        "party": "Landlord",
+        "purpose": "Chase landlord on what to do with original washing machine in garage and consent for tenant's machine to stay connected"
+      },
+      "key": "schedule_follow_up:{due_on:\"2026-12-29\",party:\"Landlord\",purpose:\"Chase landlord on what to do with original washing machine in garage and consent for tenant's machine to stay connected\",ticket_ref:\"NBL-040-4451\"}",
+      "attempts": 2,
+      "status": "verified",
+      "ref": "FUP-105",
+      "evidence": [
+        "FUP-104 was returned but is not in the schedule_follow_up log",
+        "FUP-105 found in the schedule_follow_up log"
+      ]
+    },
+    {
+      "id": "A6",
+      "tool": "record_work_result",
+      "args": {
+        "ticket_ref": "NBL-040-tenant-resolved",
+        "outcome": "completed",
+        "evidence": "Tenant email 2026-12-24 (event 008): issue resolved by swapping in own machine; faulty landlord machine stored in garage. No contractor attended."
+      },
+      "key": "record_work_result:{evidence:\"Tenant email 2026-12-24 (event 008): issue resolved by swapping in own machine; faulty landlord machine stored in garage. No contractor attended.\",outcome:\"completed\",ticket_ref:\"NBL-040-tenant-resolved\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-040-tenant-resolved",
+      "evidence": [
+        "Ticket NBL-040-tenant-resolved read back after record_work_result"
+      ]
+    },
+    {
+      "id": "A7",
+      "tool": "schedule_follow_up",
+      "args": {
+        "ticket_ref": "NBL-040-tenant-resolved",
+        "due_on": "2026-12-29",
+        "party": "Landlord",
+        "purpose": "Chase landlord on original machine in garage and consent for tenant's machine to stay connected"
+      },
+      "key": "schedule_follow_up:{due_on:\"2026-12-29\",party:\"Landlord\",purpose:\"Chase landlord on original machine in garage and consent for tenant's machine to stay connected\",ticket_ref:\"NBL-040-tenant-resolved\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "FUP-106",
+      "evidence": [
+        "FUP-106 found in the schedule_follow_up log"
+      ]
+    },
+    {
+      "id": "A8",
+      "tool": "close_ticket",
+      "args": {
+        "ticket_ref": "NBL-040-tenant-resolved",
+        "mode": "without_payment",
+        "resolution": "Tenant swapped in own machine; laundry working (tenant email event 008). No contractor attended, no charge.",
+        "tenant_confirmation": "Tenant's own email (event 008) states it is resolved.",
+        "landlord_informed": "A1"
+      },
+      "key": "close_ticket:{landlord_informed:\"A1\",mode:\"without_payment\",resolution:\"Tenant swapped in own machine; laundry working (tenant email event 008). No contractor attended, no charge.\",tenant_confirmation:\"Tenant's own email (event 008) states it is resolved.\",ticket_ref:\"NBL-040-tenant-resolved\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-040-tenant-resolved",
+      "evidence": [
+        "Ticket NBL-040-tenant-resolved read back after close_ticket"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-040-tenant-resolved",
+        "stage": "completed",
+        "property": "Flat 15, 55 Alder Lane, Northbridge, ZZ1 6ZZ",
+        "description": "Request summary with context: The Juniper Services NBL-040-4451 washing machine fills with water but does not start the wash cycle.\n\nTenant's original query: The washing machine is no longer working.\n\nIt fills with water as normal, but the wash cycle never starts. There are no error codes displayed, and we've tried resetting the machine, and other settings, but unfortunately that hasn't resolved the issue.\n\nWe do have our own washing machine that could be installed as a replacement if necessary. However, I thought it would be best to have the existing machine checked first before making any changes.\n\nIf it does need replacing, could someone carry out the swap? There isn't any isolation valves on the water pipes.\n\nPlease let us know how you'd like to proceed.",
+        "landlord_approval": "required",
+        "work_result": {
+          "outcome": "completed",
+          "evidence": "Tenant email 2026-12-24 (event 008): issue resolved by swapping in own machine; faulty landlord machine stored in garage. No contractor attended."
+        },
+        "closed": {
+          "mode": "without_payment",
+          "resolution": "Tenant swapped in own machine; laundry working (tenant email event 008). No contractor attended, no charge.",
+          "tenant_confirmation": "Tenant's own email (event 008) states it is resolved.",
+          "landlord_informed": "A1"
+        }
+      }
+    ],
+    "records": [
+      {
+        "id": "MSG-101",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Landlord",
+          "recipient_role": "landlord",
+          "channel": "email",
+          "contact": "existing thread (event 009 email)",
+          "body": "Hello, thank you for your reply. Before we send anyone: the tenant has told us they have already swapped in their own washing machine, so the laundry is working again, and the original machine is stored in the garage. We have therefore not booked a contractor and are closing this job with no charge. Two questions: 1) Would you like the original machine inspected, repaired or disposed of? 2) Are you happy for the tenant's own machine to stay connected? If you would like the original checked, just say so and we will arrange it. We will check back with you on 2026-12-29.",
+          "ticket_ref": "NBL-040-4451"
+        },
+        "at": 1791636306763
+      },
+      {
+        "id": "MSG-102",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Tenant",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 008 email)",
+          "body": "Hello, thanks for letting us know the washing machine is working again after the swap. We won't send a contractor and will close the job. We've asked the landlord what they'd like done with the original machine in the garage and whether your machine can stay connected. Your machine remains yours. Please leave the old one where it is for now. We'll update you after 29 December. If the new machine leaks or has problems, tell us.",
+          "ticket_ref": "NBL-040-4451"
+        },
+        "at": 1791636306763
+      },
+      {
+        "id": "NOTE-103",
+        "tool": "add_note",
+        "args": {
+          "entity": "NBL-040-4451",
+          "note": "Tenant self-fixed by swapping in own machine (event 008) before landlord's event 009 agreement to a check; no contractor assigned. Tenant's machine stays theirs, not on inventory. Landlord's original machine in garage: awaiting landlord decision (inspect/repair/dispose) and consent for tenant's machine to stay connected. Event 008 names \"Rowan\" and landlord event 009 names \"Oliver\"; not resolved, treated as tenant/landlord respectively."
+        },
+        "at": 1791636306764
+      },
+      {
+        "id": "FUP-105",
+        "tool": "schedule_follow_up",
+        "args": {
+          "ticket_ref": "NBL-040-4451",
+          "due_on": "2026-12-29",
+          "party": "Landlord",
+          "purpose": "Chase landlord on what to do with original washing machine in garage and consent for tenant's machine to stay connected"
+        },
+        "at": 1791636309270
+      },
+      {
+        "id": "FUP-106",
+        "tool": "schedule_follow_up",
+        "args": {
+          "ticket_ref": "NBL-040-tenant-resolved",
+          "due_on": "2026-12-29",
+          "party": "Landlord",
+          "purpose": "Chase landlord on original machine in garage and consent for tenant's machine to stay connected"
+        },
+        "at": 1791636312443
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 15, 55 Alder Lane, Northbridge, ZZ1 6ZZ",
+        "landlord": {
+          "contact": "agency landlord record",
+          "notes": [
+            "Contact details are held in the agency system and not shown in this case file; messages to the landlord go through it. Use contact \"agency landlord record\".",
+            "Landlord messages visible in this case: event 004 (email, to landlord); event 009 (email, from landlord)."
+          ]
+        }
+      }
+    ]
+  },
+  "usage": {
+    "input": 14,
+    "output": 4289,
+    "cost": 0.0810975,
+    "turns": 6,
+    "durationMs": 29704,
+    "retries": 0,
+    "thinkingTokens": 574
+  }
+}

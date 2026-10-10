@@ -31,6 +31,8 @@ const defineTool = <S extends z.ZodObject>(t: ToolDef<S>) => t as unknown as Too
 
 // Verification state per conversation, enforced server-side rather than trusting the LLM.
 const verified = new Map<string, string>();
+/** Restore a verification after a restart, from a verify_identity the audit log shows succeeded. */
+export const restoreVerified = (conversationId: string, tenantId: string) => verified.set(conversationId, tenantId);
 export const isVerified = (conversationId: string, tenantId?: string) =>
   verified.has(conversationId) && (!tenantId || verified.get(conversationId) === tenantId);
 

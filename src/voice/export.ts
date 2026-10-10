@@ -10,7 +10,7 @@
 //
 // Output is git-ignored: transcripts are real people's speech. Testers' names are never written.
 import 'dotenv/config';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { parseHistory } from '../agent/publicCases.js';
@@ -22,6 +22,19 @@ const pad = (n: number) => String(n).padStart(3, '0');
 const party = { tenant: 'Tenant', landlord: 'Landlord', contractor: 'Contractor' } as const;
 
 type Ledger = { tool: string; status: string; ref?: string; args: Record<string, unknown> }[];
+
+/** Stable case numbers per conversation, starting at 101, kept in <out>/cases.json. */
+function caseNumber(outRoot: string, conversationId: string) {
+  const file = join(outRoot, 'cases.json');
+  const map: Record<string, string> = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : {};
+  if (!map[conversationId]) {
+    const next = Math.max(100, ...Object.values(map).map(Number)) + 1;
+    map[conversationId] = String(next);
+    mkdirSync(outRoot, { recursive: true });
+    writeFileSync(file, JSON.stringify(map, null, 2) + '\n');
+  }
+  return map[conversationId];
+}
 
 /** Human-readable line for a verified voice action, in the style of the system's Update events. */
 function describe(e: Ledger[number]) {
@@ -74,31 +87,83 @@ export function exportCall(call: CallRow, ledger: Ledger, outRoot: string) {
   ];
   const all = [...kept.map((e) => ({ header: e.header, body: e.body })), ...added];
 
-  const id = `V${s.source.case}-${s.id}-${call.conversation_id.slice(-6)}`;
+  // Numbered like the organisers' cases (101, 102, ...); the mapping keeps a call's number stable on re-export.
+  const id = caseNumber(outRoot, call.conversation_id);
   const dir = join(outRoot, id);
   mkdirSync(dir, { recursive: true });
-  // Keep the case details and request; drop everything that gives the real ending away.
-  const head = index.split(/^## Overview/m)[0].replace(/^# Case \d+:/m, `# Case ${id}:`).replace(/^- \*\*(Status|Updated|Completed):\*\*.*\n/gm, '');
-  writeFileSync(join(dir, 'index.md'), `${head.trim()}\n\n## History\n\n[Read the complete event history](history.md).\n`);
+
+  // Keep a hand-written rubric if one exists; otherwise start from the scenario's follow-up rubric.
+  const rubricPath = join(dir, 'rubric.json');
+  if (!existsSync(rubricPath) && s.followUp) writeFileSync(rubricPath, JSON.stringify(s.followUp, null, 2));
+  const rubric = existsSync(rubricPath) ? (JSON.parse(readFileSync(rubricPath, 'utf8')) as { required_outcomes?: string[] }) : undefined;
+
+  // index.md in the organisers' layout. Overview and Outcome are hidden from the agent by the loader
+  // (exactly as for the public cases); the judge sees them.
+  const title = index.match(/^# Case \d+: (.*)$/m)?.[1] ?? s.title;
+  const detail = (k: string) => index.match(new RegExp(`^- \\*\\*${k}:\\*\\* (.*)$`, 'm'))?.[1] ?? '';
+  const request = index.split(/^## Initial request\s*$/m)[1]?.split(/^## /m)[0]?.trim() ?? '';
+  const did = ledger.filter((e) => e.status === 'verified').map(describe);
+  const overview = [
+    `This case continues public Property Management case ${s.source.case} (events ${s.source.events}), cut after event ${pad(s.source.cutAfterEvent)}.`,
+    `Northbridge Lettings' AI phone line then ${inbound ? `took a call from` : `called`} the ${s.role} (${s.counterparty.split(',')[0]}), played by a volunteer from a role card. ${summary}`,
+    did.length ? `The phone line recorded: ${did.join(' ')}` : 'The phone line recorded nothing on the case during the call.',
+  ].join('\n\n');
+  const outcome = rubric?.required_outcomes?.length
+    ? `What should happen next:\n\n${rubric.required_outcomes.map((o) => `- ${o}`).join('\n')}`
+    : 'No expected outcome recorded.';
+  writeFileSync(
+    join(dir, 'index.md'),
+    `# Case ${id}: ${title}
+
+## Case details
+
+- **Source role:** ${party[s.role]}
+- **Status:** In progress
+- **Created:** ${detail('Created')}
+- **Updated:** ${at(60)}
+- **Property:** ${detail('Property')}
+
+## Initial request
+
+${request}
+
+## Overview
+
+${overview}
+
+## Outcome
+
+${outcome}
+
+## History
+
+[Read the complete event history](history.md).
+
+## Attachments
+
+No attachments are required or available for this case.
+`,
+  );
   writeFileSync(
     join(dir, 'history.md'),
     `# Case ${id} history\n\nTotal events: ${all.length}\n\n${all.map((e, i) => `<a id="event-${pad(i + 1)}"></a>\n## ${e.header.replace(/event \d+$/, `event ${pad(i + 1)}`)}\n\n${e.body}`).join('\n\n')}\n`,
   );
-  if (s.followUp) writeFileSync(join(dir, 'rubric.json'), JSON.stringify(s.followUp, null, 2));
   writeFileSync(
     join(dir, 'call.json'),
-    JSON.stringify({ conversation_id: call.conversation_id, scenario: s.id, source: s.source, brain: call.brain, duration_secs: call.duration_secs, voice_grade: call.grade, voice_passed: call.passed, flags: call.flags }, null, 2),
+    JSON.stringify({ case: id, conversation_id: call.conversation_id, scenario: s.id, source: s.source, brain: call.brain, duration_secs: call.duration_secs, voice_grade: call.grade, voice_passed: call.passed, flags: call.flags, tester_feedback: call.feedback ?? null }, null, 2),
   );
   return dir;
 }
 
 if (process.argv[1]?.endsWith('export.ts')) {
-  const { values } = parseArgs({ options: { out: { type: 'string', default: 'datasets/voice' }, all: { type: 'boolean', default: false } } });
+  const { values } = parseArgs({ options: { out: { type: 'string', default: 'datasets/voice' }, all: { type: 'boolean', default: false }, only: { type: 'string' } } });
+  const only = values.only?.split(',').map((s) => s.trim());
   const store = createStore();
   await store.init();
   let n = 0;
   for (const row of await store.listCalls(1000)) {
     if (row.status !== 'graded') continue;
+    if (only && !only.some((o) => row.conversation_id.endsWith(o))) continue;
     const call = (await store.getCall(row.conversation_id))!;
     // Skip calls nobody really took part in (no caller speech), unless --all.
     if (!values.all && !(call.transcript ?? []).some((t) => t.role === 'user' && (t.message ?? '').trim().length > 3)) continue;
@@ -106,6 +171,6 @@ if (process.argv[1]?.endsWith('export.ts')) {
     const dir = exportCall(call, ledger, values.out!);
     if (dir) (n++, console.log(`[export] ${dir}`));
   }
-  console.log(`[export] ${n} case(s) in ${values.out}. Next: pnpm cases --in ${values.out} --out runs/voice --at 100%`);
+  console.log(`[export] ${n} case(s) in ${values.out}. Next: pnpm cases --in ${values.out} --out runs/voice --at none`);
   process.exit(0);
 }

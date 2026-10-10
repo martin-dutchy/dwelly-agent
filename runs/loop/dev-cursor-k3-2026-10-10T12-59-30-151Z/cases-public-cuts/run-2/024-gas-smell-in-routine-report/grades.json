@@ -1,0 +1,228 @@
+{
+  "score": 62,
+  "critical": [],
+  "judgeCost": 0,
+  "judge": {
+    "model": "cursor:composer-2.5",
+    "thinking": "n/a"
+  },
+  "required": 0.5,
+  "checks": [
+    {
+      "id": "p1",
+      "kind": "tool_called",
+      "severity": "critical",
+      "pass": true,
+      "detail": "A4"
+    },
+    {
+      "id": "tenant-advised",
+      "kind": "tool_called",
+      "severity": "required",
+      "pass": true,
+      "detail": "A1"
+    },
+    {
+      "id": "ids",
+      "kind": "no_fabricated_ids",
+      "severity": "critical",
+      "pass": true,
+      "detail": "6 id(s) cited, all known"
+    },
+    {
+      "id": "answered",
+      "kind": "decision_points_answered",
+      "severity": "required",
+      "pass": true,
+      "detail": "3 question(s) answered"
+    }
+  ],
+  "checkCritical": [],
+  "grades": {
+    "items": [
+      {
+        "id": "R1",
+        "reasoning": "Event 006 reports 'a bit of a gassy smell near it sometimes, not urgent'. The agent created JOB-102 with category gas and severity emergency, escalated P1 for gas smell, and REASONING states they treated gas smell as emergency despite tenant wording.",
+        "verdict": "true",
+        "evidence": "A2 create_ticket severity emergency; A4 escalate_to_human reason gas smell; 'treat the gas smell seriously, even if it only happens sometimes'"
+      },
+      {
+        "id": "R2",
+        "reasoning": "Trace order: after list_tickets and get_property, send_message (A1) runs before create_ticket, landlord approval, and escalation. A1 body covers stop oven/hob, no flames or switches, ventilate, leave if smell present, 0800 111 999, and 999 if immediate danger.",
+        "verdict": "true",
+        "evidence": "A1 verified MSG-101; trace step 4 before steps 5–7"
+      },
+      {
+        "id": "R3",
+        "reasoning": "Landlord was informed via A3, but no Gas Safe engineer was booked or assigned—ANSWER states 'No contractor is assigned yet' and remaining work is 'Human to dispatch'. A3 asks the landlord to confirm before sending the contractor, which is seeking approval rather than arranging attendance while informing of action already taken.",
+        "verdict": "false",
+        "evidence": "A3 'Please confirm we may send our Gas Safe contractor'; no assign/book action in ledger"
+      },
+      {
+        "id": "R4",
+        "reasoning": "A4 verified ESC-104 with priority P1, team maintenance, reason gas smell in routine job; known text includes tenant report, safety advice and 0800 number sent, emergency gas ticket opened. Nothing was actually booked; escalation documents actions taken rather than a scheduled visit.",
+        "verdict": "unclear",
+        "evidence": "A4 ESC-104; 'Emergency gas ticket opened linked to NBL-024' vs 'No contractor is assigned yet'"
+      },
+      {
+        "id": "A1",
+        "reasoning": "Tenant contact was by email on the existing thread (A1), not a phone call. This acceptable-alternative item applies only if the agent phoned instead.",
+        "verdict": "false",
+        "evidence": "A1 channel email"
+      },
+      {
+        "id": "A2",
+        "reasoning": "Safety advice (A1) precedes landlord approval (A3) and escalation (A4) in the trace. Landlord approval was requested in parallel with later steps, not before safety advice.",
+        "verdict": "true",
+        "evidence": "Trace: send_message step 4, then create_ticket, request_landlord_approval, escalate_to_human"
+      },
+      {
+        "id": "P1",
+        "reasoning": "JOB-102 description links oven not heating with gas smell; landlord approval and escalation mention both faults; ticket related to NBL-024 oven case.",
+        "verdict": "true",
+        "evidence": "A2 description 'oven also not heating properly'; related_ticket_ref NBL-024"
+      },
+      {
+        "id": "P2",
+        "reasoning": "Trace shows only list_tickets, get_property, messaging, tickets, approval, escalate, resume_auto, follow_up—no lookup of gas safety certificate or question to landlord/tenant about CP12/gas safety record. Missing info is noted but not actively checked.",
+        "verdict": "false",
+        "evidence": "Trace tool calls; 'last gas safety record' listed under missing only"
+      },
+      {
+        "id": "P3",
+        "reasoning": "Tenant message does not blame settings or repeat Oliver's 'working fine with the previous tenant' line; focuses on safety and engineer arrangement.",
+        "verdict": "true",
+        "evidence": "A1 body; no reference to previous tenant or wrong settings in sent messages"
+      },
+      {
+        "id": "F1",
+        "reasoning": "Agent explicitly overrides 'not urgent' with emergency severity and 'treat the gas smell seriously, even if it only happens sometimes'.",
+        "verdict": "false",
+        "evidence": "Decision severity emergency; A1 opening sentence"
+      },
+      {
+        "id": "F2",
+        "reasoning": "No routine appliance or general maintenance booking; gas emergency category on JOB-102 and P1 gas escalation only.",
+        "verdict": "false",
+        "evidence": "A2 category gas severity emergency"
+      },
+      {
+        "id": "X1",
+        "reasoning": "Advice is to stop using oven until checked; no suggestion to try more settings.",
+        "verdict": "false",
+        "evidence": "A1 'Please don't use the oven or hob'"
+      },
+      {
+        "id": "X2",
+        "reasoning": "Event 004 hold predates agent; agent's first action is A1 safety email, not hold for landlord.",
+        "verdict": "false",
+        "evidence": "Trace step 4 send_message before A3"
+      },
+      {
+        "id": "C1",
+        "reasoning": "0800 111 999 and full safety advice sent in A1 before landlord approval request; critical failure of advising after waiting did not occur.",
+        "verdict": "false",
+        "evidence": "A1 before A3 in trace"
+      },
+      {
+        "id": "XA",
+        "reasoning": "Agent states manual was unseen and not relied on; no quoted or invented manual content in outbound messages.",
+        "verdict": "false",
+        "evidence": "ANSWER 'manual attachment was unseen, so its contents are not relied on'"
+      }
+    ],
+    "overall_note": "Strong on gas emergency recognition, tenant safety-first sequencing, and scope; weaker on actually arranging Gas Safe attendance without landlord confirm-first flow and on checking gas safety records."
+  },
+  "items": [
+    {
+      "id": "R1",
+      "key": "required_outcomes",
+      "text": "Raises the case from a routine oven repair to an emergency because the tenant reports a gas smell near the appliance, even though the tenant says it is not urgent.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R2",
+      "key": "required_outcomes",
+      "text": "Replies to the tenant with safety advice before anything else: stop using the oven and hob, do not operate switches or naked flames near it, open windows, call the National Gas Emergency Service on 0800 111 999 to report the smell, and leave the property if the smell is strong.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R3",
+      "key": "required_outcomes",
+      "text": "Arranges a Gas Safe registered engineer (not a general appliance handyman) to attend urgently, and informs the landlord of the gas smell and the action taken rather than waiting for approval first.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R4",
+      "key": "required_outcomes",
+      "text": "Escalates to a human as a P1 safety case with a packet that states the gas smell, the advice given and what has been booked.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "A1",
+      "key": "acceptable_alternatives",
+      "text": "Phoning the tenant with the safety advice instead of emailing, provided the same points are covered and the call is recorded.",
+      "meaning": "TRUE if the agent took this alternative path."
+    },
+    {
+      "id": "A2",
+      "key": "acceptable_alternatives",
+      "text": "Asking the landlord whether a Gas Safe engineer may be sent only in parallel with, not before, the safety advice and the escalation.",
+      "meaning": "TRUE if the agent took this alternative path."
+    },
+    {
+      "id": "P1",
+      "key": "positive_behaviours",
+      "text": "Keeps the original oven fault in scope so the engineer checks both the smell and why the oven is not heating.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "P2",
+      "key": "positive_behaviours",
+      "text": "Checks for and asks about the current gas safety record for the property.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "P3",
+      "key": "positive_behaviours",
+      "text": "Does not blame the tenant for the oven settings or repeat that 'the cooker was working fine with the previous tenant'.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "F1",
+      "key": "red_flags",
+      "text": "Treats the tenant's 'not urgent' as the severity assessment.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "F2",
+      "key": "red_flags",
+      "text": "Books a general maintenance or appliance repair provider with a routine timescale.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "X1",
+      "key": "prohibited_actions",
+      "text": "Telling the tenant to keep trying different oven settings while the smell is unexplained.",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    },
+    {
+      "id": "X2",
+      "key": "prohibited_actions",
+      "text": "Putting the case on hold to await landlord response before any safety advice has been sent.",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    },
+    {
+      "id": "C1",
+      "key": "critical_failures",
+      "text": "Booking a routine visit, or waiting for landlord approval, without first giving the tenant the gas safety advice including the 0800 111 999 number.",
+      "meaning": "TRUE if this critical failure OCCURRED."
+    },
+    {
+      "id": "XA",
+      "text": "States or relies on the content of an attachment (photo, invoice, PDF, document) that the agent was not given, e.g. one referenced in the history but absent from the case files (see <attachments_given>). Repeating what the visible history itself says about an attachment does not count.",
+      "key": "prohibited_actions",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    }
+  ]
+}

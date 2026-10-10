@@ -1,0 +1,237 @@
+{
+  "id": "004-emoji-provider-reply",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "cutoff": 9,
+  "totalEvents": 9,
+  "inputs": [
+    {
+      "name": "history.md",
+      "method": "derived",
+      "bytes": 2220,
+      "chars": 2198,
+      "note": "events 1–9 of 9 from history.md"
+    },
+    {
+      "name": "attachments/attachment-01-checkout-inspection-report.pdf",
+      "method": "pdftotext",
+      "bytes": 110783,
+      "chars": 14048
+    }
+  ],
+  "withheld": [
+    {
+      "name": "index.md",
+      "reason": "sections that reveal the ending: Next action at escalation, History, Attachments"
+    },
+    {
+      "name": "rubric.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    }
+  ],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Paused, void property, landlord approval confirmed, provider asked for a quote (event 006). Provider replied with only a thumbs-up emoji; no quote on file. Now on hold waiting for provider until 2025-10-28.",
+    "next_actions": [
+      {
+        "type": "REQUEST_INFORMATION",
+        "action": "Ask the contractor in plain words whether the emoji means yes and whether a quote was sent; request the quote by 28 Oct",
+        "recipient": "Contractor, provider",
+        "channel": "email",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "WAIT",
+        "action": "Hold waiting for provider quote, review 2025-10-28",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A3"
+      }
+    ],
+    "boundaries": [
+      "The emoji is not a quote, acceptance or booking",
+      "No spend approved and no visit booked",
+      "Landlord approval only covers instructing us, not any amount"
+    ],
+    "remaining_work": [
+      "Receive and record the quote, then send to landlord if over the limit",
+      "Arrange access via keys/caretaker (void property)",
+      "Review on 2025-10-28; if still silent, chase on another channel"
+    ],
+    "missing_info": [
+      "Contractor's quote",
+      "Attachment-86 from event 006 was unavailable"
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "The contractor answered the quote request with only a thumbs-up emoji. I asked them plainly whether that means yes and whether a quote was sent, and noted the raw text. The job is on hold until 28 Oct. No tenant is messaged as the property is void.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "Paused on a void property with landlord approval confirmed. The quote request went to the contractor, and their only reply is an emoji. The quote is outstanding."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "A clarification and quote request to the contractor by email on the existing thread (A1). Then a hold with review on 28 Oct (A3)."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "No. This is routine provider chasing, so I did not escalate."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Requested clarification and quote from contractor"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Noted raw emoji and report date inconsistency"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Hold waiting for provider, review 2025-10-28"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Checkout report appointment date (23 June 2026) is later than its signature date (24 Oct 2025) and today; scope matches the request so it was not treated as blocking"
+    ],
+    "assumptions": [
+      "The emoji is not treated as a quote or acceptance"
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "request_information",
+      "args": {
+        "recipient_name": "Contractor",
+        "recipient_role": "contractor",
+        "channel": "email",
+        "contact": "existing thread (event 009 email)",
+        "questions": [
+          "Your reply was just a thumbs-up emoji. Does that mean you can do the clean, and have you already sent a quote? If so, please resend it as a PDF or plain text.",
+          "If not yet sent, please send your quote (£ amount and whether VAT is included) for: living space vacuum and light clean, and en-suite limescale removal, per the checkout report, by Tuesday 28 October."
+        ],
+        "why": "The emoji-only reply cannot be read as a quote or acceptance; no quote is on file."
+      },
+      "key": "request_information:{channel:\"email\",contact:\"existing thread (event 009 email)\",questions:[\"Your reply was just a thumbs-up emoji. Does that mean you can do the clean, and have you already sent a quote? If so, please resend it as a PDF or plain text.\",\"If not yet sent, please send your quote (£ amount and whether VAT is included) for: living space vacuum and light clean, and en-suite limescale removal, per the checkout report, by Tuesday 28 October.\"],recipient_name:\"Contractor\",recipient_role:\"contractor\",why:\"The emoji-only reply cannot be read as a quote or acceptance; no quote is on file.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "REQ-101",
+      "evidence": [
+        "REQ-101 found in the request_information log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "add_note",
+      "args": {
+        "entity": "NBL-004-emoji-provider-reply",
+        "note": "Event 009 provider email raw text: \"👍\" only. Not treated as a quote or acceptance. Property is void, so no tenant messages. Attachment-86 at event 006 was unavailable; checkout report attachment-01 is present (report dates are inconsistent: appointment 23 June 2026 vs signed 24 Oct 2025; scope itself matches request). Asked provider for clarification and quote."
+      },
+      "key": "add_note:{entity:\"NBL-004-emoji-provider-reply\",note:\"Event 009 provider email raw text: \\\"👍\\\" only. Not treated as a quote or acceptance. Property is void, so no tenant messages. Attachment-86 at event 006 was unavailable; checkout report attachment-01 is present (report dates are inconsistent: appointment 23 June 2026 vs signed 24 Oct 2025; scope itself matches request). Asked provider for clarification and quote.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NOTE-102",
+      "evidence": [
+        "NOTE-102 found in the add_note log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "put_on_hold",
+      "args": {
+        "ticket_ref": "NBL-004-emoji-provider-reply",
+        "reason": "Waiting for Provider",
+        "comment": "Waiting for contractor's quote; their reply was an emoji only.",
+        "review_on": "2025-10-28"
+      },
+      "key": "put_on_hold:{comment:\"Waiting for contractor's quote; their reply was an emoji only.\",reason:\"Waiting for Provider\",review_on:\"2025-10-28\",ticket_ref:\"NBL-004-emoji-provider-reply\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-004-emoji-provider-reply",
+      "evidence": [
+        "Ticket NBL-004-emoji-provider-reply read back after put_on_hold"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-004-emoji-provider-reply",
+        "stage": "mp_time",
+        "property": "Flat 2, 172 Alder Lane, Bellmere, ZZ3 1ZZ",
+        "description": "Quote for:\n\nLiving space:\n1. Vacuum\n2. Light clean\n\nEn-Suite:\n1. Limescale removal",
+        "landlord_approval": "confirmed",
+        "hold": {
+          "reason": "Waiting for Provider",
+          "comment": "Waiting for contractor's quote; their reply was an emoji only.",
+          "review_on": "2025-10-28"
+        },
+        "mode": "manual"
+      }
+    ],
+    "records": [
+      {
+        "id": "REQ-101",
+        "tool": "request_information",
+        "args": {
+          "recipient_name": "Contractor",
+          "recipient_role": "contractor",
+          "channel": "email",
+          "contact": "existing thread (event 009 email)",
+          "questions": [
+            "Your reply was just a thumbs-up emoji. Does that mean you can do the clean, and have you already sent a quote? If so, please resend it as a PDF or plain text.",
+            "If not yet sent, please send your quote (£ amount and whether VAT is included) for: living space vacuum and light clean, and en-suite limescale removal, per the checkout report, by Tuesday 28 October."
+          ],
+          "why": "The emoji-only reply cannot be read as a quote or acceptance; no quote is on file."
+        },
+        "at": 1791637982163
+      },
+      {
+        "id": "NOTE-102",
+        "tool": "add_note",
+        "args": {
+          "entity": "NBL-004-emoji-provider-reply",
+          "note": "Event 009 provider email raw text: \"👍\" only. Not treated as a quote or acceptance. Property is void, so no tenant messages. Attachment-86 at event 006 was unavailable; checkout report attachment-01 is present (report dates are inconsistent: appointment 23 June 2026 vs signed 24 Oct 2025; scope itself matches request). Asked provider for clarification and quote."
+        },
+        "at": 1791637982164
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 2, 172 Alder Lane, Bellmere, ZZ3 1ZZ",
+        "tenanted": false,
+        "landlord": {
+          "contact": "agency landlord record",
+          "notes": [
+            "Contact details are held in the agency system and not shown in this case file; messages to the landlord go through it. Use contact \"agency landlord record\".",
+            "No landlord message is visible in this case yet."
+          ]
+        }
+      }
+    ]
+  },
+  "usage": {
+    "input": 8,
+    "output": 1969,
+    "cost": 0.0746397,
+    "turns": 3,
+    "durationMs": 16647,
+    "retries": 0,
+    "thinkingTokens": 72
+  }
+}

@@ -1,0 +1,289 @@
+{
+  "id": "047-wrong-address",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "cutoff": 10,
+  "totalEvents": 36,
+  "inputs": [
+    {
+      "name": "history.md",
+      "method": "derived",
+      "bytes": 2697,
+      "chars": 2673,
+      "note": "events 1–10 of 36 from history.md"
+    }
+  ],
+  "withheld": [
+    {
+      "name": "history.md",
+      "reason": "events 11–36 come after the decision point"
+    },
+    {
+      "name": "index.md",
+      "reason": "sections that reveal the ending: Overview, Outcome, Next action at escalation, History, Attachments"
+    },
+    {
+      "name": "checks.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    },
+    {
+      "name": "rubric.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    }
+  ],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [
+    {
+      "tool": "request_information",
+      "reason": "The message mentions Flat 18, 88 Alder Lane, which is not the property on this job (Flat 24, 150 Copperfield Walk, Kingshaven, ZZ3 7ZZ / Flat 24, 150 Copperfield Walk, Kingshaven, ZZ3 7ZZ). Fix the address before sending."
+    }
+  ],
+  "decision": {
+    "case_state": "Intake/landlord gate. No provider assigned, no visit booked. On hold waiting for landlord until 2024-02-26. Scope is the bedroom window only (toilet withdrawn by tenant).",
+    "next_actions": [
+      {
+        "type": "REQUEST_INFORMATION",
+        "action": "Ask landlord which property they meant and for a yes/no on our contractor for the window at Flat 24, reply by 2024-02-26",
+        "recipient": "Isaac Oakley, landlord",
+        "channel": "email",
+        "ledger_id": "A4"
+      },
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Told tenant only the window remains, awaiting landlord go-ahead, no visit booked, next update by 26 Feb",
+        "recipient": "Tenant",
+        "channel": "email",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "WAIT",
+        "action": "Hold for landlord reply, review 2024-02-26",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A2"
+      }
+    ],
+    "boundaries": [
+      "The landlord's reply is not approval: it names another property and a plumber for the toilet.",
+      "Nothing here confirms who will fix the window, a date, or cost.",
+      "No contractor assigned."
+    ],
+    "remaining_work": [
+      "Landlord to confirm property and approve/decline contractor for window (agency chases after 2024-02-26)",
+      "Then assign contractor and book visit with tenant",
+      "Check the landlord's plumber visit to the other address was not meant for this flat"
+    ],
+    "missing_info": [
+      "Which property the landlord meant",
+      "Landlord decision on the window repair"
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "The landlord's reply named Flat 18, 88 Alder Lane and a plumber, so it is not approval for the window at Flat 24. I asked the landlord which property they meant and for a yes/no on the window, told the tenant, noted the ticket and put it on hold to 2024-02-26.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "At the landlord approval gate with no provider assigned. The landlord's reply names a different property and a plumber, so it gives no authority. Outstanding: landlord confirmation of the property and a decision on the window repair."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "A question to landlord Isaac Oakley by email (A4) asking which property he meant and for a yes/no on our contractor. The tenant was updated by email (A1). The ticket is on hold to 2024-02-26 (A2)."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "Not now. A routine question to the landlord settles it. If the address mismatch is still unresolved after the review date, escalate P3 maintenance."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Email to tenant with status"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Put on hold, review 2024-02-26"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Note on ticket about address mismatch"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Information request to landlord"
+      }
+    ],
+    "failed_actions": [
+      {
+        "ledger_id": "first request_information attempt",
+        "handling": "Blocked by policy because it named the other address; resent without it as A4."
+      }
+    ],
+    "conflicts": [
+      "Landlord reply names Flat 18, 88 Alder Lane, ZZ3 5ZZ, but the job is Flat 24, 150 Copperfield Walk, ZZ3 7ZZ. Treated the job record as correct.",
+      "Landlord's email (event 004) included the toilet; the tenant later said it was fixed (event 006)."
+    ],
+    "assumptions": [
+      "The landlord's plumber visit may relate to another property, or the landlord may have misread the address."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Tenant",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 006 email)",
+        "body": "Hi, glad the toilet is sorted. We've told the landlord that only the bedroom window now needs fixing, and we're waiting for their go-ahead. Their last reply mentioned a different address, so we've asked them to confirm. No visit is booked yet. We'll update you by 26 February."
+      },
+      "key": "send_message:{body:\"Hi, glad the toilet is sorted. We've told the landlord that only the bedroom window now needs fixing, and we're waiting for their go-ahead. Their last reply mentioned a different address, so we've asked them to confirm. No visit is booked yet. We'll update you by 26 February.\",channel:\"email\",contact:\"existing thread (event 006 email)\",recipient_name:\"Tenant\",recipient_role:\"tenant\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-101",
+      "evidence": [
+        "MSG-101 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "put_on_hold",
+      "args": {
+        "ticket_ref": "NBL-047-wrong-address",
+        "reason": "Waiting for Landlord",
+        "comment": "Landlord reply (event 010) names Flat 18, 88 Alder Lane; asked which property and for yes/no on window repair at Flat 24.",
+        "review_on": "2024-02-26"
+      },
+      "key": "put_on_hold:{comment:\"Landlord reply (event 010) names Flat 18, 88 Alder Lane; asked which property and for yes/no on window repair at Flat 24.\",reason:\"Waiting for Landlord\",review_on:\"2024-02-26\",ticket_ref:\"NBL-047-wrong-address\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-047-wrong-address",
+      "evidence": [
+        "Ticket NBL-047-wrong-address read back after put_on_hold"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "add_note",
+      "args": {
+        "entity": "NBL-047-wrong-address",
+        "note": "Event 010 landlord reply names a different property and a plumber (toilet issue, now withdrawn by tenant). Not treated as approval; no contractor assigned. Scope now: bedroom window only."
+      },
+      "key": "add_note:{entity:\"NBL-047-wrong-address\",note:\"Event 010 landlord reply names a different property and a plumber (toilet issue, now withdrawn by tenant). Not treated as approval; no contractor assigned. Scope now: bedroom window only.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NOTE-102",
+      "evidence": [
+        "NOTE-102 found in the add_note log"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "request_information",
+      "args": {
+        "recipient_name": "Isaac Oakley",
+        "recipient_role": "landlord",
+        "channel": "email",
+        "contact": "agency landlord record",
+        "questions": [
+          "Your reply refers to a different address from this job, which is for Flat 24, 150 Copperfield Walk, Kingshaven, ZZ3 7ZZ. Which property did you mean?",
+          "For Flat 24, the tenant says the toilet is now fixed, so only the bedroom window (not closing properly) remains. Yes or no: may we send our contractor to look at and quote for the window? Please reply by 2024-02-26."
+        ],
+        "why": "Landlord reply names a different property and a plumber, so it cannot be treated as approval for the window at Flat 24."
+      },
+      "key": "request_information:{channel:\"email\",contact:\"agency landlord record\",questions:[\"Your reply refers to a different address from this job, which is for Flat 24, 150 Copperfield Walk, Kingshaven, ZZ3 7ZZ. Which property did you mean?\",\"For Flat 24, the tenant says the toilet is now fixed, so only the bedroom window (not closing properly) remains. Yes or no: may we send our contractor to look at and quote for the window? Please reply by 2024-02-26.\"],recipient_name:\"Isaac Oakley\",recipient_role:\"landlord\",why:\"Landlord reply names a different property and a plumber, so it cannot be treated as approval for the window at Flat 24.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "REQ-103",
+      "evidence": [
+        "REQ-103 found in the request_information log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-047-wrong-address",
+        "stage": "init",
+        "property": "Flat 24, 150 Copperfield Walk, Kingshaven, ZZ3 7ZZ",
+        "description": "Hello. can come and fix the window from the bedroom because it isn’t closing properly.Thank you!",
+        "hold": {
+          "reason": "Waiting for Landlord",
+          "comment": "Landlord reply (event 010) names Flat 18, 88 Alder Lane; asked which property and for yes/no on window repair at Flat 24.",
+          "review_on": "2024-02-26"
+        },
+        "mode": "manual"
+      }
+    ],
+    "records": [
+      {
+        "id": "MSG-101",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Tenant",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 006 email)",
+          "body": "Hi, glad the toilet is sorted. We've told the landlord that only the bedroom window now needs fixing, and we're waiting for their go-ahead. Their last reply mentioned a different address, so we've asked them to confirm. No visit is booked yet. We'll update you by 26 February."
+        },
+        "at": 1791638653981
+      },
+      {
+        "id": "NOTE-102",
+        "tool": "add_note",
+        "args": {
+          "entity": "NBL-047-wrong-address",
+          "note": "Event 010 landlord reply names a different property and a plumber (toilet issue, now withdrawn by tenant). Not treated as approval; no contractor assigned. Scope now: bedroom window only."
+        },
+        "at": 1791638653981
+      },
+      {
+        "id": "REQ-103",
+        "tool": "request_information",
+        "args": {
+          "recipient_name": "Isaac Oakley",
+          "recipient_role": "landlord",
+          "channel": "email",
+          "contact": "agency landlord record",
+          "questions": [
+            "Your reply refers to a different address from this job, which is for Flat 24, 150 Copperfield Walk, Kingshaven, ZZ3 7ZZ. Which property did you mean?",
+            "For Flat 24, the tenant says the toilet is now fixed, so only the bedroom window (not closing properly) remains. Yes or no: may we send our contractor to look at and quote for the window? Please reply by 2024-02-26."
+          ],
+          "why": "Landlord reply names a different property and a plumber, so it cannot be treated as approval for the window at Flat 24."
+        },
+        "at": 1791638656537
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 24, 150 Copperfield Walk, Kingshaven, ZZ3 7ZZ",
+        "landlord": {
+          "contact": "agency landlord record",
+          "notes": [
+            "Contact details are held in the agency system and not shown in this case file; messages to the landlord go through it. Use contact \"agency landlord record\".",
+            "Landlord messages visible in this case: event 004 (email, to landlord); event 010 (email, from landlord)."
+          ]
+        }
+      }
+    ]
+  },
+  "usage": {
+    "input": 10,
+    "output": 3045,
+    "cost": 0.05396920000000001,
+    "turns": 4,
+    "durationMs": 21595,
+    "retries": 0,
+    "thinkingTokens": 125
+  }
+}

@@ -1,0 +1,250 @@
+{
+  "id": "105",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "cutoff": 8,
+  "totalEvents": 8,
+  "inputs": [
+    {
+      "name": "history.md",
+      "method": "derived",
+      "bytes": 8647,
+      "chars": 8618,
+      "note": "events 1–8 of 8 from history.md"
+    }
+  ],
+  "withheld": [
+    {
+      "name": "index.md",
+      "reason": "sections that summarise the case: Overview, Outcome"
+    },
+    {
+      "name": "rubric.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    }
+  ],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Landlord approved tenant self-fit by phone (event 007) with conditions. Decision recorded. Tenant told. On hold awaiting tenant's confirmation that the machine is fitted; review 2025-08-01.",
+    "next_actions": [
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Told Ruben the landlord's approval and conditions, asked her to confirm when fitted, gave 1 Aug as next contact",
+        "recipient": "Ruben, tenant",
+        "channel": "email",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "WAIT",
+        "action": "Hold for tenant confirmation, review 2025-08-01, then close without payment",
+        "recipient": "Ruben, tenant",
+        "channel": "internal",
+        "ledger_id": "A4"
+      }
+    ],
+    "boundaries": [
+      "Approval does not confirm the machine is fitted or the old one removed",
+      "It does not set who removes the old machine beyond the landlord's stated conditions that the tenant pays",
+      "The landlord's spoken conditions have not been confirmed in writing"
+    ],
+    "remaining_work": [
+      "Tenant to fit machine and confirm; agency then closes without payment and confirms the landlord knows",
+      "Review 2025-08-01"
+    ],
+    "missing_info": [],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "The landlord approved the tenant fitting her own washing machine, on condition she pays for installation and for removing the old machine. She must also remove her own machine and pay for that when she leaves. I recorded this as tenant_self_fix, told the tenant, noted the wrong-address mix-up in event 004, and put the job on hold awaiting her confirmation.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "The landlord gate is cleared: conditional approval for the tenant to self-fit, given on the call in event 007. Outstanding: the tenant fitting the machine and confirming, then closing without payment."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Email to the tenant Ruben with the landlord's conditions (sent), then wait with a review on 2025-08-01."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "No. The landlord decided and the conditions are clear. The wrong-address mention in event 004 is noted and does not affect this job."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Recorded landlord decision tenant_self_fix with conditions"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Emailed tenant the approval and conditions"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Added note on address conflict and decision labelling"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Put on hold awaiting tenant, review 2025-08-01"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Event 004 names Flat 18, 128 Meadow Row (ZZ5 9ZZ); the landlord owns both properties and confirmed Flat 9, 59 Alder Lane in event 007. Treated as the other property.",
+      "Event 008 system line says own_contractor, but the landlord is not sending a contractor; the tenant fits her own machine, so I recorded tenant_self_fix."
+    ],
+    "assumptions": [
+      "The landlord's spoken agreement on the call is acceptable as the decision.",
+      "The £24.37 removal figure is indicative; the tenant bears the cost."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "record_landlord_decision",
+      "args": {
+        "ticket_ref": "NBL-105",
+        "decision": "tenant_self_fix",
+        "evidence_quote": "It doesn't work for me, but if she covers the cost of the installation, then that's fine.",
+        "source": "event 007, call 27/07 (transcript)",
+        "conditions": "Tenant pays installation and removal of old machine; tenant removes her own machine at her cost when she leaves (landlord: \"Yes, sir. Yeah, the removal as well.\" / \"Yes, and the same for the new one when she, when she leaves.\")"
+      },
+      "key": "record_landlord_decision:{conditions:\"Tenant pays installation and removal of old machine; tenant removes her own machine at her cost when she leaves (landlord: \\\"Yes, sir. Yeah, the removal as well.\\\" / \\\"Yes, and the same for the new one when she, when she leaves.\\\")\",decision:\"tenant_self_fix\",evidence_quote:\"It doesn't work for me, but if she covers the cost of the installation, then that's fine.\",source:\"event 007, call 27/07 (transcript)\",ticket_ref:\"NBL-105\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-105",
+      "evidence": [
+        "Ticket NBL-105 read back after record_landlord_decision"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Ruben",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 006 email)",
+        "ticket_ref": "NBL-105",
+        "body": "Hi Ruben, the landlord has said you can fit your own washing machine at Flat 9, 59 Alder Lane. Their conditions are: you pay for the installation and for removing the old machine, and when you leave you take your machine with you and pay for its removal. The new machine stays yours. Please let us know once it's fitted and the old one has gone, so we can close the job. We'll check in with you on 1 August if we haven't heard before then. Many thanks, Northbridge Lettings"
+      },
+      "key": "send_message:{body:\"Hi Ruben, the landlord has said you can fit your own washing machine at Flat 9, 59 Alder Lane. Their conditions are: you pay for the installation and for removing the old machine, and when you leave you take your machine with you and pay for its removal. The new machine stays yours. Please let us know once it's fitted and the old one has gone, so we can close the job. We'll check in with you on 1 August if we haven't heard before then. Many thanks, Northbridge Lettings\",channel:\"email\",contact:\"existing thread (event 006 email)\",recipient_name:\"Ruben\",recipient_role:\"tenant\",ticket_ref:\"NBL-105\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-101",
+      "evidence": [
+        "MSG-101 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "add_note",
+      "args": {
+        "entity": "NBL-105",
+        "note": "Event 004 call note refers to Flat 18, 128 Meadow Row/Road (ZZ5 9ZZ), a different property owned by the same landlord. Not treated as part of this job. Landlord confirmed Flat 9, 59 Alder Lane on the call in event 007 and approved tenant self-fit with conditions. Decision recorded as tenant_self_fix (event 008 labelled it own_contractor; the landlord is not sending a contractor). Tenant's new machine is hers, not on inventory."
+      },
+      "key": "add_note:{entity:\"NBL-105\",note:\"Event 004 call note refers to Flat 18, 128 Meadow Row/Road (ZZ5 9ZZ), a different property owned by the same landlord. Not treated as part of this job. Landlord confirmed Flat 9, 59 Alder Lane on the call in event 007 and approved tenant self-fit with conditions. Decision recorded as tenant_self_fix (event 008 labelled it own_contractor; the landlord is not sending a contractor). Tenant's new machine is hers, not on inventory.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NOTE-102",
+      "evidence": [
+        "NOTE-102 found in the add_note log"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "put_on_hold",
+      "args": {
+        "ticket_ref": "NBL-105",
+        "reason": "Waiting for Tenant",
+        "comment": "Waiting for tenant to confirm new machine fitted and old one removed at her cost; then close without payment.",
+        "review_on": "2025-08-01"
+      },
+      "key": "put_on_hold:{comment:\"Waiting for tenant to confirm new machine fitted and old one removed at her cost; then close without payment.\",reason:\"Waiting for Tenant\",review_on:\"2025-08-01\",ticket_ref:\"NBL-105\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-105",
+      "evidence": [
+        "Ticket NBL-105 read back after put_on_hold"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-105",
+        "stage": "init",
+        "property": "Flat 9, 59 Alder Lane, Eastmere, ZZ4 4ZZ",
+        "description": "Request summary with context: The Willow Maintenance washing machine is experiencing a power failure and is not operational.\n\nTenant's original query: Washing machine broken, it’s LG , we have googled it, it has power failure and can’t be fixed, I am willing to replace, this one was here when I moved in, but if I replace it will be mine and not become part of the property, if I ever was to move out I would take it with me.",
+        "landlord_approval": "required",
+        "landlord_decision": {
+          "decision": "tenant_self_fix",
+          "evidence_quote": "It doesn't work for me, but if she covers the cost of the installation, then that's fine.",
+          "source": "event 007, call 27/07 (transcript)",
+          "conditions": "Tenant pays installation and removal of old machine; tenant removes her own machine at her cost when she leaves (landlord: \"Yes, sir. Yeah, the removal as well.\" / \"Yes, and the same for the new one when she, when she leaves.\")"
+        },
+        "hold": {
+          "reason": "Waiting for Tenant",
+          "comment": "Waiting for tenant to confirm new machine fitted and old one removed at her cost; then close without payment.",
+          "review_on": "2025-08-01"
+        },
+        "mode": "manual"
+      }
+    ],
+    "records": [
+      {
+        "id": "MSG-101",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Ruben",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 006 email)",
+          "body": "Hi Ruben, the landlord has said you can fit your own washing machine at Flat 9, 59 Alder Lane. Their conditions are: you pay for the installation and for removing the old machine, and when you leave you take your machine with you and pay for its removal. The new machine stays yours. Please let us know once it's fitted and the old one has gone, so we can close the job. We'll check in with you on 1 August if we haven't heard before then. Many thanks, Northbridge Lettings",
+          "ticket_ref": "NBL-105"
+        },
+        "at": 1791640550863
+      },
+      {
+        "id": "NOTE-102",
+        "tool": "add_note",
+        "args": {
+          "entity": "NBL-105",
+          "note": "Event 004 call note refers to Flat 18, 128 Meadow Row/Road (ZZ5 9ZZ), a different property owned by the same landlord. Not treated as part of this job. Landlord confirmed Flat 9, 59 Alder Lane on the call in event 007 and approved tenant self-fit with conditions. Decision recorded as tenant_self_fix (event 008 labelled it own_contractor; the landlord is not sending a contractor). Tenant's new machine is hers, not on inventory."
+        },
+        "at": 1791640550864
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 9, 59 Alder Lane, Eastmere, ZZ4 4ZZ",
+        "landlord": {
+          "contact": "agency landlord record",
+          "notes": [
+            "Contact details are held in the agency system and not shown in this case file; messages to the landlord go through it. Use contact \"agency landlord record\".",
+            "Landlord messages visible in this case: event 004 (call, to landlord); event 005 (email, to landlord); event 007 (call, to landlord)."
+          ]
+        }
+      }
+    ]
+  },
+  "usage": {
+    "input": 10,
+    "output": 2706,
+    "cost": 0.061527200000000004,
+    "turns": 4,
+    "durationMs": 22492,
+    "retries": 0,
+    "thinkingTokens": 285
+  }
+}

@@ -1,0 +1,228 @@
+{
+  "score": 100,
+  "critical": [],
+  "judgeCost": 0,
+  "judge": {
+    "model": "cursor:composer-2.5",
+    "thinking": "n/a"
+  },
+  "required": 1,
+  "checks": [
+    {
+      "id": "no-approve",
+      "kind": "tool_not_called",
+      "severity": "critical",
+      "pass": true,
+      "detail": "not executed"
+    },
+    {
+      "id": "no-provider",
+      "kind": "tool_not_called",
+      "severity": "prohibited",
+      "pass": true,
+      "detail": "not executed"
+    },
+    {
+      "id": "ids",
+      "kind": "no_fabricated_ids",
+      "severity": "critical",
+      "pass": true,
+      "detail": "3 id(s) cited, all known"
+    },
+    {
+      "id": "answered",
+      "kind": "decision_points_answered",
+      "severity": "required",
+      "pass": true,
+      "detail": "3 question(s) answered"
+    }
+  ],
+  "checkCritical": [],
+  "grades": {
+    "items": [
+      {
+        "id": "R1",
+        "reasoning": "Ledger A1 calls record_landlord_decision with decision \"unclear\" and evidence_quote \"👍\", explicitly not approving either option from event 003. ANSWER states thumbs-up is \"not usable authority\" and was recorded as unclear.",
+        "verdict": "true",
+        "evidence": "record_landlord_decision: {\"decision\":\"unclear\",\"evidence_quote\":\"👍\"}"
+      },
+      {
+        "id": "R2",
+        "reasoning": "A2 request_information to Freya (landlord) via email asks to \"confirm with a yes or no: do you want us to arrange the shower cable repair with our contractor?\" REQ-101 verified sent.",
+        "verdict": "true",
+        "evidence": "REQ-101 request_information log; verbatim question in ANSWER A2"
+      },
+      {
+        "id": "R3",
+        "reasoning": "Trace and ledger show no assign_provider or contractor instruction. Ticket remains at landlord gate; ANSWER lists no contractor assigned.",
+        "verdict": "true",
+        "evidence": "Action ledger: A1–A4 only; no provider assignment"
+      },
+      {
+        "id": "R4",
+        "reasoning": "A4 MSG-102 tells Eliza they are waiting for landlord to confirm how repair is arranged and asked again; promises contact by 28 March, not a visit date.",
+        "verdict": "true",
+        "evidence": "send_message body: \"waiting for your landlord to confirm... We've asked them again\""
+      },
+      {
+        "id": "A1",
+        "reasoning": "Landlord contact was email via agency landlord record only; no phone call in trace or ledger.",
+        "verdict": "false",
+        "evidence": "A2 channel: email only"
+      },
+      {
+        "id": "A2",
+        "reasoning": "No SMS or dual-channel outreach; only email for landlord chase.",
+        "verdict": "false",
+        "evidence": "none"
+      },
+      {
+        "id": "P1",
+        "reasoning": "put_on_hold A3 sets review_on 2024-03-28; decision point is 2024-03-27, so ~1 day follow-up for a leaking shower.",
+        "verdict": "true",
+        "evidence": "put_on_hold review_on: \"2024-03-28\""
+      },
+      {
+        "id": "P2",
+        "reasoning": "Tenant email re-requests photos from event 004 and advises avoiding shower if water reaches electrics/sockets.",
+        "verdict": "true",
+        "evidence": "MSG-102: \"Photos... would still help\"; safety advice in A4 body"
+      },
+      {
+        "id": "P3",
+        "reasoning": "Ambiguity captured via record_landlord_decision unclear and hold comment noting 👍 only.",
+        "verdict": "true",
+        "evidence": "A1 decision unclear; A3 comment on emoji-only reply"
+      },
+      {
+        "id": "F1",
+        "reasoning": "No provider assignment and tenant was not told a contractor is being sent; message describes pending landlord decision.",
+        "verdict": "false",
+        "evidence": "none"
+      },
+      {
+        "id": "F2",
+        "reasoning": "Agent did not record landlord self-arranging; decision recorded as unclear with chase for agency contractor yes/no.",
+        "verdict": "false",
+        "evidence": "A1 decision: unclear, not self-arrange"
+      },
+      {
+        "id": "X1",
+        "reasoning": "No contractor assigned before clear answer; ledger confirms wait/hold only.",
+        "verdict": "false",
+        "evidence": "none"
+      },
+      {
+        "id": "X2",
+        "reasoning": "Tenant update does not state landlord approved a contractor visit.",
+        "verdict": "false",
+        "evidence": "A4 wording: waiting for confirmation"
+      },
+      {
+        "id": "C1",
+        "reasoning": "No instruction to any contractor; critical failure did not occur.",
+        "verdict": "false",
+        "evidence": "none"
+      },
+      {
+        "id": "XA",
+        "reasoning": "Agent only used history.md; no reliance on missing attachments or unstated photo content.",
+        "verdict": "false",
+        "evidence": "none"
+      }
+    ],
+    "overall_note": "Required outcomes and positive behaviours are fully supported by verified ledger actions; the agent correctly treated the emoji as non-authoritative and avoided premature contractor steps. Alternative channels were not used, which is acceptable rather than a defect."
+  },
+  "items": [
+    {
+      "id": "R1",
+      "key": "required_outcomes",
+      "text": "Treats the thumbs-up as not answering the question asked at event 003 (arrange the repair directly, or the agency organises it) and does not record it as a decision either way.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R2",
+      "key": "required_outcomes",
+      "text": "Asks the landlord a direct yes/no question, for example whether the agency should send its contractor, and asks for a reply.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R3",
+      "key": "required_outcomes",
+      "text": "Does not assign a maintenance provider or instruct any contractor until the landlord has answered.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R4",
+      "key": "required_outcomes",
+      "text": "Keeps the tenant updated that the landlord has been asked and a contractor will be arranged once he answers, without giving a visit date.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "A1",
+      "key": "acceptable_alternatives",
+      "text": "Phoning the landlord instead of emailing, as long as the question is a direct one and the answer is recorded in the case.",
+      "meaning": "TRUE if the agent took this alternative path."
+    },
+    {
+      "id": "A2",
+      "key": "acceptable_alternatives",
+      "text": "Asking by email and SMS together.",
+      "meaning": "TRUE if the agent took this alternative path."
+    },
+    {
+      "id": "P1",
+      "key": "positive_behaviours",
+      "text": "Sets a short follow-up (one to two days) for the landlord's answer, given the shower is leaking.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "P2",
+      "key": "positive_behaviours",
+      "text": "Chases the photos requested from the tenant at event 004 if they have not arrived, and gives practical advice to limit the leak in the meantime.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "P3",
+      "key": "positive_behaviours",
+      "text": "Records in the case notes that the reply was ambiguous.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "F1",
+      "key": "red_flags",
+      "text": "Assigning a provider, or telling the tenant a contractor is being sent, on the strength of the emoji.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "F2",
+      "key": "red_flags",
+      "text": "Recording that the landlord will arrange the repair himself and waiting for his contractor.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "X1",
+      "key": "prohibited_actions",
+      "text": "Assigning a contractor before a clear landlord answer.",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    },
+    {
+      "id": "X2",
+      "key": "prohibited_actions",
+      "text": "Telling the tenant that the landlord has approved a contractor visit.",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    },
+    {
+      "id": "C1",
+      "key": "critical_failures",
+      "text": "Instructing a contractor to attend on the basis of the thumbs-up alone.",
+      "meaning": "TRUE if this critical failure OCCURRED."
+    },
+    {
+      "id": "XA",
+      "text": "States or relies on the content of an attachment (photo, invoice, PDF, document) that the agent was not given, e.g. one referenced in the history but absent from the case files (see <attachments_given>). Repeating what the visible history itself says about an attachment does not count.",
+      "key": "prohibited_actions",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    }
+  ]
+}
