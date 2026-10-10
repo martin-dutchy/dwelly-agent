@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { executeWith } from '../core/executor.js';
 import type { ToolContext, ToolDef, ToolResult } from '../core/tools.js';
 import { canonical } from './ledger.js';
+import { addressKnown, foreignAddresses, invoiceFlags, quoteTotal, tooThinForApproval, visitProblems } from './opsChecks.js';
 import type { Verification } from './verify.js';
 
 /**
@@ -14,13 +15,30 @@ export const STAGES = ['init', 'mp_time', 'mp_time_force', 'visit', 'result', 'd
 
 type Rec = { id: string; tool: string; args: Record<string, unknown>; at: number };
 export type Ticket = { ref: string; stage: string; contractor?: string; visit_window?: string; [k: string]: unknown };
-export type OpsState = { tickets: Ticket[]; records: Rec[] };
+export type Property = {
+  id?: string;
+  address: string;
+  /** false = NOT TENANTED (void): no tenant-facing messages. */
+  tenanted?: boolean;
+  landlord?: { name?: string; email?: string; phone?: string; spend_limit_gbp?: number; notes?: string[] };
+  contractors?: unknown[];
+};
+export type OpsState = { tickets: Ticket[]; records: Rec[]; properties: Property[] };
+export type OpsSeed = { tickets?: Ticket[]; properties?: Property[]; today?: string };
+
+export const HOLD_REASONS = ['Waiting for Landlord', 'Waiting for Provider', 'Waiting for Tenant', 'Other'] as const;
+export const LANDLORD_DECISIONS = ['approved', 'declined', 'own_contractor', 'tenant_self_fix', 'conditional', 'unclear'] as const;
+export const WORK_OUTCOMES = ['completed', 'partial', 'needs_quote', 'no_access', 'missed_appointment'] as const;
+export const DOC_KINDS = ['invoice', 'quote', 'photos', 'inspection_report', 'certificate', 'other'] as const;
+export const CLOSE_MODES = ['final_checks', 'without_payment', 'by_supervisor'] as const;
 
 export type Toolset = {
   tools: ToolDef[];
   execute: (name: string, args: unknown, ctx: ToolContext) => Promise<ToolResult>;
   verify: (name: string, args: Record<string, unknown>, result: ToolResult | undefined, ctx: ToolContext) => Verification;
   state: OpsState;
+  /** Policy checks run before a call executes. A string blocks the call with that reason. */
+  guard?: (name: string, args: Record<string, unknown>) => string | undefined;
 };
 
 const recipient = {
@@ -30,8 +48,9 @@ const recipient = {
   contact: z.string().describe('Email address or phone number taken from the CRM record on file'),
 };
 
-export function createOpsToolset(seedTickets: Ticket[] = []): Toolset {
-  const state: OpsState = { tickets: structuredClone(seedTickets), records: [] };
+export function createOpsToolset(seed: OpsSeed | Ticket[] = []): Toolset {
+  const { tickets: seedTickets = [], properties = [], today } = Array.isArray(seed) ? { tickets: seed } : seed;
+  const state: OpsState = { tickets: structuredClone(seedTickets), records: [], properties: structuredClone(properties) };
   let seq = 100;
   const id = (prefix: string) => `${prefix}-${++seq}`;
   const record = (tool: string, args: Record<string, unknown>, prefix: string) => {
@@ -40,6 +59,19 @@ export function createOpsToolset(seedTickets: Ticket[] = []): Toolset {
     return r;
   };
   const ticket = (ref: string) => state.tickets.find((t) => t.ref === ref);
+  const propertyFor = (t?: Ticket) => {
+    const key = String(t?.property ?? '');
+    return (
+      state.properties.find((p) => (p.id && p.id === key) || (key && addressKnown(key, [p.address]))) ??
+      (state.properties.length === 1 ? state.properties[0] : undefined)
+    );
+  };
+  const onTicket = (ref: string, change: (t: Ticket) => Record<string, unknown>) => {
+    const t = ticket(ref);
+    if (!t) return { ok: false, error: 'not_found', say: `No ticket ${ref}. Use list_tickets.` };
+    return { ok: true, ticket_ref: ref, ...change(t) };
+  };
+  const ticketRef = { ticket_ref: z.string().describe('Ticket reference, e.g. NBL-003-2766 or R-4815') };
   const def = <S extends z.ZodObject>(t: Omit<ToolDef<S>, 'requiresVerification'>) => ({ requiresVerification: false, ...t }) as unknown as ToolDef;
 
   const tools: ToolDef[] = [
@@ -113,10 +145,197 @@ export function createOpsToolset(seedTickets: Ticket[] = []): Toolset {
       },
     }),
     def({
+      name: 'get_property',
+      description: 'Look up a property: tenancy status (tenanted or void), landlord contact, spend limit and preferences, and known contractors.',
+      kind: 'read',
+      parameters: z.object({ property: z.string().describe('Property id or address') }),
+      run: ({ property }) => {
+        const p = state.properties.find((x) => x.id === property || addressKnown(property, [x.address]));
+        return p ? { ok: true, property: p } : { ok: false, error: 'not_found', say: 'No property record: rely on the case inputs.' };
+      },
+    }),
+    def({
+      name: 'put_on_hold',
+      description: 'Pause a job while waiting on someone. Always set the date you will review it, so it never stalls silently.',
+      kind: 'write',
+      parameters: z.object({
+        ...ticketRef,
+        reason: z.enum(HOLD_REASONS),
+        comment: z.string().describe('What exactly you are waiting for'),
+        review_on: z.string().describe('YYYY-MM-DD to chase or review if nothing arrives'),
+      }),
+      run: ({ ticket_ref, reason, comment, review_on }) => onTicket(ticket_ref, (t) => ((t.hold = { reason, comment, review_on }), (t.mode = 'manual'), { hold: t.hold })),
+    }),
+    def({
+      name: 'resume_auto',
+      description: 'Return a job to auto mode after you have dealt with an inbound message ("If not, please return this request to auto mode"). Clears any hold.',
+      kind: 'write',
+      parameters: z.object({ ...ticketRef }),
+      run: ({ ticket_ref }) => onTicket(ticket_ref, (t) => (delete t.hold, (t.mode = 'auto'), { mode: 'auto' })),
+    }),
+    def({
+      name: 'record_landlord_decision',
+      description:
+        "Record what the landlord decided, quoting their words. approved = we may instruct (up to cap_gbp if given); own_contractor = landlord arranges it; tenant_self_fix = tenant may fix it; conditional = approved only under conditions; unclear = not a usable answer (e.g. an emoji): ask again.",
+      kind: 'write',
+      parameters: z.object({
+        ...ticketRef,
+        decision: z.enum(LANDLORD_DECISIONS),
+        evidence_quote: z.string().describe("The landlord's own words, with the date and channel"),
+        cap_gbp: z.number().optional().describe('Approved spend including VAT, if the landlord gave one'),
+        conditions: z.string().optional(),
+      }),
+      run: ({ ticket_ref, decision, evidence_quote, cap_gbp, conditions }) =>
+        onTicket(ticket_ref, (t) => {
+          t.landlord_decision = { decision, evidence_quote, cap_gbp, conditions };
+          if (decision === 'approved' || decision === 'conditional') t.landlord_approval = 'confirmed';
+          // No figure given: approving means approving the latest quote, so invoices are checked against it.
+          const latest = ((t.quotes as { total_gbp: number }[]) ?? []).at(-1)?.total_gbp;
+          if (decision === 'approved') t.approved_gbp = cap_gbp ?? latest ?? t.approved_gbp;
+          return { landlord_decision: t.landlord_decision };
+        }),
+    }),
+    def({
+      name: 'set_visit',
+      description: 'Book or reschedule the contractor visit. Sends confirmations to the contractor and tenant. Only for future visits.',
+      kind: 'write',
+      parameters: z.object({
+        ...ticketRef,
+        datetime: z.string().describe('YYYY-MM-DD HH:MM'),
+        slot_text: z.string().describe('The slot as agreed, e.g. "Monday 2-5pm"'),
+        access: z.enum(['tenant_home', 'agency_key', 'caretaker', 'lockbox', 'landlord']).describe('How the contractor gets in'),
+      }),
+      run: ({ ticket_ref, datetime, slot_text, access }) =>
+        onTicket(ticket_ref, (t) => ((t.visit = { datetime, slot_text, access }), (t.visit_window = datetime), (t.stage = 'visit'), { stage: 'visit', visit: t.visit })),
+    }),
+    def({
+      name: 'record_work_result',
+      description: 'Record what the contractor reported after the visit, and the evidence for it (provider email, photos, tenant confirmation).',
+      kind: 'write',
+      parameters: z.object({
+        ...ticketRef,
+        outcome: z.enum(WORK_OUTCOMES),
+        evidence: z.string().describe('Who said so, when, and what proves it'),
+      }),
+      run: ({ ticket_ref, outcome, evidence }) =>
+        onTicket(ticket_ref, (t) => {
+          t.work_result = { outcome, evidence };
+          t.stage = ['no_access', 'missed_appointment'].includes(outcome) ? 'mp_time_force' : 'result';
+          return { stage: t.stage, work_result: t.work_result };
+        }),
+    }),
+    def({
+      name: 'record_quote',
+      description: 'Record a contractor quote exactly as given. Does not approve it: send it to the landlord or use approve_quote within policy.',
+      kind: 'write',
+      parameters: z.object({
+        ...ticketRef,
+        provider: z.string(),
+        amount_gbp: z.number().describe('The figure as quoted'),
+        vat: z.enum(['included', 'plus_vat', 'none']).describe('"£90 + VAT" = plus_vat'),
+        items: z.array(z.string()).describe('Scope items the quote covers'),
+        source: z.string().describe('Where the quote came from (email date, attachment name)'),
+      }),
+      run: ({ ticket_ref, provider, amount_gbp, vat, items, source }) =>
+        onTicket(ticket_ref, (t) => {
+          const quote = { id: id('Q'), provider, amount_gbp, vat, total_gbp: quoteTotal(amount_gbp, vat), items, source };
+          t.quotes = [...((t.quotes as unknown[]) ?? []), quote];
+          return { quote_id: quote.id, total_gbp: quote.total_gbp };
+        }),
+    }),
+    def({
+      name: 'record_invoice',
+      description:
+        'Record a contractor invoice. It is checked automatically against the approved amount and the assigned contractor; any flags returned must be handled (hold_payment or escalate) before closing.',
+      kind: 'write',
+      parameters: z.object({
+        ...ticketRef,
+        issuer: z.string().describe('Company named on the invoice'),
+        amount_gbp: z.number().describe('Total including VAT'),
+        who_pays: z.enum(['agency', 'landlord_direct', 'rent_deduction', 'tenant_recharge', 'warranty_no_charge']),
+        invoice_date: z.string().optional(),
+        source: z.string().describe('Where the invoice came from'),
+      }),
+      run: ({ ticket_ref, issuer, amount_gbp, who_pays, invoice_date, source }) =>
+        onTicket(ticket_ref, (t) => {
+          const flags = invoiceFlags({ amount_gbp, issuer, contractor: t.contractor, approved_gbp: t.approved_gbp as number | undefined, spend_limit_gbp: propertyFor(t)?.landlord?.spend_limit_gbp });
+          t.invoice = { issuer, amount_gbp, who_pays, invoice_date, source, flags };
+          return { flags, say: flags.length ? `Invoice flags: ${flags.join(' ')} Hold payment or escalate before closing.` : 'Invoice matches the approval.' };
+        }),
+    }),
+    def({
+      name: 'attach_document',
+      description: 'File a document on the job (invoice, quote, photos, report).',
+      kind: 'write',
+      parameters: z.object({ ...ticketRef, kind: z.enum(DOC_KINDS), file: z.string().describe('File name from the case, or a description if only referenced') }),
+      run: ({ ticket_ref, kind, file }) => onTicket(ticket_ref, (t) => ((t.documents = [...((t.documents as unknown[]) ?? []), { kind, file }]), { documents: t.documents })),
+    }),
+    def({
+      name: 'skip_document',
+      description: 'Record that a document will not be filed, with the reason (e.g. "landlord pays contractor directly", "no quote needed, fixed on first visit").',
+      kind: 'write',
+      parameters: z.object({ ...ticketRef, kind: z.enum(DOC_KINDS), reason: z.string() }),
+      run: ({ ticket_ref, kind, reason }) => onTicket(ticket_ref, (t) => ((t.documents = [...((t.documents as unknown[]) ?? []), { kind, skipped: reason }]), { documents: t.documents })),
+    }),
+    def({
+      name: 'confirm_keys_returned',
+      description: 'Record that keys lent for the job are back, with who confirmed it.',
+      kind: 'write',
+      parameters: z.object({ ...ticketRef, evidence: z.string() }),
+      run: ({ ticket_ref, evidence }) => onTicket(ticket_ref, (t) => ((t.keys_returned = evidence), { keys_returned: evidence })),
+    }),
+    def({
+      name: 'close_ticket',
+      description:
+        'Close a job. final_checks = normal close after work, invoice and landlord confirmation; without_payment = landlord used their own contractor, tenant fixed it, or no charge; by_supervisor = a human closes it. Blocked until the closing checks are met.',
+      kind: 'write',
+      parameters: z.object({
+        ...ticketRef,
+        mode: z.enum(CLOSE_MODES),
+        resolution: z.string().describe('What fixed it, and on what evidence'),
+        tenant_confirmation: z.string().describe('How the tenant confirmed it is fixed, or why that is not needed'),
+        landlord_informed: z.string().describe('How the landlord was told the outcome (ledger id or message)'),
+      }),
+      run: ({ ticket_ref, mode, resolution, tenant_confirmation, landlord_informed }) =>
+        onTicket(ticket_ref, (t) => (delete t.hold, Object.assign(t, { stage: 'completed', closed: { mode, resolution, tenant_confirmation, landlord_informed } }), { stage: 'completed' })),
+    }),
+    def({
+      name: 'log_call',
+      description: 'Log a phone call you made or received, including failed ones (voicemail, no answer, wrong number).',
+      kind: 'write',
+      parameters: z.object({
+        ticket_ref: z.string().optional(),
+        party_name: z.string(),
+        party_role: z.enum(['tenant', 'landlord', 'contractor', 'neighbour', 'third_party', 'internal']),
+        direction: z.enum(['outbound', 'inbound']),
+        outcome: z.enum(['connected', 'voicemail', 'no_answer', 'wrong_number', 'failed']),
+        summary: z.string(),
+      }),
+      run: (a) => ({ ok: true, call_id: record('log_call', a, 'CALL').id }),
+    }),
+    def({
+      name: 'schedule_follow_up',
+      description: 'Set a dated follow-up so nothing depends on memory: a chase when a reply is due, a re-inspection, a recurring reading.',
+      kind: 'write',
+      parameters: z.object({
+        ticket_ref: z.string().optional(),
+        due_on: z.string().describe('YYYY-MM-DD'),
+        party: z.string().optional(),
+        purpose: z.string(),
+        recurring: z.string().optional().describe('e.g. "every 3 months"'),
+      }),
+      run: (a) => ({ ok: true, follow_up_id: record('schedule_follow_up', a, 'FUP').id }),
+    }),
+    def({
       name: 'send_message',
       description: 'Send a message to a tenant, landlord, contractor or other party. Never disclose personal data to unverified parties.',
       kind: 'write',
-      parameters: z.object({ ...recipient, body: z.string().describe('The exact message text') }),
+      parameters: z.object({
+        ...recipient,
+        body: z.string().describe('The exact message text'),
+        ticket_ref: z.string().optional().describe('Job this message is about'),
+        attachments: z.array(z.string()).optional().describe('File names from the case to attach, e.g. attachments/invoice.pdf'),
+      }),
       run: (a) => ({ ok: true, message_id: record('send_message', a, 'MSG').id, status: 'sent' }),
     }),
     def({
@@ -147,7 +366,7 @@ export function createOpsToolset(seedTickets: Ticket[] = []): Toolset {
       parameters: z.object({ ticket_ref: z.string(), amount_gbp: z.number(), contractor: z.string(), approval_basis: z.string() }),
       run: (a) => {
         const t = ticket(a.ticket_ref);
-        if (t) t.stage = 'quote_approved';
+        if (t) Object.assign(t, { stage: 'quote_approved', approved_gbp: a.amount_gbp });
         return { ok: true, approval_id: record('approve_quote', a, 'QAP').id };
       },
     }),
@@ -191,12 +410,93 @@ export function createOpsToolset(seedTickets: Ticket[] = []): Toolset {
     }),
   ];
 
+  // Read-back per ticket-mutating tool: what must be true on the ticket after the call.
+  const readBack: Record<string, (t: Ticket, a: Record<string, any>) => string | undefined> = {
+    put_on_hold: (t, a) => ((t.hold as any)?.reason === a.reason ? undefined : `hold reason is ${(t.hold as any)?.reason ?? 'none'}`),
+    resume_auto: (t) => (t.mode === 'auto' && !t.hold ? undefined : `mode is ${t.mode ?? 'unset'}${t.hold ? ', still on hold' : ''}`),
+    record_landlord_decision: (t, a) => ((t.landlord_decision as any)?.decision === a.decision ? undefined : 'no landlord decision on the ticket'),
+    set_visit: (t, a) => ((t.visit as any)?.datetime === a.datetime ? undefined : `visit is ${(t.visit as any)?.datetime ?? 'not set'}`),
+    record_work_result: (t, a) => ((t.work_result as any)?.outcome === a.outcome ? undefined : 'no work result on the ticket'),
+    record_quote: (t, a) => (((t.quotes as any[]) ?? []).some((q) => q.amount_gbp === a.amount_gbp && q.provider === a.provider) ? undefined : 'quote not on the ticket'),
+    record_invoice: (t, a) => ((t.invoice as any)?.amount_gbp === a.amount_gbp ? undefined : 'invoice not on the ticket'),
+    attach_document: (t, a) => (((t.documents as any[]) ?? []).some((d) => d.kind === a.kind && d.file === a.file) ? undefined : 'document not on the ticket'),
+    skip_document: (t, a) => (((t.documents as any[]) ?? []).some((d) => d.kind === a.kind && d.skipped) ? undefined : 'skip not on the ticket'),
+    confirm_keys_returned: (t) => (t.keys_returned ? undefined : 'keys not marked returned'),
+    close_ticket: (t) => (t.stage === 'completed' ? undefined : `stage is ${t.stage}`),
+  };
+
+  const knownAddresses = () => [...state.tickets.map((t) => String(t.property ?? '')), ...state.properties.map((p) => p.address)].filter(Boolean);
+  const ran = (tool: string, ref?: string) => state.records.some((r) => r.tool === tool && (!ref || JSON.stringify(r.args).includes(ref)));
+
+  // Rules enforced in code, not left to the prompt. Each comes from a red flag in the cases.
+  const guard = (name: string, a: Record<string, any>): string | undefined => {
+    const t = a.ticket_ref ? ticket(a.ticket_ref) : undefined;
+    const p = propertyFor(t);
+    const decision = (t?.landlord_decision as any)?.decision as string | undefined;
+    switch (name) {
+      case 'update_bank_details':
+        return 'Bank details are never changed from a message in a case. Keep paying the account on file, hold the payment if needed, verify by calling the number already on file, and escalate to fraud.';
+      case 'assign_contractor':
+        if (t && decision && ['declined', 'own_contractor', 'tenant_self_fix', 'unclear'].includes(decision))
+          return `The landlord's recorded decision is "${decision}", so the agency must not instruct a contractor. Act on that decision, or ask the landlord again.`;
+        if (t?.landlord_approval === 'required' && t.severity !== 'emergency')
+          return 'Landlord approval step is not complete ("Please complete landlord approval step first"). Use request_landlord_approval, or record_landlord_decision if they already answered.';
+        return undefined;
+      case 'approve_quote': {
+        const cap = (t?.landlord_decision as any)?.cap_gbp as number | undefined;
+        if ((decision === 'approved' || decision === 'conditional') && (cap === undefined || a.amount_gbp <= cap)) return undefined;
+        const limit = p?.landlord?.spend_limit_gbp;
+        if (limit !== undefined && a.amount_gbp <= limit) return undefined;
+        return `No recorded landlord approval covers £${a.amount_gbp}${limit !== undefined ? ` and it is above the £${limit} spend limit` : ' and no spend limit is on file'}. Send the quote with request_landlord_approval instead.`;
+      }
+      case 'record_landlord_decision':
+        if (['approved', 'conditional'].includes(a.decision) && tooThinForApproval(a.evidence_quote))
+          return `"${a.evidence_quote}" is too thin to rely on as approval. Record it as unclear and ask the landlord to confirm in words.`;
+        return undefined;
+      case 'set_visit': {
+        const problems = visitProblems(a.datetime, a.slot_text, today);
+        return problems.length ? problems.join(' ') : undefined;
+      }
+      case 'send_message':
+      case 'request_information': {
+        const wrong = foreignAddresses(String(a.body ?? a.questions?.join(' ') ?? ''), knownAddresses());
+        if (wrong.length) return `The message mentions ${wrong.join(', ')}, which is not the property on this job (${knownAddresses().join(' / ')}). Fix the address before sending.`;
+        if (a.recipient_role === 'tenant' && (t ? p : state.properties.length === 1 ? state.properties[0] : undefined)?.tenanted === false)
+          return 'The property is NOT TENANTED (void). There is no current tenant to message: use the agency key or caretaker route and tell the landlord.';
+        return undefined;
+      }
+      case 'close_ticket': {
+        if (!t) return undefined;
+        const problems: string[] = [];
+        const work = (t.work_result as any)?.outcome;
+        if (a.mode === 'final_checks') {
+          if (work !== 'completed') problems.push('no completed work result is recorded (record_work_result)');
+          const docs = (t.documents as any[]) ?? [];
+          if (!t.invoice && !docs.some((d) => d.kind === 'invoice')) problems.push('no invoice recorded or skipped with a reason (record_invoice or skip_document)');
+        }
+        if (a.mode === 'without_payment' && !work && !decision) problems.push('nothing shows how it was resolved: record the work result or the landlord decision first');
+        const flags = ((t.invoice as any)?.flags as string[]) ?? [];
+        if (flags.length && !ran('hold_payment') && !ran('escalate_to_human')) problems.push(`invoice flags are unhandled (${flags.join(' ')}): hold the payment or escalate`);
+        if (!String(a.tenant_confirmation).trim()) problems.push('say how the tenant confirmed the fix, or why that is not needed');
+        return problems.length ? `Cannot close ${t.ref} yet: ${problems.join('; ')}.` : undefined;
+      }
+    }
+    return undefined;
+  };
+
   const toolset: Toolset = {
     tools,
     state,
+    guard,
     execute: (name, args, ctx) => executeWith({ tools, state }, name, args, ctx),
     verify: (name, args, result) => {
       // Read back independently of what the write returned.
+      if (readBack[name]) {
+        const t = ticket(String(args.ticket_ref));
+        if (!t) return { status: 'not_applied', evidence: `Ticket ${String(args.ticket_ref)} not found on read-back` };
+        const problem = readBack[name](t, args);
+        return problem ? { status: 'not_applied', ref: t.ref, evidence: `Ticket ${t.ref}: ${problem}` } : { status: 'verified', ref: t.ref, evidence: `Ticket ${t.ref} read back after ${name}` };
+      }
       if (['create_ticket', 'update_ticket', 'cancel_ticket', 'assign_contractor'].includes(name)) {
         const ref = (result?.ref ?? result?.ticket_ref ?? args.ref ?? args.ticket_ref) as string | undefined;
         const t = ref

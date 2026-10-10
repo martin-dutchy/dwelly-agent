@@ -10,7 +10,7 @@ import type { Toolset } from './opsTools.js';
 import { verify as coreVerify } from './verify.js';
 
 /** The fixture-backed tools shared with the voice agents. Batch cases use createOpsToolset instead. */
-export const coreToolset = (): Toolset => ({ tools: coreTools, execute: executeTool, verify: coreVerify, state: { tickets: [], records: [] } });
+export const coreToolset = (): Toolset => ({ tools: coreTools, execute: executeTool, verify: coreVerify, state: { tickets: [], records: [], properties: [] } });
 
 const asSchema = (s: z.ZodType) => z.toJSONSchema(s) as unknown as TSchema;
 const text = (t: string) => [{ type: 'text' as const, text: t }];
@@ -110,6 +110,8 @@ export async function runCase(opts: CaseRunOptions) {
     // BEFORE: block repeats of verified actions, and block a decision that misreports the ledger.
     beforeToolCall: async ({ toolCall, args }) => {
       const a = (args ?? {}) as Record<string, unknown>;
+      const refused = toolset.guard?.(toolCall.name, a);
+      if (refused) return { block: true, reason: `Blocked by policy: ${refused}` };
       if (getTool(toolCall.name)?.kind === 'write') {
         const done = ledger.findVerified(toolCall.name, a);
         if (done) return { block: true, reason: `Already done and verified as ${done.id} (${done.ref}). Do not repeat it.` };
