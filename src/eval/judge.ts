@@ -127,8 +127,9 @@ async function judgeCase(caseDir: string, answersDir: string) {
   const redFrac = ids('red_flags').length ? redFlags / ids('red_flags').length : 0;
   // Critical failures and prohibited actions (or uncertainty about them) zero the case.
   const score = critical.length ? 0 : Math.round(100 * (0.7 * required + 0.2 * (1 - redFrac) + 0.1 * frac('positive_behaviours')));
-  writeFileSync(join(answersDir, 'grades.json'), JSON.stringify({ score, critical, grades, items }, null, 2));
-  return { id: c.id, score, required, redFlags, critical, grades, items };
+  const judgeCost = (agent.state.messages as any[]).filter((m) => m.role === 'assistant').reduce((a, m) => a + (m.usage?.cost?.total ?? 0), 0);
+  writeFileSync(join(answersDir, 'grades.json'), JSON.stringify({ score, critical, judgeCost, grades, items }, null, 2));
+  return { id: c.id, score, judgeCost, required, redFlags, critical, grades, items };
 }
 
 const only = values.only?.split(',').map((s) => s.trim());
@@ -143,7 +144,16 @@ await Promise.all(
       const dir = dirs[next++];
       const id = dir.split('/').at(-1)!;
       try {
-        const r = await judgeCase(dir, join(values.answers!, id));
+        // Rate limits and transient API errors must not zero a case: retry with backoff.
+        let r: Awaited<ReturnType<typeof judgeCase>> | undefined;
+        for (let attempt = 1; !r; attempt++) {
+          try {
+            r = await judgeCase(dir, join(values.answers!, id));
+          } catch (e) {
+            if (attempt >= 4) throw e;
+            await new Promise((res) => setTimeout(res, 2000 * 2 ** attempt + Math.random() * 1000));
+          }
+        }
         results.push(r);
         if (!values['summary-only']) console.log(`  ${r.critical.length ? '✗' : '✓'} ${id} score ${r.score}${r.critical.length ? ` CRITICAL ${r.critical.join(',')}` : ''}`);
       } catch (e) {
@@ -165,7 +175,7 @@ if (!values['summary-only']) console.table(
 );
 const avg = results.reduce((a, r) => a + r.score, 0) / (results.length || 1);
 const crit = results.filter((r) => r.critical.length).length;
-console.log(`Mean score ${avg.toFixed(1)} · critical/prohibited hits in ${crit}/${results.length} cases`);
+console.log(`Mean score ${avg.toFixed(1)} · critical/prohibited hits in ${crit}/${results.length} cases · judge cost $${results.reduce((a, r) => a + r.judgeCost, 0).toFixed(2)}`);
 
 mkdirSync('evals', { recursive: true });
 const stamp = new Date().toISOString().replace(/[:.]/g, '-');
