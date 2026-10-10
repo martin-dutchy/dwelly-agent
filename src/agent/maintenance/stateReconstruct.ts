@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { type HistoryEvent, isPublicCase, parseHistory, routineKind } from '../publicCases.js';
+import { weekdayDateConflicts } from './dateChecks.js';
 
 /**
  * Deterministic case-state hints for organiser-format cases (index.md + history.md).
@@ -53,6 +54,8 @@ export type CaseState = {
   chases: Partial<Record<Role, { count: number; since?: Ref; reminders: number }>>;
   dates: (Ref & { iso: string; appointment: boolean; text: string })[];
   appointmentConflicts: string[];
+  /** Weekday names that contradict the date beside them, or one date called by two weekdays. */
+  weekdayConflicts: string[];
   amounts: (Ref & { amount: string; kind: 'quote' | 'invoice' | 'other' })[];
   attachments: { referenced: (Ref & { name: string; available: boolean })[]; present: string[] };
   addressMismatches: (Ref & { postcode: string; found: string; expected: string })[];
@@ -231,6 +234,7 @@ export function reconstructState(input: StateInput): CaseState {
     chases: {},
     dates: [],
     appointmentConflicts: [],
+    weekdayConflicts: weekdayDateConflicts(events.map((e) => ({ event: e.n, date: dateOf(e), text: text(e) }))),
     amounts: [],
     attachments: { referenced: [], present: [...(input.attachmentFiles ?? [])] },
     addressMismatches: [],
@@ -418,6 +422,7 @@ export function renderHints(state: CaseState | undefined): string {
     add(`Holds: ${state.holds.length} in total; latest "${lastHold.reason}" (${at(lastHold)}); ${status}.`);
   }
 
+  for (const c of state.weekdayConflicts.slice(-4)) add(`Date conflict: ${c}.`);
   for (const c of state.appointmentConflicts.slice(0, 4)) add(`Date check: ${c}.`);
   const appts = [...new Map(state.dates.filter((d) => d.appointment).map((d) => [d.iso, d])).values()];
   const upcoming = appts.filter((d) => d.iso >= state.today);
