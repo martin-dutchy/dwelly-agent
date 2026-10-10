@@ -31,6 +31,54 @@ export class FailureInjector {
   }
 }
 
+/** Stable text for a value: object keys sorted, so the same intent always gives the same key. */
+export const canonical = (v: unknown): string =>
+  Array.isArray(v)
+    ? `[${v.map(canonical).join(',')}]`
+    : v && typeof v === 'object'
+      ? `{${Object.keys(v)
+          .sort()
+          .map((k) => `${k}:${canonical((v as Record<string, unknown>)[k])}`)
+          .join(',')}}`
+      : JSON.stringify(v);
+
+/** What to do about a failed call: retry it, reach the same outcome another way, or stop and hand it over. */
+export type FailureClass = 'retry' | 'alternative_route' | 'record_and_escalate';
+export type ClassifiedFailure = { failureClass: FailureClass; nextStep: string };
+
+const ALTERNATIVE: Record<string, string> = {
+  send_message: 'send it on another channel from the records (email, SMS or phone_call), or phone the party and log_call',
+  request_information: 'ask on another channel from the records (email, SMS or phone_call), or phone the party and log_call',
+  request_landlord_approval: 'ask the landlord with send_message on another channel from the records, or phone them and log_call',
+  set_visit: 'confirm the date to each party with send_message, and schedule_follow_up to book it again',
+  assign_contractor: 'assign another contractor from the records, or escalate if there is none',
+};
+
+/** Failures of the system rather than of the request: a 5xx, a timeout, no response, or a write that silently did not land. */
+export const isTransient = (error?: string) => !error || /timed? ?out|HTTP 5\d\d|not responding|ECONN|ETIMEDOUT|socket|unavailable|tool_failed/i.test(error);
+
+/**
+ * A transient failure on its first attempt is worth one retry. After that, or for a request the system refused,
+ * a tool with another route switches route; anything else is recorded and handed to a human.
+ */
+export function classifyFailure(tool: string, attempt: number, error?: string): ClassifiedFailure {
+  if (attempt <= 1 && isTransient(error))
+    return {
+      failureClass: 'retry',
+      nextStep: /timed? ?out/i.test(error ?? '')
+        ? 'The request timed out, so the change may be in place: check the read-back before retrying once.'
+        : 'Transient failure: retry once with the same arguments.',
+    };
+  if (ALTERNATIVE[tool]) return { failureClass: 'alternative_route', nextStep: `Do not repeat the same call: ${ALTERNATIVE[tool]}. List the failure in failed_actions.` };
+  return {
+    failureClass: 'record_and_escalate',
+    nextStep:
+      tool === 'escalate_to_human'
+        ? 'Do not retry again: add_note with the full handover packet and list the failure in failed_actions.'
+        : 'Do not retry again: list it in failed_actions and escalate_to_human with what failed and what is still needed.',
+  };
+}
+
 const MODES: FailureMode[] = ['error', 'silent_drop', 'timeout'];
 
 /** Small seeded PRNG so a chaos run is reproducible for the same seed and case. */

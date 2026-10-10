@@ -22,6 +22,12 @@ describe('readOrganiserEnv', () => {
     expect(resolveTarget('put_on_hold', cfg)).toBeUndefined();
   });
 
+  it('maps the identity and consent tools by default', () => {
+    const cfg = readOrganiserEnv({ ORGANISER_API_URL: 'http://x.test' }, quiet)!;
+    expect(resolveTarget('verify_identity', cfg)).toMatchObject({ tool: 'verify_identity', path: '/tools/verify_identity' });
+    expect(resolveTarget('share_tenant_contact', cfg)).toMatchObject({ tool: 'share_tenant_contact', path: '/tools/share_tenant_contact' });
+  });
+
   it('disables itself with a warning on bad configuration', () => {
     const warnings: string[] = [];
     expect(readOrganiserEnv({ ORGANISER_API_URL: 'http://x.test', ORGANISER_TOOL_MAP: '{nope' }, (s) => warnings.push(s))).toBeUndefined();
