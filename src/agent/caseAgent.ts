@@ -327,11 +327,17 @@ export async function runCase(opts: CaseRunOptions) {
       const delay = Math.min(30_000, 1500 * 2 ** (attempt - 1)) + Math.random() * 1000;
       trace.push({ type: 'retry', attempt, delayMs: Math.round(delay), error: last.errorMessage } as any);
       await new Promise((r) => setTimeout(r, delay));
+      // An abort during the backoff has nothing to cancel, so the timeout must also stop the retry.
+      if (timedOut) return;
       await agent.continue();
     }
   };
 
-  const timer = setTimeout(() => agent.abort(), timeoutMs);
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    agent.abort();
+  }, timeoutMs);
   try {
     // Attachments go in the same user turn, each labelled so the model can match it to the file list.
     const first = opts.media?.length
@@ -339,7 +345,7 @@ export async function runCase(opts: CaseRunOptions) {
       : undefined;
     await withRetries(() => (first ? agent.prompt(first) : agent.prompt(opts.prompt)));
     // One nudge if the model stopped without a decision.
-    if (!decision && !agent.state.errorMessage) await withRetries(() => agent.prompt('You must now call submit_decision.'));
+    if (!decision && !agent.state.errorMessage && !timedOut) await withRetries(() => agent.prompt('You must now call submit_decision.'));
   } finally {
     clearTimeout(timer);
   }
@@ -351,5 +357,5 @@ export async function runCase(opts: CaseRunOptions) {
     critic.unaddressed = criticEvent.unaddressed = unchanged ? critic.kept.map((f) => `[${f.id}] ${f.finding}`) : [];
   }
 
-  return { decision, ledger: ledger.entries, state: toolset.state, gateLog, policyLog, trace, messages: agent.state.messages, error: agent.state.errorMessage, critic };
+  return { decision, ledger: ledger.entries, state: toolset.state, gateLog, policyLog, trace, messages: agent.state.messages, error: agent.state.errorMessage ?? (timedOut && !decision ? `timed out after ${Math.round(timeoutMs / 1000)}s` : undefined), critic };
 }
