@@ -271,11 +271,14 @@ Run from the repo root and show the output.
 ## Progress
 
 - [x] Step 1 (12:20): `src/agent/decisionPoints.ts` (`parseQuestions`, `overlap`, `unansweredQuestions`) and `src/agent/critic/validators.ts` (`preCriticProblems`, `escalationPacketProblems`). `pnpm exec vitest run src/agent/decisionPoints.test.ts src/agent/critic/validators.test.ts`: 12 passed.
+- [x] Step 2 (12:30): `src/agent/critic/critic.ts` (`CRITIC_PROMPT`, `Review`, `runCritic`, `evidenceFilter`, `criticCorpus`, `revisionNote`). `pnpm exec vitest run src/agent/critic/`: 12 passed (evidence or drop, provider error, no `submit_review`, schema failure, timeout).
 
 ## Discoveries
 
 - M4's branch (`marc/m4-harness`, PR #17) already has `parseQuestions` and `overlap` in `src/eval/checks.ts`. `src/agent/decisionPoints.ts` takes that code as is (Q9) plus `unansweredQuestions`, which ignores answers whose text is empty. `src/eval/**` is not edited here; once both PRs are on `main`, `checks.ts` should import from `../agent/decisionPoints.js` and drop its copy.
 - A verified `escalate_to_human` cannot be edited, so a thin packet can only be fixed by escalating again. `preCriticProblems` therefore accepts a thin packet when a later complete packet went to the same team.
+- pi validates tool arguments against the schema before `execute`, so a malformed `submit_review` goes back to the critic model as a tool error and it retries. The 45 s timeout bounds that loop; the result is `unparsable` only if no valid review arrives.
+- The evidence corpus is built from the string values of the ledger, draft and policy log, not their JSON: JSON escapes (`\n`, `\"`) would otherwise break quotes that span a line break in a message body.
 
 ## Decision log
 
