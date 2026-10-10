@@ -96,9 +96,15 @@ export function createOpsToolset(seed: OpsSeed | Ticket[] = []): Toolset {
       (state.properties.length === 1 ? state.properties[0] : undefined)
     );
   };
+  // A wrong job ref (e.g. the case number) is the commonest failed write: say which refs exist so the agent can retry.
+  const notFound = (ref: unknown) => ({
+    ok: false,
+    error: 'not_found',
+    say: `No ticket ${String(ref)}. ${state.tickets.length ? `Open jobs: ${state.tickets.map((t) => t.ref).join(', ')}. Retry with one of these refs.` : 'There are no jobs yet: create one with create_ticket first.'}`,
+  });
   const onTicket = (ref: string, change: (t: Ticket) => Record<string, unknown>) => {
     const t = ticket(ref);
-    if (!t) return { ok: false, error: 'not_found', say: `No ticket ${ref}. Use list_tickets.` };
+    if (!t) return notFound(ref);
     return { ok: true, ticket_ref: ref, ...change(t) };
   };
   const ticketRef = { ticket_ref: z.string().describe('Ticket reference, e.g. NBL-003-2766 or R-4815') };
@@ -117,7 +123,7 @@ export function createOpsToolset(seed: OpsSeed | Ticket[] = []): Toolset {
       description: 'Fetch one ticket by reference.',
       kind: 'read',
       parameters: z.object({ ref: z.string().describe('Ticket reference') }),
-      run: ({ ref }) => (ticket(ref) ? { ok: true, ticket: ticket(ref) } : { ok: false, error: 'not_found' }),
+      run: ({ ref }) => (ticket(ref) ? { ok: true, ticket: ticket(ref) } : notFound(ref)),
     }),
     def({
       name: 'create_ticket',
@@ -144,7 +150,7 @@ export function createOpsToolset(seed: OpsSeed | Ticket[] = []): Toolset {
       parameters: z.object({ ref: z.string(), stage: z.enum(STAGES).optional(), note: z.string().optional() }),
       run: ({ ref, stage, note }) => {
         const t = ticket(ref);
-        if (!t) return { ok: false, error: 'not_found' };
+        if (!t) return notFound(ref);
         if (stage) t.stage = stage;
         if (note) t.notes = [...((t.notes as string[]) ?? []), note];
         return { ok: true, ref, stage: t.stage };
@@ -157,7 +163,7 @@ export function createOpsToolset(seed: OpsSeed | Ticket[] = []): Toolset {
       parameters: z.object({ ref: z.string(), reason: z.string() }),
       run: ({ ref, reason }) => {
         const t = ticket(ref);
-        if (!t) return { ok: false, error: 'not_found' };
+        if (!t) return notFound(ref);
         Object.assign(t, { stage: 'cancelled', cancel_reason: reason });
         return { ok: true, ref, stage: 'cancelled' };
       },
@@ -169,7 +175,7 @@ export function createOpsToolset(seed: OpsSeed | Ticket[] = []): Toolset {
       parameters: z.object({ ticket_ref: z.string(), contractor: z.string(), visit_window: z.string().describe('e.g. 2026-10-11 08:00-12:00') }),
       run: ({ ticket_ref, contractor, visit_window }) => {
         const t = ticket(ticket_ref);
-        if (!t) return { ok: false, error: 'not_found' };
+        if (!t) return notFound(ticket_ref);
         Object.assign(t, { contractor, visit_window, stage: 'visit' });
         return { ok: true, ticket_ref, stage: 'visit', contractor, visit_window };
       },

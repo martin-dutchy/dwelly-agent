@@ -82,7 +82,7 @@ export function batchView(cases: OpsCase[], events: Record<string, OpsEvent[]>, 
         else {
           t.notThrough++;
           notThrough++;
-          failures.push({ tool: name, reason: e.status === 'failed' ? 'Did not go through' : 'Could not be confirmed by read-back', c });
+          failures.push({ tool: name, reason: e.detail || (e.status === 'failed' ? 'Did not go through' : 'Could not be confirmed by read-back'), c });
         }
       }
       if (e.kind === 'blocked' && name) {
