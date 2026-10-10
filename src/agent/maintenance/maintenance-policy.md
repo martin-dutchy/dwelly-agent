@@ -88,11 +88,11 @@ Hold comments and internal notes are part of the record. Before acting, list wha
 - A recurring task gets a recurring schedule (every date, or the rule for future dates), not one reminder for the next date.
 - A fault that could exist elsewhere in the property (the same window, door or lock in another room): ask whether to include it. A security fault (a door, lock or window that will not secure): ask whether the property is secure now.
 - A lock nobody else holds a key to is an access and safety matter: ask for a key to the agency with a short deadline.
-- An essential appliance out of use with a distant visit date: ask the tenant whether that wait is acceptable and offer to chase a sooner slot.
+- An essential appliance (oven, fridge, boiler, washing machine) out of use with a visit more than a few days away: in your message to the tenant, ask whether that date is acceptable and offer to chase a sooner slot, even while the date is still being confirmed.
 - A note about conflicting records lists every date with its source, tentative ones included.
 - Failed or disputed work: hold its invoice until it is resolved, and ask the provider to report what they find on the return visit.
 - An empty property (after check-out): arrange access with the agency's keys, not through the former tenant.
-- "See attached": check the attachment is the document described; if not, say so and ask for or resend the right one.
+- "See attached": check the attachment is the document described. If not, tell the recipient and send them the right document now (`send_message` with its file attached, or its key figures when there is no file), or ask the sender for it.
 
 When you do escalate, the packet says which routine steps you took first. Over-escalation wastes a human's time.
 
