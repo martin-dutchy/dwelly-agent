@@ -142,6 +142,41 @@ export function foldCase(runs: RunRow[]): CaseRow {
   };
 }
 
+type DiffRow = { key: string; score: number | null; critical: string[]; outcome: string; error?: string };
+type DiffSide = { mean: number; decided: number; criticalCases: number; rows: DiffRow[] };
+type Aggregates = { cases: number; mean: number; decided: number; criticalCases: number };
+
+const aggregate = (rows: DiffRow[]): Aggregates => ({
+  cases: rows.length,
+  mean: rows.reduce((a, r) => a + (r.score ?? 0), 0) / (rows.length || 1),
+  decided: rows.filter((r) => !['CRASH', 'MISSING'].includes(r.outcome) && !r.error).length,
+  criticalCases: rows.filter((r) => r.critical.length).length,
+});
+
+/**
+ * Compares a run with a baseline on the same cases. When the case sets differ (an --only run against a
+ * full-split baseline, or a partial baseline for other cases), both sides are recomputed from their rows
+ * restricted to the shared keys, so a subset never reads as lost coverage.
+ */
+export function compareToBaseline(run: DiffSide, baseline: DiffSide) {
+  const runKeys = new Set(run.rows.map((r) => r.key));
+  const baseKeys = new Set(baseline.rows.map((r) => r.key));
+  const same = runKeys.size === baseKeys.size && [...runKeys].every((key) => baseKeys.has(key));
+  const shared = [...runKeys].filter((key) => baseKeys.has(key));
+  const notInBaseline = [...runKeys].filter((key) => !baseKeys.has(key));
+  const restrict = (rows: DiffRow[]) => rows.filter((r) => shared.includes(r.key));
+  const cur: Aggregates = same ? { cases: run.rows.length, mean: run.mean, decided: run.decided, criticalCases: run.criticalCases } : aggregate(restrict(run.rows));
+  const base: Aggregates = same ? { cases: baseline.rows.length, mean: baseline.mean, decided: baseline.decided, criticalCases: baseline.criticalCases } : aggregate(restrict(baseline.rows));
+  const regressions: string[] = [];
+  if (shared.length) {
+    const fmt = (n: number) => (n > 0 ? `+${n.toFixed(1)}` : n.toFixed(1));
+    if (cur.mean < base.mean - 5) regressions.push(`mean score dropped ${fmt(cur.mean - base.mean)}`);
+    if (cur.decided < base.decided) regressions.push('coverage dropped');
+    if (cur.criticalCases > base.criticalCases) regressions.push('more cases with critical failures');
+  }
+  return { scope: same ? ('all' as const) : ('shared' as const), shared: shared.length, notInBaseline, cur, base, regressions };
+}
+
 export type Metrics = ReturnType<typeof summarize>;
 
 /** Aggregates every run of every case. Keeps the pre-M4 top-level fields (cases, decided, judged, mean, criticalCases, cost, judgeCost, rows). */

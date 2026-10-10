@@ -19,7 +19,7 @@ import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { runCaseChecks } from './checks.js';
 import { loadAllChecks, specErrorLine } from './runChecks.js';
-import { type EscalateLabel, type RunRow, buildRunRow, summarize } from './summary.js';
+import { type EscalateLabel, type RunRow, buildRunRow, compareToBaseline, summarize } from './summary.js';
 
 const { values } = parseArgs({
   options: {
@@ -170,7 +170,10 @@ const summary = {
 type Summary = typeof summary;
 
 const tag = `${meta.profile}-${split}${meta.chaos > 0 ? '-chaos' : ''}${only ? '-partial' : ''}${k > 1 ? `-k${k}` : ''}`;
-const baselinePath = values.baseline ?? join('evals', `baseline-${tag}.json`);
+const ownBaseline = values.baseline ?? join('evals', `baseline-${tag}.json`);
+// An --only run with no partial baseline of its own is compared with the full-split baseline, on the shared cases.
+const fullBaseline = join('evals', `baseline-${tag.replace('-partial', '')}.json`);
+const baselinePath = !values.baseline && only && !existsSync(ownBaseline) && existsSync(fullBaseline) ? fullBaseline : ownBaseline;
 const baseline = readJson(baselinePath) as (Partial<Summary> & Pick<Summary, 'at' | 'mean' | 'decided' | 'criticalCases' | 'rows'>) | undefined;
 writeFileSync(join(root, 'summary.json'), JSON.stringify(summary, null, 2));
 if (!values.rescore) {
@@ -197,10 +200,13 @@ const regressions: string[] = [];
 const baseK = baseline?.k ?? 1;
 if (baseline) {
   if (baseK !== k) console.log(`baseline k=${baseK} vs run k=${k}: comparing means only`);
-  console.log(`vs baseline ${baseline.at}: mean ${fmt(s.mean - baseline.mean)} · coverage ${s.decided - baseline.decided >= 0 ? '+' : ''}${s.decided - baseline.decided} · critical ${s.criticalCases - baseline.criticalCases >= 0 ? '+' : ''}${s.criticalCases - baseline.criticalCases}`);
-  if (s.mean < baseline.mean - 5) regressions.push(`mean score dropped ${fmt(s.mean - baseline.mean)}`);
-  if (s.decided < baseline.decided) regressions.push('coverage dropped');
-  if (s.criticalCases > baseline.criticalCases) regressions.push('more cases with critical failures');
+  const d = compareToBaseline(s, baseline);
+  const signed = (n: number) => `${n >= 0 ? '+' : ''}${n}`;
+  const scope = d.scope === 'all' ? '' : ` (same ${d.shared} cases)`;
+  if (!d.shared) console.log(`vs baseline ${baseline.at} (${baselinePath}): no cases in common, nothing to compare`);
+  else console.log(`vs baseline ${baseline.at}${scope}: mean ${fmt(d.cur.mean - d.base.mean)} · coverage ${signed(d.cur.decided - d.base.decided)} · critical ${signed(d.cur.criticalCases - d.base.criticalCases)}`);
+  if (d.notInBaseline.length) console.log(`Not in the baseline, not compared: ${holdout ? `${d.notInBaseline.length} case(s)` : d.notInBaseline.join(', ')}`);
+  regressions.push(...d.regressions);
   if (!holdout) {
     const before = new Map(baseline.rows.map((r) => [r.key, r]));
     const table = s.rows.map((r) => {
@@ -217,8 +223,9 @@ if (baseline) {
   console.log(`No baseline at ${baselinePath}: run again with --save-baseline to set one.`);
 }
 if (values['save-baseline']) {
-  writeFileSync(baselinePath, JSON.stringify(summary, null, 2));
-  console.log(`Saved baseline: ${baselinePath}`);
+  // Never the full-split fallback: a subset run must not overwrite the full baseline.
+  writeFileSync(ownBaseline, JSON.stringify(summary, null, 2));
+  console.log(`Saved baseline: ${ownBaseline}`);
 }
 if (holdout) console.log('Holdout: aggregates only. Do not open its run folder while tuning.');
 console.log(`Run folder: ${root}`);

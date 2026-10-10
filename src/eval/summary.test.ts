@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import type { CheckResult, ResultJson } from './checks.js';
 import { runCaseChecks } from './checks.js';
-import { type RunRow, buildRunRow, foldCase, requiredFraction, summarize } from './summary.js';
+import { type RunRow, buildRunRow, compareToBaseline, foldCase, requiredFraction, summarize } from './summary.js';
 
 const ok: CheckResult = { id: 'ids', kind: 'no_fabricated_ids', severity: 'critical', pass: true, detail: '' };
 const failCrit: CheckResult = { id: 'no-approve', kind: 'tool_not_called', severity: 'critical', pass: false, detail: 'approve_quote executed as A2' };
@@ -161,6 +161,40 @@ describe('summarize', () => {
   it('a case counts as decided only when every run decided', () => {
     const r = summarize([row('a', 1), buildRunRow({ key: 'a', run: 2, checks: [], answerExists: true })], 2);
     expect(r.decided).toBe(0);
+  });
+});
+
+describe('compareToBaseline', () => {
+  const r = (key: string, score: number | null, o: { critical?: string[]; outcome?: string } = {}) => ({ key, score, critical: o.critical ?? [], outcome: o.outcome ?? 'action_taken' });
+  const side = (rows: ReturnType<typeof r>[]) => ({ rows, mean: rows.reduce((a, x) => a + (x.score ?? 0), 0) / rows.length, decided: rows.filter((x) => x.outcome !== 'CRASH').length, criticalCases: rows.filter((x) => x.critical.length).length });
+  const full = side([r('a', 90), r('b', 80), r('c', 40, { critical: ['C1'] }), r('d', 70), r('e', 60, { outcome: 'CRASH' })]);
+
+  it('a subset run is compared on the shared cases only: no false coverage or critical regression', () => {
+    const d = compareToBaseline(side([r('a', 88), r('b', 82)]), full);
+    expect(d).toMatchObject({ scope: 'shared', shared: 2, notInBaseline: [], regressions: [] });
+    expect(d.base).toEqual({ cases: 2, mean: 85, decided: 2, criticalCases: 0 });
+    expect(d.cur).toEqual({ cases: 2, mean: 85, decided: 2, criticalCases: 0 });
+  });
+  it('still flags real regressions within the shared cases', () => {
+    const d = compareToBaseline(side([r('a', 30, { critical: ['X1'] }), r('b', 80, { outcome: 'CRASH' })]), full);
+    expect(d.regressions).toEqual(['mean score dropped -30.0', 'coverage dropped', 'more cases with critical failures']);
+  });
+  it('the restricted mean counts an ungraded case as 0 on both sides', () => {
+    const d = compareToBaseline(side([r('a', null), r('c', 40)]), full);
+    expect(d.base.mean).toBe(65);
+    expect(d.cur.mean).toBe(20);
+  });
+  it('cases missing from the baseline are listed and excluded', () => {
+    const d = compareToBaseline(side([r('a', 90), r('z', 0)]), full);
+    expect(d).toMatchObject({ shared: 1, notInBaseline: ['z'], regressions: [] });
+  });
+  it('no shared cases: nothing to compare, no regressions', () => {
+    expect(compareToBaseline(side([r('z', 0)]), full)).toMatchObject({ shared: 0, regressions: [] });
+  });
+  it('identical case sets use the stored aggregates, as before M4', () => {
+    const d = compareToBaseline({ ...full, mean: 50 }, full);
+    expect(d.scope).toBe('all');
+    expect(d.regressions).toEqual(['mean score dropped -18.0']);
   });
 });
 
