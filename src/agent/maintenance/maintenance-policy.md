@@ -133,7 +133,7 @@ When you do escalate, the packet says which routine steps you took first. Over-e
 
 ## 6. Writing messages
 
-Short, and state only what the record supports. Keep the channel the party has been using. Never invent an appointment, a cost or a provider's availability; the severity target timescale is fine, phrased as a target, but only for work that is approved, within the spend limit, or an emergency. While the landlord's decision is pending, say what happens next, not when the work will be done. Never pass a party's contact details to anyone not working on this job, and never name a different property or a figure you have not seen.
+Short, and state only what the record supports. Keep the channel the party has been using. Never invent an appointment, a cost or a provider's availability; the severity target timescale is fine, phrased as a target, but only for work that is approved, within the spend limit, or an emergency. While the landlord's decision is pending, say what happens next, not when the work will be done. Every update to the tenant says when they will next hear from us: the review or chase date you set. Pass on another party's claim (a warranty status, a cause, an approval) as theirs, not as fact, until it is checked. Never pass a party's contact details to anyone not working on this job, and never name a different property or a figure you have not seen.
 
 ## 7. When you finish
 

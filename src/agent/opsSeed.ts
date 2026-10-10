@@ -31,11 +31,31 @@ export function seedFromCase(c: LoadedCase): OpsSeed {
   if (history) {
     const address = c.brief.match(/\*\*Property:\*\*\s*(.+)/)?.[1]?.trim();
     const voidProperty = /NOT TENANTED/.test(history);
-    if (address) properties.push({ address, tenanted: voidProperty ? false : undefined });
+    if (address) properties.push({ address, tenanted: voidProperty ? false : undefined, landlord: agencyLandlord(history) });
     tickets.push(publicJob(c, history, address));
   }
   const evidence = [c.brief, ...c.inputs.map((i) => i.content)].join('\n\n');
   return { tickets, properties, today, evidence, mediaNames: c.media.map((m) => m.name) };
+}
+
+/**
+ * Case exports name parties by role only, but the agency manages the property and its system holds
+ * the landlord's details: it messages "To: Landlord" throughout the public cases. No address is invented.
+ */
+function agencyLandlord(history: string): NonNullable<Property['landlord']> {
+  const events = history.split(/^#+ [^\n]*\bevent (?=\d+\s*$)/m).slice(1).flatMap((block) => {
+    const id = block.match(/^(\d+)/)?.[1];
+    const field = (k: string) => block.match(new RegExp(`- \\*\\*${k}:\\*\\* ([^\\n]+)`))?.[1]?.trim() ?? '';
+    const dir = /landlord/i.test(field('To')) ? 'to landlord' : /landlord/i.test(field('From')) ? 'from landlord' : '';
+    return id && dir ? [`event ${id} (${field('Channel').toLowerCase() || 'message'}, ${dir})`] : [];
+  });
+  return {
+    contact: 'agency landlord record',
+    notes: [
+      'Contact details are held in the agency system and not shown in this case file; messages to the landlord go through it. Use contact "agency landlord record".',
+      events.length ? `Landlord messages visible in this case: ${events.join('; ')}.` : 'No landlord message is visible in this case yet.',
+    ],
+  };
 }
 
 /** The job's state as the workflow engine would show it after the last visible event. */
