@@ -485,7 +485,8 @@ Run from the repo root (or from the workstream's worktree in Wave 1). Show the o
   - `pnpm cases --in cases/practice --only 05 --out runs/h2-w0-off`: 1/1 decisions, `result.json` `harness.flags` = "none";
   - `HARNESS=all pnpm cases --in "HackatonPublicCases/Property Management" --only 002 --at auto --out runs/h2-w0-all`: 1/1 decisions, all flags recorded in `run.json`;
   - self-review of the hot-file diff found that `ingestV2` gated nothing. Fixed: with it off, `run.ts` uses `loadCase` directly.
-- [ ] Wave 1: A · B · C · D · E · F · G · R · T
+- [x] (15:33) WS G merged into `h2/base` (`f3816fb`; `pnpm verify` 598 tests green). Brief and skill text no longer count as critic evidence. Red flags become checklist items S1..S12 in the critic's system prompt. With context absent or empty, the critic is byte-identical to before (hash test).
+- [ ] Wave 1: A · B · C · D · E · F · R · T
 - [ ] Wave 2
 - [ ] Wave 3
 - [ ] Wave 4
@@ -496,6 +497,11 @@ Run from the repo root (or from the workstream's worktree in Wave 1). Show the o
 - Observation: `src/core/policy.md` is also loaded by the voice agent (`src/voice/elevenlabs/config.ts` L14), so slimming the constitution must not break voice. Evidence: grep, 15:28.
 - Observation: practice cases 25-60 (and the modified `cases/splits.json`) exist only as uncommitted files in the main checkout (`dwelly-agent`, branch `marc/pre-submit-gap-check`). `main` and every `h2/*` worktree have practice 01-24 only. Wave 1 fixtures and tests therefore use committed dev cases, and new cases are numbered 91-100. Evidence: `ls cases/practice` in `dwelly-h2-base` lists 01-24, and the Wave 0 test on practice 40 failed with ENOENT (15:27).
 - Observation: about 37 of the 60 practice cases (including the uncommitted ones) are gas or CO; damp, void properties and keys, legal and unrelated-issue situations have one or two cases each. Evidence: practice theme survey, 15:25.
+
+- Observation (WS G): `run.ts` sets `briefText` to the old hints text even when the `brief` flag is off, so `HARNESS=criticContext` on its own changes the critic's input whenever hints exist. Skill text is stripped from the critic's evidence by matching the `<skill id=…>` format of `renderSkills`. Wave 2 to-dos:
+  - set `briefText` only when `flags.brief` is on;
+  - pass the derived texts to the critic explicitly (`context.derived?: string[]`) instead of relying on that format;
+  - have WS R read `CriticResult.redFlagItems` and the `S*` item verdicts for the REASONING section on critic hits.
 
 ## Decision log
 
