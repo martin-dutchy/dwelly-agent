@@ -11,6 +11,7 @@ import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { parseHistory } from '../agent/publicCases.js';
 
+const PUBLIC_ROOT = 'HackatonPublicCases/Property Management';
 const { values } = parseArgs({
   options: {
     src: { type: 'string' },
@@ -18,14 +19,15 @@ const { values } = parseArgs({
     after: { type: 'string' },
     truncate: { type: 'boolean', default: false },
     digest: { type: 'boolean', default: false },
-    root: { type: 'string', default: 'HackatonPublicCases/Property Management' },
+    root: { type: 'string', default: PUBLIC_ROOT },
     out: { type: 'string', default: 'cases/public-cuts' },
   },
 });
 
 const HOLDOUT = new Set(['031', '036', '041', '045', '048', '050']);
 if (!values.src) throw new Error('--src <id> is required');
-if (HOLDOUT.has(values.src)) throw new Error(`${values.src} is in the holdout split: never cut, read or mutate it`);
+if (values.root === PUBLIC_ROOT && HOLDOUT.has(values.src)) throw new Error(`${values.src} is in the holdout split: never cut, read or mutate it`);
+const sourceTag = values.root === PUBLIC_ROOT ? 'PM' : values.root!.replace(/\/+$/, '').split('/').pop();
 const srcDir = join(values.root!, values.src);
 const historyMd = readFileSync(join(srcDir, 'history.md'), 'utf8');
 const { preamble, events } = parseHistory(historyMd);
@@ -67,7 +69,7 @@ if (existsSync(join(srcDir, 'attachments'))) cpSync(join(srcDir, 'attachments'),
 
 writeFileSync(
   join(outDir, 'expected.json'),
-  JSON.stringify({ source: `PM/${values.src}`, cut_after: after, truncated: values.truncate, pattern: '', escalate: 'either', outcome_class: [], notes: '' }, null, 2) + '\n',
+  JSON.stringify({ source: `${sourceTag}/${values.src}`, cut_after: after, truncated: values.truncate, pattern: '', escalate: 'either', outcome_class: [], notes: '' }, null, 2) + '\n',
 );
 writeFileSync(
   join(outDir, 'rubric.json'),
