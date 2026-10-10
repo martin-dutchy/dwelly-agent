@@ -335,3 +335,19 @@ describe('greetings when we ring someone', () => {
     expect(firstMessage(scenarioById('contractor-window-unbooked')!, true)).toContain('Am I speaking with Oscar Turner?');
   });
 });
+
+describe('admin pages', () => {
+  it('ship scripts that parse (a syntax error silently kills every button)', async () => {
+    const { adminHomePage, adminCallPage } = await import('./http/adminPages.js');
+    const { scenarios, testerCard, buildCallLog } = await import('./scenarios.js');
+    const tester = { id: 't1', name: "O'Brien", token: 'tok', daily_cap: 5, revoked: false, created_at: new Date().toISOString(), phone: '+447700900123', scenario_id: 'contractor-extra-part' };
+    const pages = [
+      adminHomePage([tester], [], 'https://x.test', scenarios.map(testerCard), true, '+16813346993'),
+      adminCallPage({ conversation_id: 'c1', tester_id: null, scenario_id: 'routine-repair', brain: 'native', status: 'graded', started_at: new Date().toISOString(), ended_at: null, duration_secs: 30, passed: true, grade: [], flags: [], transcript: [], analysis: null }, buildCallLog([]), scenarios[0]),
+    ];
+    for (const html of pages) {
+      const script = html.match(/<script>([\s\S]*?)<\/script>/)![1];
+      expect(() => new Function(script)).not.toThrow();
+    }
+  });
+});
