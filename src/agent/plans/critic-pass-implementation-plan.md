@@ -268,6 +268,15 @@ Run from the repo root and show the output.
 | 14:45 | Decision recorded. If the k = 3 A/B cannot start by 14:20, run it at k = 1 (Q2, Q3). |
 | **15:00 scope-ladder cut** | If the A/B is not decided, or steps 3 to 5 are not green: `--critic off` stays the default, the validators from step 1 stay in (they are deterministic and cheap), and the Decision log says "critic not evaluated in time, shipped off". The critic code may stay on `main` behind the flag only if `pnpm verify` is green; otherwise the step 3 to 6 commits are reverted. |
 
+## Progress
+
+- [x] Step 1 (12:20): `src/agent/decisionPoints.ts` (`parseQuestions`, `overlap`, `unansweredQuestions`) and `src/agent/critic/validators.ts` (`preCriticProblems`, `escalationPacketProblems`). `pnpm exec vitest run src/agent/decisionPoints.test.ts src/agent/critic/validators.test.ts`: 12 passed.
+
+## Discoveries
+
+- M4's branch (`marc/m4-harness`, PR #17) already has `parseQuestions` and `overlap` in `src/eval/checks.ts`. `src/agent/decisionPoints.ts` takes that code as is (Q9) plus `unansweredQuestions`, which ignores answers whose text is empty. `src/eval/**` is not edited here; once both PRs are on `main`, `checks.ts` should import from `../agent/decisionPoints.js` and drop its copy.
+- A verified `escalate_to_human` cannot be edited, so a thin packet can only be fixed by escalating again. `preCriticProblems` therefore accepts a thin packet when a later complete packet went to the same team.
+
 ## Decision log
 
 - Decision: the critic's single revision reuses pi's `beforeToolCall` block on `submit_decision` rather than adding a second agent loop.
