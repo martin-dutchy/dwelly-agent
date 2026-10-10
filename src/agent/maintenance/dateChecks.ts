@@ -132,11 +132,18 @@ function pairsIn(line: string, item: DatedText): Pair[] {
   return pairs;
 }
 
+export type WeekdayConflict = { text: string; events: number[]; kind: 'wrong_weekday' | 'two_weekdays' };
+
 /** Hint lines, oldest first. Never throws: any failure yields no lines. */
 export function weekdayDateConflicts(items: DatedText[]): string[] {
+  return weekdayConflictItems(items).map((c) => c.text);
+}
+
+/** The same findings with the item numbers each one came from. Never throws. */
+export function weekdayConflictItems(items: DatedText[]): WeekdayConflict[] {
   try {
     const pairs = items.flatMap((item) => item.text.split('\n').flatMap((line) => pairsIn(line, item)));
-    const lines: { first: number; text: string }[] = [];
+    const lines: (WeekdayConflict & { first: number })[] = [];
 
     const wrong = new Map<string, Pair[]>();
     for (const p of pairs) if (p.said !== dayOf(p.iso)) wrong.set(`${p.iso}|${p.said}`, [...(wrong.get(`${p.iso}|${p.said}`) ?? []), p]);
@@ -144,7 +151,7 @@ export function weekdayDateConflicts(items: DatedText[]): string[] {
       const ns = [...new Set(ps.map((p) => p.event))];
       const [p] = ps;
       const year = p.inferred ? ' (year inferred from the event date)' : '';
-      lines.push({ first: ns[0], text: `${events(ns)} ${ns.length > 1 ? 'say' : 'says'} "${p.snippet}" but ${dmy(p.iso)}${year} is a ${DAYS[dayOf(p.iso)]}` });
+      lines.push({ first: ns[0], events: ns, kind: 'wrong_weekday', text: `${events(ns)} ${ns.length > 1 ? 'say' : 'says'} "${p.snippet}" but ${dmy(p.iso)}${year} is a ${DAYS[dayOf(p.iso)]}` });
     }
 
     const named = new Map<string, Map<number, number[]>>();
@@ -156,9 +163,10 @@ export function weekdayDateConflicts(items: DatedText[]): string[] {
     for (const [iso, byDay] of named) {
       if (byDay.size < 2) continue;
       const parts = [...byDay].map(([day, ns]) => `${DAYS[day]} (${events(ns)})`);
-      lines.push({ first: Math.min(...[...byDay.values()].flat()), text: `${dmy(iso)} is called ${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}` });
+      const ns = [...new Set([...byDay.values()].flat())];
+      lines.push({ first: Math.min(...ns), events: ns, kind: 'two_weekdays', text: `${dmy(iso)} is called ${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}` });
     }
-    return lines.sort((a, b) => a.first - b.first).map((l) => l.text);
+    return lines.sort((a, b) => a.first - b.first).map(({ first: _, ...c }) => c);
   } catch {
     return [];
   }
