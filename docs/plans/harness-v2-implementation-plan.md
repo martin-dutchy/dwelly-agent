@@ -502,7 +502,7 @@ Run from the repo root (or from the workstream's worktree in Wave 1). Show the o
   - `result.json` `harness.tags` records the classifier tags whenever they are computed, even with `brief` off.
 
   Smoke run with every flag on, practice 05 and 23: 2/2 decided, 0 unverified actions, $0.18. Tags and skills recorded (05: landlord-approval and quote-invoice; 23: gas-emergency, vulnerable-occupant and identity-privacy). No guard blocks, completion bounces or `load_skill` calls.
-- [x] (15:58) WS B and WS T merged into `h2/base` (`pnpm verify` 47 files and 1,284 tests green).
+- [x] (15:41) WS B and WS T merged into `h2/base` (`pnpm verify` 47 files and 1,284 tests green).
   - B: MIME email decoding, timelines and parties for every format, `now` taken from the case's Today line, unreadable binaries replaced by a placeholder, and folders with no brief handled as generic. The `loadCase` hash snapshot over every non-holdout folder is unchanged.
   - T: miss taxonomy and the `pnpm loop` changes (taxonomy table, `--harness` passthrough, baseline names keyed by flag set), plus practice cases 91-100.
 
@@ -515,7 +515,7 @@ Run from the repo root (or from the workstream's worktree in Wave 1). Show the o
   - `cases/splits.json` gained an `expansion` group with practice 91-100, an additive edit.
 
   Smoke run with every flag on, practice 99 and 100: 2/2 decided, 0 unverified actions, $0.12. Case 100 read the £522 total from the PDF inside the email and asked the landlord to approve it because it is over the £300 limit.
-- [x] (16:05) WS C and WS E merged into `h2/base`. Wave 1 is complete: `pnpm verify` 56 files and 1,466 tests green.
+- [x] (15:44) WS C and WS E merged into `h2/base`. Wave 1 is complete: `pnpm verify` 56 files and 1,466 tests green.
   - C: a typed brief with facts, conflicts, deadlines and money for every format, with sources that always resolve.
   - E: `verify_identity` and `share_tenant_contact`; a tier for every tool and the tier-3 basis guard; message, prohibited-content and loop guards; typed failure classes.
 
@@ -532,7 +532,12 @@ Run from the repo root (or from the workstream's worktree in Wave 1). Show the o
   - Practice 96 declined to share the number without consent and arranged access through the tenant.
   - Practice 91 still did not escalate, even with `damp-mould-awaab` injected. That is a Wave 4 item.
 - [ ] Wave 2
-- [ ] Wave 3
+- [ ] Wave 3. Started at 15:45 with both arms in parallel: flags off and `HARNESS=all`, `--split dev --profile final --k 3 --chaos 0.15`. The Anthropic credit balance ran out at about 15:53, part-way through runs 2 and 3. 49 off runs and 26 on runs failed with "Your credit balance is too low", so k=3, pass^3 and the flags-off regression exit are invalid. No baseline was saved.
+  - Run 1 completed in both arms. Over the 65 cases graded in both, the run-1 mean is 86.4 flags off and 82.2 with every flag on (−4.2), which fails the gate (at most −2).
+  - Largest drops: practice 102 (−50), public-cut 020 (−47), 021 (−40), 008 (−40), 038 (−40), practice 07 (−27).
+  - Largest gains: practice 112 (+73), 111 (+53), 18 (+37), public-cut 034 (+27), practice 10 (+20).
+  - With k=1, single cases swing by ±40 to 70, so this is only directional: no flag flips, and an ablation is needed once credit is back.
+  - Run folders: `runs/loop/dev-final-k3-2026-10-10T14-45-34-054Z` (off) and `…-h-all-k3-…-055Z` (on).
 - [ ] Wave 4
 
 ## Discoveries
