@@ -148,6 +148,17 @@ Every command from the repo root. Show the output, not a claim.
   - `git log --format='%an %s' -- ANSWERS/` → one runner commit (M7-AC8).
   - Cold clone per M7-AC6; pass is the existence of `/tmp/x/01/ANSWER.md`.
 
+## Progress
+
+- [x] 12:05 BST, branch `marc/m7-submission` (from `main` at `46a0dc6`). Step 3: README sections 1, 2, 5, 6, 7, 8 written from Appendix A and checked against the code on `main`. Removed claims that did not ship (critic pass, ElevenLabs); described the 28 tools in `src/agent/opsTools.ts`, the `Decision` schema (`case_state`, typed `next_actions` citing verified ledger entries) and the code-enforced rules in `caseAgent.ts`, `opsTools.ts` and `opsChecks.ts`; disclosed `claude-haiku-5-5` (quick loop profile) alongside Sonnet and Opus. Corrected the plan's `pdftotext` claim: without it, PDFs are sent to Claude natively, not replaced by a placeholder. Section 3 bullets refreshed (guards, decision gate, job-state seeding); section 4 install line changed per Decision 11 (no `packageManager` pin on `main`).
+- [x] Step 7 (interim): metrics table rendered by script from the two committed baselines (`evals/baseline-final-dev.json`, 23 cases, mean 93.4; `evals/baseline-final-dev-partial.json`, 25 public cuts, mean 76.0; both Sonnet agent and Opus grader, k = 1, no chaos, pre-M1), each labelled with file, run time and commit. A `TBD` line under the table makes `check.sh` FAIL until the final-profile run on the frozen code replaces it.
+- [x] Steps 4–5: `SUBMISSION.md` filled with track, repo URL, results and video paths; team name, Martin's surname, 16:30 hash, 17:00 hash and both post URLs left as `TBD` for humans. LinkedIn and X drafts added (X draft is 265 characters as X counts them with a 30-character metric).
+- [x] Step 6: `demo/README.md` holds the storyboard and the encode/commit commands. `.gitattributes` already routed `*.mp4` through LFS (`git check-attr filter demo/demo.mp4` → `lfs`); no change needed. Case 025 facts in the narration re-measured: 64 events, 13 holds, 33 days (the research doc said 49 and 10).
+- [ ] Step 1: `brew install git-lfs ffmpeg && git lfs install`. Human (not run by the agent).
+- [ ] Step 2: untrack the organiser rules doc. Not done in this branch (outside the files this session owned); still a `check.sh` WARN.
+- [ ] Steps 8–15: demo pre-run, recording, final metrics, freeze hashes, visibility flip, posts, final audit.
+- Note: open PR #10 (voice) also replaces the section 5 `TBD` line, so it will conflict with this branch there. Resolve by keeping this section 5 and adding the voice services as rows only if voice merges (Decision 13). PR #11 (logging) edits section 4 and the "Reality Test results" section, which this branch does not touch apart from the one install line.
+
 ## Discoveries (11:37 BST, Marc's machine)
 
 - Observation: `mfluviag` cannot flip visibility; permissions are `push: true, admin: false`. Evidence: `gh api repos/martin-dutchy/dwelly-agent --jq .permissions`. Consequence: step 13 is Martin's, or Martin grants admin first (Decision 3).
