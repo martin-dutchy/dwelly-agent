@@ -69,6 +69,8 @@ The data also shows where naive automation goes wrong, and these are the situati
 
 ## 3. Architecture
 
+![Architecture: inputs, case loading, batch runner, case agent with its safety layer, tools and ledger, outputs, the ops portal with human decisions, and the voice loop](docs/images/architecture.png)
+
 ```
 case folder ──► src/agent/cases.ts (practice format)  ─┐
             └─► src/agent/publicCases.ts (index.md +   ├─► case prompt ──► pi agent loop (Claude) ──► submit_decision
