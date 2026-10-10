@@ -68,11 +68,6 @@
 <main>
   <section>
     <div class="panel"><h2>Scenarios</h2><div id="list"></div></div>
-    <div class="panel">
-      <h2>Between calls</h2>
-      <button class="btn secondary" id="reset">Reset demo data</button>
-      <p class="hint">Restores tenants and tickets to the fixtures, so tickets from earlier calls don't count as duplicates.</p>
-    </div>
   </section>
 
   <section id="brief"></section>
@@ -109,13 +104,13 @@
 <script type="module">
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const api = (p, opts) => fetch(`/voice/api/${p}`, opts).then(async (r) => { if (!r.ok) throw new Error(await r.text()); return r.json(); });
+const api = (p, opts) => fetch(`/admin/api/${p}`, { ...opts, headers: { 'content-type': 'application/json', ...(opts?.headers ?? {}) } }).then(async (r) => { if (!r.ok) throw new Error(await r.text()); return r.json(); });
 
 let scenarios = [], current, conversation, conversationId, poll, muted = false;
 
 function renderStatus(s) {
   const ok = (v) => (v ? '<b>set</b>' : '<span class="err">missing</span>');
-  $('status').innerHTML = `brain <b>${esc(s.brain)}</b> · agent ${ok(s.agentId)} · public URL ${s.publicBaseUrl ? `<b>${esc(s.publicBaseUrl)}</b>` : '<span class="err">missing</span>'} · post-call webhook ${ok(s.webhookSecret)}`;
+  $('status').innerHTML = `brain <b>${esc(s.brain)}</b> · agent ${ok(s.agentId)} · public URL ${s.publicBaseUrl ? `<b>${esc(s.publicBaseUrl)}</b>` : '<span class="err">missing</span>'} · database ${s.database ? '<b>postgres</b>' : '<span class="err">in-memory</span>'}`;
 }
 
 function pick(id) {
@@ -251,6 +246,7 @@ $('start').addEventListener('click', async () => {
       onError: (e) => { $('callinfo').innerHTML = `<span class="err">${esc(e?.message ?? e)}</span>`; },
     });
     conversationId = conversation.getId();
+    await api('calls', { method: 'POST', body: JSON.stringify({ conversationId, scenarioId: current.id }) });
     if (!$('textonly').checked) watchLevel(() => conversation?.getInputVolume?.() ?? 0);
     $('regrade').disabled = false;
     setCallUi(true);
@@ -271,7 +267,6 @@ $('device').addEventListener('change', () => { try { localStorage.setItem('voice
 navigator.mediaDevices?.addEventListener?.('devicechange', listDevices);
 await listDevices();
 try { const m = localStorage.getItem('voice-mic'); if (m && [...$('device').options].some((o) => o.value === m)) $('device').value = m; } catch {}
-$('reset').addEventListener('click', async () => { await api('reset', { method: 'POST' }); $('reset').textContent = 'Reset ✓'; setTimeout(() => ($('reset').textContent = 'Reset demo data'), 1500); });
 
 try { $('textonly').checked = localStorage.getItem('voice-textonly') === '1'; } catch {}
 $('textonly').addEventListener('change', () => { try { localStorage.setItem('voice-textonly', $('textonly').checked ? '1' : '0'); } catch {} });

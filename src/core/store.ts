@@ -31,7 +31,7 @@ export type Escalation = {
   created: string;
 };
 
-type Data = {
+export type Data = {
   tenants: Tenant[];
   properties: Property[];
   tenancies: Tenancy[];
@@ -46,6 +46,9 @@ export const db: Data = load();
 
 /** Back to the fixtures, in place (tools hold a reference to db). Used between voice test calls. */
 export const resetDb = () => Object.assign(db, load());
+
+/** A fresh copy of the fixtures, so concurrent test calls never see each other's tickets. */
+export const newWorld = (): Data => load();
 
 let seq = 4900;
 export const nextRef = (prefix: string) => `${prefix}-${++seq}`;

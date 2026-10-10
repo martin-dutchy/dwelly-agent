@@ -1,5 +1,5 @@
-import { db, today } from '../core/store.js';
-import type { ToolContext, ToolResult } from '../core/tools.js';
+import { today } from '../core/store.js';
+import { type ToolContext, type ToolResult, worldOf } from '../core/tools.js';
 
 export type Verification = {
   status: 'verified' | 'not_applied' | 'unverifiable';
@@ -15,7 +15,8 @@ type Verifier = (args: Record<string, any>, result: ToolResult | undefined, ctx:
  * organisers' GET endpoints (e.g. GET /tickets/:ref after POST /tickets).
  */
 export const verifiers: Record<string, Verifier> = {
-  create_repair_ticket: (args, result) => {
+  create_repair_ticket: (args, result, ctx) => {
+    const db = worldOf(ctx);
     const ref = result?.ticket_ref as string | undefined;
     const ticket = ref
       ? db.tickets.find((t) => t.ref === ref)
@@ -37,7 +38,7 @@ export const verifiers: Record<string, Verifier> = {
 
   escalate_to_human: (args, result, ctx) => {
     const ref = result?.escalation_ref as string | undefined;
-    const esc = db.escalations.find(
+    const esc = worldOf(ctx).escalations.find(
       (e) => (ref ? e.ref === ref : true) && e.conversation_id === ctx.conversationId && e.reason === args.reason,
     );
     return esc

@@ -24,6 +24,9 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
   return (text ? JSON.parse(text) : {}) as T;
 }
 
+// Secrets are per target server: a local (ngrok) agent and the production agent must never share one.
+const secretSuffix = new URL(baseUrl!).host.replace(/[^a-z0-9]+/gi, '_').toLowerCase();
+
 /** Keep tokens in workspace secrets when the API allows it, else inline (dashboard-visible). */
 async function secret(name: string, value: string): Promise<string | { secret_id: string }> {
   try {
@@ -41,12 +44,19 @@ async function secret(name: string, value: string): Promise<string | { secret_id
   }
 }
 
-async function syncWebhookTools(auth: string | { secret_id: string }) {
+/**
+ * Tools are updated only if they already belong to THIS agent, so syncing a local agent (ngrok URL)
+ * can never repoint the production agent's tools, and vice versa.
+ */
+async function syncWebhookTools(auth: string | { secret_id: string }, agentId: string | undefined) {
+  const owned = agentId
+    ? ((await call<{ conversation_config: { agent: { prompt: { tool_ids?: string[] } } } }>('GET', `/v1/convai/agents/${agentId}`)).conversation_config.agent.prompt.tool_ids ?? [])
+    : [];
   const existing = await call<{ tools?: { id: string; tool_config: { name: string } }[] }>('GET', '/v1/convai/tools');
   const toolIds: string[] = [];
   for (const t of tools) {
     const tool_config = webhookTool(t, baseUrl!, auth);
-    const found = existing.tools?.find((x) => x.tool_config.name === t.name);
+    const found = existing.tools?.find((x) => x.tool_config.name === t.name && owned.includes(x.id));
     const res = found
       ? await call<{ id: string }>('PATCH', `/v1/convai/tools/${found.id}`, { tool_config })
       : await call<{ id: string }>('POST', '/v1/convai/tools', { tool_config });
@@ -61,14 +71,14 @@ async function main() {
   const brain: Brain =
     kind === 'pi'
       ? // ElevenLabs appends /chat/completions to this URL and sends the key as "Bearer <key>".
-        { kind, url: `${baseUrl!.replace(/\/$/, '')}/v1`, apiKey: await secret('dwelly_voice_llm_key', toolSecret!) }
+        { kind, url: `${baseUrl!.replace(/\/$/, '')}/v1`, apiKey: await secret(`dwelly_voice_llm_key_${secretSuffix}`, toolSecret!) }
       : {
           kind,
           llm: process.env.ELEVENLABS_LLM || 'claude-haiku-4-5',
-          toolIds: await syncWebhookTools(await secret('dwelly_voice_tool_auth', `Bearer ${toolSecret}`)),
+          toolIds: await syncWebhookTools(await secret(`dwelly_voice_tool_auth_${secretSuffix}`, `Bearer ${toolSecret}`), process.env.ELEVENLABS_AGENT_ID),
         };
 
-  const config = agentConfig({ name: 'Dwelly tenant line', brain, voiceId: process.env.ELEVENLABS_VOICE_ID || undefined });
+  const config = agentConfig({ name: process.env.ELEVENLABS_AGENT_NAME || 'Dwelly tenant line', brain, voiceId: process.env.ELEVENLABS_VOICE_ID || undefined });
   console.log(`[sync] brain: ${kind}`);
   const agentId = process.env.ELEVENLABS_AGENT_ID;
   if (agentId) {

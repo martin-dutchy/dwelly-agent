@@ -1,6 +1,7 @@
 import { ActionLedger } from '../agent/ledger.js';
 import { verify } from '../agent/verify.js';
 import { audit } from '../core/audit.js';
+import { type Data, newWorld } from '../core/store.js';
 import { type Channel, type ToolResult, executeTool, getTool } from '../core/tools.js';
 import { normaliseDate, normalisePostcode } from './spoken.js';
 
@@ -10,10 +11,19 @@ import { normaliseDate, normalisePostcode } from './spoken.js';
  */
 export const READBACK_FIELD = 'caller_confirmed_readback';
 
-// One ledger per call: the same read-back discipline as batch cases, keyed by conversation.
-const ledgers = new Map<string, ActionLedger>();
-export const ledgerFor = (conversationId: string) =>
-  ledgers.get(conversationId) ?? (ledgers.set(conversationId, new ActionLedger()), ledgers.get(conversationId)!);
+// Per call: its own copy of the fixture world (concurrent testers never see each other's tickets)
+// and its own ledger (the same read-back discipline as batch cases). Dropped after CALL_TTL_MS.
+const CALL_TTL_MS = 3 * 60 * 60_000;
+const calls = new Map<string, { world: Data; ledger: ActionLedger; seen: number }>();
+function callState(conversationId: string) {
+  const now = Date.now();
+  for (const [id, c] of calls) if (now - c.seen > CALL_TTL_MS) calls.delete(id);
+  const c = calls.get(conversationId) ?? { world: newWorld(), ledger: new ActionLedger(), seen: now };
+  c.seen = now;
+  calls.set(conversationId, c);
+  return c;
+}
+export const ledgerFor = (conversationId: string) => callState(conversationId).ledger;
 
 /** Handle one webhook tool call from a voice platform. Never throws: the caller always hears something. */
 export async function handleVoiceToolCall(name: string, body: Record<string, unknown>, channel: Channel = 'voice:elevenlabs'): Promise<ToolResult> {
@@ -30,11 +40,12 @@ export async function handleVoiceToolCall(name: string, body: Record<string, unk
   if (typeof args.date_of_birth === 'string') args.date_of_birth = normaliseDate(args.date_of_birth);
   if (typeof args.postcode === 'string') args.postcode = normalisePostcode(args.postcode);
 
-  const result = await executeTool(name, args, { conversationId, channel });
+  const { world } = callState(conversationId);
+  const result = await executeTool(name, args, { conversationId, channel, world });
   if (tool?.kind !== 'write') return { ...result, latency_ms: Date.now() - started };
 
   // Read back every write independently, like the case agent, and only report what verified.
-  const v = verify(name, args, result.ok ? result : undefined, { conversationId, channel });
+  const v = verify(name, args, result.ok ? result : undefined, { conversationId, channel, world });
   const entry = ledgerFor(conversationId).record(name, args, result.ok ? undefined : String(result.details ?? result.error), v);
   audit(conversationId, { type: 'ledger', channel, entry, latency_ms: Date.now() - started });
   if (v.status === 'verified') return { ...result, verified: true, ref: v.ref };

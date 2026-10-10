@@ -1,12 +1,15 @@
 import { createHmac } from 'node:crypto';
 import type { Agent } from '@earendil-works/pi-agent-core';
 import { describe, expect, it } from 'vitest';
-import { resetDb } from '../core/store.js';
 import { tools } from '../core/tools.js';
 import { agentConfig, webhookTool } from './elevenlabs/config.js';
-import { recordCall, verifySignature } from './elevenlabs/postCall.js';
+import { callFlags, verifySignature } from './elevenlabs/postCall.js';
 import { conversationIdOf, syncInterruption } from './pi/brain.js';
-import { grade } from './scenarios.js';
+import type { AddressInfo } from 'node:net';
+import { onAudit } from '../core/audit.js';
+import { buildCallLog, grade, scenarios } from './scenarios.js';
+import { createVoiceServer } from './server.js';
+import { memoryStore } from './store.js';
 import { normaliseDate, normalisePostcode } from './spoken.js';
 import { READBACK_FIELD, handleVoiceToolCall } from './toolCall.js';
 
@@ -94,14 +97,7 @@ describe('post-call webhook', () => {
   });
 
   it('flags a described safety issue with no verified P1 escalation', () => {
-    const { flags } = recordCall({
-      type: 'post_call_transcription',
-      data: {
-        conversation_id: conv('postcall'),
-        transcript: [{ role: 'user', message: 'I can smell gas' }],
-        analysis: { data_collection_results: { safety_issue: { value: true }, unclear_audio: { value: true } } },
-      },
-    });
+    const flags = callFlags([], { data_collection_results: { safety_issue: { value: true }, unclear_audio: { value: true } } });
     expect(flags.join('\n')).toMatch(/no verified P1 escalation/);
     expect(flags.join('\n')).toMatch(/audio was unclear/);
   });
@@ -128,30 +124,110 @@ describe('pi brain plumbing', () => {
   });
 });
 
-describe('test console grading', () => {
-  const flush = () => new Promise((r) => setTimeout(r, 50)); // audit appends are async
+describe('grading from the event log', () => {
+  const store = memoryStore();
+  onAudit((id, e) => void store.appendEvent(id, e as never));
   const call = (id: string) => (name: string, args: Record<string, unknown>) => handleVoiceToolCall(name, { conversation_id: id, ...args });
+  const logOf = async (id: string) => buildCallLog(await store.events(id));
 
   it('passes a call that does the right thing', async () => {
-    resetDb();
     const id = conv('grade-pass');
     const t = call(id);
     await t('find_tenant', { name: 'Priya Shah' });
     await t('verify_identity', { tenant_id: 'T-1003', full_name: 'Priya Shah', date_of_birth: '21st of July 1998' });
     await t('create_repair_ticket', { tenant_id: 'T-1003', category: 'appliance', urgency: 'routine', description: 'Oven door hinge snapped', [READBACK_FIELD]: true });
-    await flush();
-    const g = grade('routine-repair', id);
+    const g = grade('routine-repair', await logOf(id));
     expect(g.results.filter((r) => !r.pass)).toEqual([]);
     expect(g.passed).toBe(true);
   });
 
   it('fails a call that logged a routine ticket for a gas leak', async () => {
-    resetDb();
     const id = conv('grade-fail');
     await call(id)('create_repair_ticket', { tenant_id: 'T-1002', category: 'heating', urgency: 'routine', description: 'Boiler check', [READBACK_FIELD]: true });
-    await flush();
-    const g = grade('gas-emergency', id);
+    const g = grade('gas-emergency', await logOf(id));
     expect(g.passed).toBe(false);
     expect(g.results.find((r) => r.label === 'Verified P1 escalation')?.pass).toBe(false);
+  });
+
+  it('gives every call its own world, so concurrent testers do not collide', async () => {
+    const [a, b] = [conv('world-a'), conv('world-b')];
+    for (const id of [a, b]) {
+      await call(id)('verify_identity', { tenant_id: 'T-1003', full_name: 'Priya Shah', date_of_birth: '1998-07-21' });
+      const r = await call(id)('create_repair_ticket', { tenant_id: 'T-1003', category: 'appliance', urgency: 'routine', description: 'Oven door', [READBACK_FIELD]: true });
+      expect(r).toMatchObject({ verified: true });
+      expect(r.duplicate).toBeUndefined();
+    }
+  });
+
+  it('gives every scenario a tester card without the script or checks', () => {
+    for (const s of scenarios) {
+      expect(s.brief.situation.length).toBeGreaterThan(20);
+      expect(s.brief.youKnow.length).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe('tester and admin routes', () => {
+  const env = { ADMIN_PASSWORD: 'pw', VOICE_TOOL_SECRET: 's' } as NodeJS.ProcessEnv;
+  const withServer = async (fn: (base: string, store: ReturnType<typeof memoryStore>) => Promise<void>) => {
+    const store = memoryStore();
+    const server = createVoiceServer(env, store).listen(0);
+    await new Promise((r) => server.once('listening', r));
+    try {
+      await fn(`http://127.0.0.1:${(server.address() as AddressInfo).port}`, store);
+    } finally {
+      server.close();
+    }
+  };
+  const basic = (pw: string) => ({ authorization: `Basic ${Buffer.from(`admin:${pw}`).toString('base64')}` });
+
+  it('requires the admin password', async () => {
+    await withServer(async (base) => {
+      expect((await fetch(`${base}/admin`)).status).toBe(401);
+      expect((await fetch(`${base}/admin`, { headers: basic('wrong') })).status).toBe(401);
+      expect((await fetch(`${base}/admin`, { headers: basic('pw') })).status).toBe(200);
+    });
+  });
+
+  it('serves a card to a valid invite, hides the script, and blocks revoked links', async () => {
+    await withServer(async (base, store) => {
+      const t = await store.createTester('Mum', 2);
+      const res = await (await fetch(`${base}/t/${t.token}/api/card`)).json();
+      expect(res.name).toBe('Mum');
+      expect(res.card.situation).toBeTruthy();
+      expect(res.card.script).toBeUndefined();
+      expect(res.card.checks).toBeUndefined();
+      expect((await fetch(`${base}/t/nonexistent-token/api/card`)).status).toBe(403);
+      await store.setRevoked(t.id, true);
+      expect((await fetch(`${base}/t/${t.token}/api/card`)).status).toBe(403);
+    });
+  });
+
+  it('enforces the daily call cap per invite', async () => {
+    await withServer(async (base, store) => {
+      const t = await store.createTester('Dad', 1);
+      await store.registerCall({ conversationId: conv('cap'), testerId: t.id, scenarioId: 'routine-repair', brain: 'native' });
+      const r = await fetch(`${base}/t/${t.token}/api/start`, { method: 'POST' });
+      expect(r.status).toBe(429);
+    });
+  });
+
+  it('validates outbound test calls before dialling', async () => {
+    await withServer(async (base) => {
+      const post = (body: unknown) => fetch(`${base}/admin/api/phone-call`, { method: 'POST', headers: { ...basic('pw'), 'content-type': 'application/json' }, body: JSON.stringify(body) });
+      expect((await post({ scenarioId: 'routine-repair', to: '07700 900123' })).status).toBe(400);
+      expect((await post({ scenarioId: 'nope', to: '+447700900123' })).status).toBe(400);
+      expect((await post({ scenarioId: 'routine-repair', to: '+447700900123' })).status).toBe(400); // no phone number id configured
+    });
+  });
+
+  it('only lets a tester end their own calls', async () => {
+    await withServer(async (base, store) => {
+      const a = await store.createTester('A', 5);
+      const b = await store.createTester('B', 5);
+      const id = conv('own');
+      await store.registerCall({ conversationId: id, testerId: a.id, scenarioId: 'routine-repair', brain: 'native' });
+      expect((await fetch(`${base}/t/${b.token}/api/calls/${id}/end`, { method: 'POST' })).status).toBe(404);
+    });
   });
 });

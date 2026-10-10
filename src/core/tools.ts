@@ -1,10 +1,17 @@
 import { z } from 'zod';
 import { executeWith } from './executor.js';
 import type { FailureInjector } from './failures.js';
-import { db, nextRef, today } from './store.js';
+import { type Data, db, nextRef, today } from './store.js';
 
 export type Channel = 'text' | 'voice:elevenlabs' | 'voice:livekit';
-export type ToolContext = { conversationId: string; channel: Channel; failures?: FailureInjector };
+export type ToolContext = {
+  conversationId: string;
+  channel: Channel;
+  failures?: FailureInjector;
+  /** Isolated data for this conversation (voice test calls); defaults to the shared fixture store. */
+  world?: Data;
+};
+export const worldOf = (ctx: ToolContext) => ctx.world ?? db;
 
 // Tool results are small and speakable: never dump raw records into a voice turn.
 export type ToolResult = { ok: boolean; say?: string; [key: string]: unknown };
@@ -56,7 +63,8 @@ export const tools: ToolDef[] = [
       name: z.string().optional().describe('Full or partial name as spoken'),
       postcode: z.string().optional().describe('UK postcode, e.g. E8 1HL'),
     }),
-    run: ({ phone, name, postcode }) => {
+    run: ({ phone, name, postcode }, ctx) => {
+      const db = worldOf(ctx);
       const matches = db.tenants.filter((t) => {
         const prop = db.properties.find((p) => p.property_id === t.property_id);
         return (
@@ -82,6 +90,7 @@ export const tools: ToolDef[] = [
       date_of_birth: z.string().describe('Date of birth in ISO format YYYY-MM-DD, e.g. 1991-03-14'),
     }),
     run: ({ tenant_id, full_name, date_of_birth }, ctx) => {
+      const db = worldOf(ctx);
       const t = db.tenants.find((x) => x.tenant_id === tenant_id);
       const ok = !!t && nameMatches(t.full_name, full_name) && t.date_of_birth === date_of_birth;
       if (ok) verified.set(ctx.conversationId, tenant_id);
@@ -97,7 +106,8 @@ export const tools: ToolDef[] = [
     kind: 'read',
     requiresVerification: true,
     parameters: z.object({ tenant_id: tenantId }),
-    run: ({ tenant_id }) => {
+    run: ({ tenant_id }, ctx) => {
+      const db = worldOf(ctx);
       const t = db.tenants.find((x) => x.tenant_id === tenant_id)!;
       const p = db.properties.find((x) => x.property_id === t.property_id)!;
       const ty = db.tenancies.find((x) => x.tenant_id === tenant_id)!;
@@ -118,9 +128,9 @@ export const tools: ToolDef[] = [
     kind: 'read',
     requiresVerification: true,
     parameters: z.object({ tenant_id: tenantId }),
-    run: ({ tenant_id }) => ({
+    run: ({ tenant_id }, ctx) => ({
       ok: true,
-      tickets: db.tickets
+      tickets: worldOf(ctx).tickets
         .filter((x) => x.tenant_id === tenant_id)
         .map(({ ref, category, status, description, created }) => ({ ref, category, status, description, created })),
     }),
@@ -132,8 +142,8 @@ export const tools: ToolDef[] = [
     kind: 'read',
     requiresVerification: false,
     parameters: z.object({ ref: z.string().describe('Ticket reference, e.g. R-4801') }),
-    run: ({ ref }) => {
-      const t = db.tickets.find((x) => x.ref === ref);
+    run: ({ ref }, ctx) => {
+      const t = worldOf(ctx).tickets.find((x) => x.ref === ref);
       return t ? { ok: true, ticket: t } : { ok: false, error: 'not_found' };
     },
   }),
@@ -153,7 +163,8 @@ export const tools: ToolDef[] = [
       description: z.string().describe('One plain sentence describing the problem'),
       access_notes: z.string().optional().describe('When a contractor can visit, pets, key arrangements'),
     }),
-    run: ({ tenant_id, category, urgency, description, access_notes }) => {
+    run: ({ tenant_id, category, urgency, description, access_notes }, ctx) => {
+      const db = worldOf(ctx);
       if (EMERGENCY.test(description)) {
         return { ok: false, say: 'This sounds like an emergency. Use escalate_to_human with priority P1 instead.' };
       }
@@ -183,6 +194,7 @@ export const tools: ToolDef[] = [
         .describe('3-5 lines: who is calling, what happened, what was already done, what decision is needed, any risk'),
     }),
     run: (args, ctx) => {
+      const db = worldOf(ctx);
       const esc = { ref: nextRef('E'), conversation_id: ctx.conversationId, ...args, created: today() };
       db.escalations.push(esc);
       return {
@@ -201,7 +213,7 @@ export function executeTool(name: string, rawArgs: unknown, ctx: ToolContext): P
   return executeWith(
     {
       tools,
-      state: db,
+      state: worldOf(ctx),
       guard: (tool, args, c) =>
         tool.requiresVerification && !isVerified(c.conversationId, args.tenant_id as string | undefined)
           ? { ok: false, error: 'not_verified', say: 'Identity must be verified with verify_identity first.' }

@@ -21,7 +21,9 @@ Callers ring from kitchens, buses and boiler cupboards. Speech-to-text will mish
 - If anything sounds unclear or does not match, ask once more in different words. Never guess.
 - For names and postcodes, ask the caller to spell them out. Repeat them back in groups.
 - Before any write tool (create_repair_ticket, escalate_to_human), read back the key details in one sentence and wait for a clear yes. Set ${READBACK_FIELD} to true only after that yes. This step is important.
+- A yes only counts if the caller heard the whole read-back. If they talked over it, or said yes before you finished, read it back again in short and ask once more.
 - If the caller talks over you, stop, listen, and continue from what they said. Do not repeat your whole last turn.
+- Callers often sound noisy at the start. If the first thing you hear makes no sense, say you didn't catch it and ask how you can help. Don't guess.
 
 # How to speak
 - Say amounts, dates and references in words: "eighteen hundred and fifty pounds", "the fourteenth of March", "R, four eight, two one".
@@ -33,6 +35,9 @@ Callers ring from kitchens, buses and boiler cupboards. Speech-to-text will mish
 2. Identify: find_tenant with the caller's phone ({{system__caller_id}}) or name and postcode. Caller ID is a hint, not proof.
 3. Verify: ask the caller to state their full name and date of birth, then call verify_identity. Never read their details out for them to confirm. Three failed attempts: escalate_to_human (P3) and end politely.
 4. Help: answer about their tenancy or tickets, or log a repair with create_repair_ticket after the read-back.
+   - Pin down WHAT is broken before classifying. If the item is ambiguous (which door: front door, internal door, oven door, cupboard? which tap? which window?), ask one short question.
+   - YOU decide the category and urgency from the policy, never the caller. Do not ask "is it urgent?"; callers always say yes. Urgent (within 24 hours): no heating or hot water, a front or back door or window that won't lock or close, a leak that is spreading, no power to part of the home. Routine (within 14 days): appliances (oven, washing machine), internal doors, cupboards, dripping taps, cosmetic issues.
+   - Ask about access (when someone can visit, pets, keys) before the read-back.
 5. Close: give the reference and what happens next, ask if there is anything else, then end_call.
 
 # Guardrails
@@ -45,6 +50,8 @@ Callers ring from kitchens, buses and boiler cupboards. Speech-to-text will mish
 ${policy}`;
 
 export const FIRST_MESSAGE = "Hello, you're through to the tenant line. I'm an AI assistant. How can I help today?";
+/** Outbound test calls ring the tester, so the agent opens as a call-back. */
+export const OUTBOUND_FIRST_MESSAGE = "Hi, this is the tenant line from your letting agency, returning your call. I'm an AI assistant. How can I help?";
 
 /** British backchannels that should not count as barge-in (merged with ElevenLabs' English presets). */
 export const IGNORE_TERMS = ['yeah', 'yep', 'mm', 'mhm', 'right', 'okay', 'ok', 'cheers', 'ta', 'sure', 'go on', 'uh huh'];
@@ -124,8 +131,9 @@ export function agentConfig({ name, brain, voiceId }: AgentOptions) {
       asr: { provider: 'scribe_realtime', quality: 'high', keywords: asrKeywords() },
       turn: {
         turn_model: 'turn_v3',
-        // Callers read out dates of birth and postcodes: wait for them, and let ASR re-listen on timeouts.
-        turn_eagerness: 'patient',
+        // 'patient' left 20 s of dead air on a noisy line (call conv_9501…, 10 Oct): noise kept the turn open.
+        // 'normal' plus spelling_patience still waits for spelled-out names, dates and postcodes.
+        turn_eagerness: 'normal',
         spelling_patience: 'auto',
         turn_timeout: 10,
         silence_end_call_timeout: 40,
@@ -142,12 +150,18 @@ export function agentConfig({ name, brain, voiceId }: AgentOptions) {
           disable_until_first_user_message: true,
         },
       },
-      tts: { model_id: 'eleven_v4_turbo', ...(voiceId ? { voice_id: voiceId } : {}) },
+      // Expressive mode made the LLM write audio tags ("[happy] Glad I could help") into replies.
+      tts: { model_id: 'eleven_v4_turbo', expressive_mode: false, ...(voiceId ? { voice_id: voiceId } : {}) },
+      // Ignore other people talking in the background (TV, family) instead of treating it as the caller.
+      vad: { background_voice_detection: true },
       conversation: { max_duration_seconds: 600 },
     },
     platform_settings: {
+      // Conversations can only start with a token minted by our server: the agent id alone is not enough.
+      auth: { enable_auth: true },
       // The test console can run a call as text only (no mic), for checking logic separately from audio.
-      overrides: { conversation_config_override: { conversation: { text_only: true } } },
+      // Outbound test calls override the first message (see /admin "Call a phone").
+      overrides: { conversation_config_override: { conversation: { text_only: true }, agent: { first_message: true } } },
       data_collection: {
         intent: { type: 'string', description: 'One of: repair, emergency, tenancy_query, ticket_status, payment, complaint, other' },
         identity_verified: { type: 'boolean', description: 'True if verify_identity returned verified true during the call' },
