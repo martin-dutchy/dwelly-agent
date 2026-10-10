@@ -14,7 +14,7 @@ import { adminCallPage, adminHomePage } from './http/adminPages.js';
 import { type ChatRequest, createPiBrain } from './pi/brain.js';
 import { buildCallLog, callBrief, firstMessage, grade, publicScenarios, scenarioById, scenarios, testerCard, worldFor } from './scenarios.js';
 import { type VoiceStore, createStore } from './store.js';
-import { handleVoiceToolCall, registerScenario, setWorldSeeder } from './toolCall.js';
+import { handleVoiceToolCall, registerScenario, setEventLoader, setWorldSeeder } from './toolCall.js';
 
 type Env = NodeJS.ProcessEnv;
 
@@ -370,6 +370,8 @@ const publicBase = (req: IncomingMessage, env: Env) => env.PUBLIC_BASE_URL || `h
 export function createVoiceServer(env: Env = process.env, store: VoiceStore = createStore(env.DATABASE_URL)) {
   // Each call's tools work on a copy of its case: tenant, property, open job.
   setWorldSeeder(worldFor);
+  // After a restart, a live call's identity state is rebuilt from the durable event log.
+  setEventLoader((id) => store.events(id) as never);
   // Every tool event also goes to the durable event log.
   onAudit((id, e) => void store.appendEvent(id, e as never).catch((err) => console.error('[voice] event', err)));
 

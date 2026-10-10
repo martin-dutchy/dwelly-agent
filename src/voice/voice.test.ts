@@ -424,3 +424,24 @@ describe('public sign-up', () => {
     });
   });
 });
+
+describe('production incidents (10 Oct)', () => {
+  it('keeps a caller verified after a server restart mid-call (replayed from the event log)', async () => {
+    const { setEventLoader } = await import('./toolCall.js');
+    const id = conv('restart');
+    setEventLoader(async () => [
+      { type: 'tool', name: 'find_tenant', args: { name: 'Priya Shah' }, result: { ok: true, matches: [{ tenant_id: 'T-1003' }] } },
+      { type: 'tool', name: 'verify_identity', args: { tenant_id: 'T-1003' }, result: { ok: true, verified: true } },
+    ]);
+    const r = await handleVoiceToolCall('create_repair_ticket', { conversation_id: id, tenant_id: 'T-1003', category: 'appliance', urgency: 'routine', description: 'Oven door hinge broken', [READBACK_FIELD]: true });
+    setEventLoader(undefined);
+    expect(r).toMatchObject({ ok: true, verified: true });
+  });
+
+  it('refuses to book a quoted repair without landlord approval', async () => {
+    const id = conv('spend');
+    const t = (name: string, args: Record<string, unknown>) => handleVoiceToolCall(name, { conversation_id: id, scenario_id: 'contractor-oven-warranty', [READBACK_FIELD]: true, ...args });
+    expect(await t('record_contractor_update', { status: 'quote_given', quote_amount_gbp: 150 })).toMatchObject({ verified: true });
+    expect(await t('record_appointment', { date: '2024-06-06', time_window: '10:00', confirmed_by: 'contractor' })).toMatchObject({ ok: false, error: 'needs_landlord_approval' });
+  });
+});

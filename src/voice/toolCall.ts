@@ -3,7 +3,7 @@ import { verify } from '../agent/verify.js';
 import { audit } from '../core/audit.js';
 import { executeWith } from '../core/executor.js';
 import { newWorld } from '../core/store.js';
-import { type Channel, type ToolDef, type ToolResult, isVerified, tools as coreTools } from '../core/tools.js';
+import { type Channel, type ToolDef, type ToolResult, isVerified, restoreVerified, tools as coreTools } from '../core/tools.js';
 import { type VoiceWorld, caseTools, verifyCaseTool } from './caseTools.js';
 import { normaliseDate, normalisePostcode } from './spoken.js';
 
@@ -39,6 +39,23 @@ function callState(conversationId: string) {
 }
 export const ledgerFor = (conversationId: string) => callState(conversationId).ledger;
 
+// Per-call state lives in memory, so a deploy mid-call used to forget a caller's verified identity
+// (seen 10 Oct: a verified tenant's ticket refused as "not verified"). On first sight of a call after a
+// restart, replay the identity facts from the durable event log.
+type PastEvent = { type: string; name?: string; args?: Record<string, unknown>; result?: Record<string, unknown> };
+let loadEvents: ((conversationId: string) => Promise<PastEvent[]>) | undefined;
+export const setEventLoader = (f: typeof loadEvents) => (loadEvents = f);
+async function hydrate(conversationId: string) {
+  if (calls.has(conversationId) || !loadEvents) return;
+  const past = await loadEvents(conversationId).catch(() => []);
+  const state = callState(conversationId);
+  for (const e of past) {
+    if (e.type !== 'tool') continue;
+    if (e.name === 'find_tenant' && Array.isArray(e.result?.matches)) for (const m of e.result.matches as { tenant_id: string }[]) state.found.add(m.tenant_id);
+    if (e.name === 'verify_identity' && e.result?.verified === true) restoreVerified(conversationId, String(e.args?.tenant_id));
+  }
+}
+
 /** Handle one webhook tool call from a voice platform. Never throws: the caller always hears something. */
 export async function handleVoiceToolCall(name: string, body: Record<string, unknown>, channel: Channel = 'voice:elevenlabs'): Promise<ToolResult> {
   const { conversation_id, scenario_id, [READBACK_FIELD]: confirmed, ...args } = body;
@@ -57,9 +74,22 @@ export async function handleVoiceToolCall(name: string, body: Record<string, unk
   if (typeof args.date === 'string') args.date = normaliseDate(args.date);
   if (typeof args.next_date === 'string') args.next_date = normaliseDate(args.next_date);
 
+  await hydrate(conversationId);
   const state = callState(conversationId);
   const { world } = state;
   const ctx = { conversationId, channel, world };
+
+  // Never book chargeable work on a contractor's quote without the landlord's approval in this call
+  // (seen 10 Oct: a £150 element repair booked for "tomorrow" straight off the contractor's quote).
+  if (name === 'record_appointment' && args.confirmed_by === 'contractor') {
+    const quoted = state.ledger.entries.some((e) => e.tool === 'record_contractor_update' && e.status === 'verified' && (e.args.status === 'quote_given' || e.args.status === 'needs_quote' || typeof e.args.quote_amount_gbp === 'number'));
+    const approved = state.ledger.entries.some((e) => e.tool === 'record_landlord_decision' && e.status === 'verified' && e.args.decision === 'approve');
+    if (quoted && !approved) {
+      const result = { ok: false, error: 'needs_landlord_approval', say: "This work has a quote but no landlord approval, so don't book it. Tell the contractor we'll take the quote to the landlord and come back to them; record anything else as a note." };
+      audit(conversationId, { type: 'tool_refused', channel, name, args: body, result });
+      return result;
+    }
+  }
 
   // A tenant id must come from find_tenant in this call: a guessed id checks the caller against
   // someone else's record and fails a genuine caller (seen 10 Oct: T-1001 used for Jonah Okafor).
