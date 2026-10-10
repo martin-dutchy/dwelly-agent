@@ -156,6 +156,50 @@ describe('ops guards', () => {
     expect(ops({ landlord_decision: { decision: 'approved', cap_gbp: 700 } }).guard!('approve_quote', { ticket_ref: 'NBL-1', amount_gbp: 640 })).toBeUndefined();
   });
 
+  it('assigns on an emergency ticket before the landlord approval step, and not on a routine one', () => {
+    const assign = { ticket_ref: 'NBL-1', contractor: 'X', visit_window: 'x' };
+    expect(ops({ landlord_approval: 'required', severity: 'emergency' }).guard!('assign_contractor', assign)).toBeUndefined();
+    expect(ops({ landlord_approval: 'required', severity: 'routine' }).guard!('assign_contractor', assign)).toMatch(/landlord approval/i);
+  });
+
+  describe('emergency quote approval without the landlord', () => {
+    const evidence = 'Tenant email 12/10:\n> Water is pouring through the kitchen ceiling onto the fuse box.';
+    const why = 'Live leak onto electrics: "Water is pouring through the kitchen ceiling onto the fuse box" (email 12/10)';
+    const approve = (over: Record<string, unknown>, extra: Record<string, unknown>) =>
+      ops({ severity: 'emergency', ...over }, { evidence }).guard!('approve_quote', { ticket_ref: 'NBL-1', amount_gbp: 640, contractor: 'X', approval_basis: 'emergency', ...extra });
+
+    it('allows an emergency ticket with a justification quoting the case, and records it on the ticket', async () => {
+      expect(approve({}, { emergency_justification: why })).toBeUndefined();
+      const t = ops({ severity: 'emergency' }, { evidence });
+      const args = { ticket_ref: 'NBL-1', amount_gbp: 640, contractor: 'X', approval_basis: 'emergency make-safe', emergency_justification: why };
+      const res = await t.execute('approve_quote', args, ctx);
+      expect(t.verify('approve_quote', args, res, ctx).status).toBe('verified');
+      expect(t.state.tickets[0]).toMatchObject({ stage: 'quote_approved', approved_gbp: 640, emergency_approval: why });
+      expect(t.state.records.find((r) => r.tool === 'approve_quote')?.args.emergency_justification).toBe(why);
+    });
+
+    it('blocks an emergency ticket without a justification, pointing at the emergency route', () => {
+      expect(approve({}, {})).toMatch(/spend limit.*emergency_justification/);
+      expect(approve({}, { emergency_justification: '  ' })).toMatch(/emergency_justification/);
+    });
+
+    it('blocks a justification that does not quote the case', () => {
+      expect(approve({}, { emergency_justification: 'Ceiling about to collapse' })).toMatch(/does not quote the case/);
+    });
+
+    it('blocks a routine or urgent ticket even with a justification, without offering the emergency route', () => {
+      for (const severity of ['routine', 'urgent', undefined]) {
+        const r = approve({ severity }, { emergency_justification: why });
+        expect(r).toMatch(/No recorded landlord approval/);
+        expect(r).not.toMatch(/emergency_justification/);
+      }
+    });
+
+    it('does not override a landlord who declined or is arranging their own contractor', () => {
+      for (const decision of ['declined', 'own_contractor']) expect(approve({ landlord_decision: { decision } }, { emergency_justification: why })).toMatch(/No recorded landlord approval/);
+    });
+  });
+
   it('never changes bank details', () => {
     expect(ops().guard!('update_bank_details', {})).toMatch(/never changed/);
   });
