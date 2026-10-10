@@ -198,10 +198,18 @@ export function createOpsToolset(seed: OpsSeed | Ticket[] = []): Toolset {
     }),
     def({
       name: 'resume_auto',
-      description: 'Return a job to auto mode after you have dealt with an inbound message ("If not, please return this request to auto mode"). Clears any hold.',
+      description:
+        'Return a job to auto mode after you have dealt with an inbound message ("If not, please return this request to auto mode"). Clears any hold. Also the way to send an approved job with no contractor named to provider selection, where the agency workflow sources one.',
       kind: 'write',
       parameters: z.object({ ...ticketRef }),
-      run: ({ ticket_ref }) => onTicket(ticket_ref, (t) => (delete t.hold, (t.mode = 'auto'), { mode: 'auto' })),
+      run: ({ ticket_ref }) =>
+        onTicket(ticket_ref, (t) => {
+          delete t.hold;
+          t.mode = 'auto';
+          if (t.landlord_approval !== 'confirmed' || t.contractor || !['init', 'mp_time'].includes(t.stage)) return { mode: 'auto' };
+          t.provider_selection = 'requested';
+          return { mode: 'auto', next: 'provider selection: the agency workflow sources a contractor for this approved job' };
+        }),
     }),
     def({
       name: 'record_landlord_decision',
