@@ -139,7 +139,7 @@ describe('address', () => {
   it('organiser history: public 047 still reports the landlord naming another property', () => {
     const [c] = kinds(fixture('public-047'), 'address');
     expect(c.detail).toMatch(/event 010 mentions ZZ3 5ZZ, not the case property's ZZ3 7ZZ/);
-    expect(c.sources).toEqual(['doc:history.md']);
+    expect(c.sources).toEqual(['ev:10']);
   });
 });
 
