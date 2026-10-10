@@ -35,6 +35,10 @@ export type ShowData = {
     clips?: { from: number; to: number }[];
     /** Set when this is a real call with a real person: shown as a disclaimer on the call view. */
     real?: { who: string; when: string; note: string };
+    /** One line of context shown on the call card, e.g. the two quotes in play. */
+    context?: string;
+    /** What the call established, stamped at the end. */
+    result?: string;
   };
   runName: string;
 };
@@ -71,7 +75,7 @@ main.wide { max-width:1320px; }
 .c a.go { display:inline-block; margin-top:var(--s2); font-size:13px; font-weight:600; }
 .more { display:grid; place-items:center; color:var(--fg-muted); font-size:14px; border-style:dashed; }
 .more b { font-size:24px; color:var(--fg); display:block; text-align:center; font-variant-numeric:tabular-nums; }
-.note { margin-top:var(--s5); font-size:12px; color:var(--fg-muted); }
+.note { margin-top:var(--s5); font-size:14px; line-height:20px; color:var(--fg-muted); }
 .summary { margin-top:var(--s5); padding:var(--s4) var(--s5); border-radius:10px; background:var(--surface); border:1px solid var(--border-subtle); font-size:18px; line-height:26px; opacity:0; transition:opacity .6s; max-width:900px; }
 .summary.in { opacity:1; }
 /* Call overlay */
@@ -92,7 +96,8 @@ main.wide { max-width:1320px; }
 .wave i { flex:1; background:var(--info-fg); border-radius:2px; height:3px; transition:height .1s linear; opacity:.75; }
 .lines { display:flex; flex-direction:column; justify-content:flex-end; gap:var(--s2); min-height:150px; overflow:hidden; padding:2px; }
 .ln { max-width:100%; padding:0; font-size:15px; line-height:21px; color:var(--fg-muted); opacity:0; transform:translateY(6px); transition:opacity .25s, transform .25s, font-size .25s; }
-.ln.in { opacity:.55; } .ln.in.now { opacity:1; color:var(--fg); font-size:21px; line-height:29px; font-weight:600; }
+.ln.in { opacity:.45; } .ln.in.now { opacity:1; color:var(--fg); font-size:26px; line-height:34px; font-weight:600; }
+.callctx { margin-top:var(--s3); font-size:14px; line-height:20px; color:var(--fg-muted); } .callctx b { color:var(--fg); }
 .ln.in { opacity:1; transform:none; }
 .ln.agent .who { color:var(--info-fg); }
 .ln.them .who { color:var(--needs-fg); }
@@ -115,7 +120,7 @@ export function showPage(d: ShowData, openTasks: number) {
   return layout(
     'Dwelly operations: live',
     `<div class="stagebar"><div class="clock" id="clock">Mon 09:00<small>Dwelly operations</small></div>
-<div class="counters"><div class="counter"><b id="k-open">0</b><span>open cases</span></div><div class="counter ok"><b id="k-auto">0</b><span>handled, no staff time</span></div><div class="counter needs"><b id="k-people">0</b><span>needed a person</span></div><div class="counter"><b id="k-hours">0 h</b><span>staff time saved (est.)</span></div></div></div>
+<div class="counters"><div class="counter"><b id="k-open">0</b><span>open cases</span></div><div class="counter ok"><b id="k-auto">0</b><span>handled, no staff time</span></div><div class="counter needs"><b id="k-people">0</b><span>needed a person</span></div><div class="counter"><b id="k-hours">0 h</b><span>staff time saved (estimate)</span></div></div></div>
 <div class="headline" id="headline" aria-live="polite"></div>
 <div class="grid" id="grid">${d.cards
       .map(
@@ -134,7 +139,7 @@ export function showPage(d: ShowData, openTasks: number) {
         .slice(0, 2) || d.call.name.slice(0, 1),
     )}</div><div><div class="n">${esc(d.call.name)}</div><div class="r">${esc(d.call.role)} · the AI agent is in a call with him now</div></div><div class="timer" id="timer"><span class="live" aria-hidden="true"></span>In call</div></div>
 ${d.call.real ? `<div class="realcall"><span class="dot" aria-hidden="true"></span><div><b>${esc(d.call.real.who)}</b>${esc(d.call.real.note)} ${esc(d.call.real.when)}.</div></div>` : ''}
-<div class="wave" id="wave" aria-hidden="true">${'<i></i>'.repeat(40)}</div><div class="lines" id="lines" aria-live="polite"></div><div class="callfootrow"><div class="callfoot" id="callfoot">${esc(d.call.ask)}</div><button type="button" class="skipcall" id="skipcall">Skip call</button></div></div></div>${d.call.audioUrl ? `<audio id="callaudio" preload="auto" src="${esc(d.call.audioUrl)}"></audio>` : ''}
+${d.call.context ? `<div class="callctx">${esc(d.call.context)}</div>` : ''}<div class="wave" id="wave" aria-hidden="true">${'<i></i>'.repeat(40)}</div><div class="lines" id="lines" aria-live="polite"></div><div class="callfootrow"><div class="callfoot" id="callfoot">${esc(d.call.ask)}</div><button type="button" class="skipcall" id="skipcall">Skip call</button></div></div></div>${d.call.audioUrl ? `<audio id="callaudio" preload="auto" src="${esc(d.call.audioUrl)}"></audio>` : ''}
 <div class="controls"><button type="button" id="prev">Back</button><button type="button" id="next">Next (→)</button><button type="button" id="auto">Auto-play</button><button type="button" id="ff">Fast-forward</button></div>
 <script>
 const D = ${JSON.stringify(d).replace(/</g, '\\u003c')};
@@ -155,11 +160,11 @@ const D = ${JSON.stringify(d).replace(/</g, '\\u003c')};
   const personCard = D.cards.find((c) => c.person);
 
   const scenes = [
-    async () => { head(D.totals.cases + ' open cases are waiting on staff.'); set('k-open', D.totals.cases); for (const c of D.cards) { card(c).classList.add('in'); await sleep(45); } $('more').classList.add('in'); },
-    async () => { head('Our agents pick up every case.'); for (const c of D.cards) { state(card(c), 'working', 'Agent working'); await sleep(35); } tick(4); if (callCard) { const el = card(callCard); el.classList.add('focus'); el.querySelector('.state').textContent = 'Calling ' + D.call.name + ' (' + D.call.role.toLowerCase() + ')'; } },
-    async () => { head('Case ' + (callCard?.no ?? '') + ': the agent calls the landlord for his decision.'); await playCall(); },
-    async () => { const el = card(callCard); head('Then it does every follow-up, each one confirmed.'); const lis = el.querySelectorAll('li'); for (const li of lis) { li.classList.add('on'); await sleep(200); } state(el, 'done', 'Done automatically. No staff time.'); auto++; counters(); tick(12); },
-    async () => { const el = card(personCard); head('One case needs a person. It gets a one-screen brief.'); state(el, 'person', 'Needs a person: ' + personCard.person.question); el.insertAdjacentHTML('beforeend', '<a class="go" href="' + personCard.person.href + '">Open in Decisions</a>'); people++; counters(); },
+    async () => { head(D.totals.cases + ' open cases, each waiting on a person.'); set('k-open', D.totals.cases); for (const c of D.cards) { card(c).classList.add('in'); await sleep(45); } $('more').classList.add('in'); },
+    async () => { head('Agents pick up every case.'); for (const c of D.cards) { state(card(c), 'working', 'Agent working'); await sleep(35); } tick(4); if (callCard) { const el = card(callCard); el.classList.add('focus'); el.querySelector('.state').textContent = 'Calling ' + D.call.name + ' (' + D.call.role.toLowerCase() + ')'; } },
+    async () => { head('Case ' + (callCard?.no ?? '') + ': the landlord must choose a quote.'); await playCall(); },
+    async () => { const el = card(callCard); head('Follow-ups done, each one confirmed.'); const lis = el.querySelectorAll('li'); for (const li of lis) { li.classList.add('on'); await sleep(200); } state(el, 'done', 'Done automatically. No staff time.'); auto++; counters(); tick(12); },
+    async () => { const el = card(personCard); head('One case needs a person.'); state(el, 'person', 'Needs a person: ' + personCard.person.question); el.insertAdjacentHTML('beforeend', '<a class="go" href="' + personCard.person.href + '">Open in Decisions</a>'); people++; counters(); },
     async () => fastForward(),
   ];
 
@@ -190,7 +195,7 @@ const D = ${JSON.stringify(d).replace(/</g, '\\u003c')};
   async function playCall() {
     const ov = $('call'), lines = $('lines'), foot = $('callfoot');
     lines.textContent = ''; foot.className = 'callfoot'; foot.textContent = D.call.ask;
-    ov.classList.add('in');
+    ov.classList.add('in', 'oncall'); if (D.call.clips && D.call.clips[0]) set('timer', 'In call · ' + mmss(D.call.clips[0].from));
     let ended = false, talking = false;
     const stop = new Promise((r) => { endCall = () => { ended = true; r(); }; });
     const wait = (ms) => Promise.race([sleep(ms), stop]);
@@ -243,7 +248,7 @@ const D = ${JSON.stringify(d).replace(/</g, '\\u003c')};
         for (const c of clips) { const len = c.to - c.from; if (x <= len) return c.from + x; x -= len; }
         return clips[clips.length - 1].from;
       });
-      a.playbackRate = 1.2; if ('preservesPitch' in a) a.preservesPitch = true;
+      a.playbackRate = 1; if ('preservesPitch' in a) a.preservesPitch = true;
       await hookAnalyser();
       for (let k = 0; k < clips.length && !ended; k++) {
         const c = clips[k];
@@ -255,7 +260,7 @@ const D = ${JSON.stringify(d).replace(/</g, '\\u003c')};
         }
         if (ended) break;
         await a.play(); // throws if the browser refuses: the caller falls back to paced lines
-        a.playbackRate = 1.2;
+        a.playbackRate = 1;
         await new Promise((resolve) => {
           const poll = setInterval(() => {
             const now = a.currentTime; set('timer', 'In call · ' + mmss(now));
@@ -277,9 +282,9 @@ const D = ${JSON.stringify(d).replace(/</g, '\\u003c')};
     } else if (!ended) await paced();
     if (callAudio) callAudio.pause();
     talking = false;
-    foot.textContent = '✓ Decision read back and recorded with the landlord’s own words'; foot.classList.add('ok');
+    foot.textContent = D.call.result || '✓ Decision read back and recorded with the landlord’s own words'; foot.classList.add('ok');
     ov.classList.remove('oncall');
-    await (ended ? sleep(300) : wait(900));
+    await (ended ? sleep(300) : wait(1400));
     endCall = null; clearInterval(wave); ov.classList.remove('in'); tick(8);
   }
 
@@ -293,7 +298,7 @@ const D = ${JSON.stringify(d).replace(/</g, '\\u003c')};
     for (let i = 0; i < left; i++) { auto++; more--; set('k-more', Math.max(0, more)); counters(); tick(23); await sleep(28); }
     for (let i = 0; i < extraPeople; i++) { people++; more--; set('k-more', Math.max(0, more)); counters(); await sleep(150); }
     set('k-open', 0);
-    $('summary').innerHTML = '<b>' + D.totals.cases + ' cases.</b> ' + D.totals.auto + ' handled end to end with no staff time; ' + D.totals.people + ' needed a person, each with a one-screen brief.' + (D.totals.mean !== null ? ' Judge score ' + D.totals.mean + '/100.' : '') + ' Model cost about ' + Math.max(1, Math.round((D.totals.cost / D.totals.cases) * 100 * 0.8)) + 'p a case.';
+    $('summary').innerHTML = '<b>Our eval run on ' + D.totals.cases + ' real public cases:</b> ' + D.totals.auto + ' handled with no staff time, ' + D.totals.people + ' needed a person.' + (D.totals.mean !== null ? ' Our grader’s score ' + D.totals.mean + '/100.' : '') + ' Model cost about ' + Math.max(1, Math.round((D.totals.cost / D.totals.cases) * 100 * 0.8)) + 'p a case.';
     $('summary').classList.add('in'); head('It plugs into the systems Dwelly already runs.');
   }
 

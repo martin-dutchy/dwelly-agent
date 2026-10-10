@@ -6,6 +6,35 @@ import type { ShowCard, ShowData } from './showPage.js';
 import { lastRun } from './status.js';
 import type { OpsEvent, OpsStore } from './store.js';
 
+/**
+ * Subtitles: each turn cut into pieces of at most ~12 words (on sentence and comma breaks), each timed across the
+ * turn in proportion to its words, so captions follow the speech instead of dumping a whole paragraph.
+ */
+function subtitles(turns: { role: string; text: string; t?: number }[]) {
+  const out: { who: 'agent' | 'them'; text: string; t?: number }[] = [];
+  turns.forEach((x, k) => {
+    const who = (x.role === 'agent' ? 'agent' : 'them') as 'agent' | 'them';
+    const parts: string[] = [];
+    for (const sentence of x.text.split(/(?<=[.?!])\s+/)) {
+      let cur: string[] = [];
+      for (const w of sentence.split(/\s+/)) {
+        cur.push(w);
+        if (cur.length >= 12 || (cur.length >= 6 && /,$/.test(w))) (parts.push(cur.join(' ')), (cur = []));
+      }
+      if (cur.length) parts.push(cur.join(' '));
+    }
+    const start = x.t, end = turns[k + 1]?.t ?? (x.t !== undefined ? x.t + parts.length * 3 : undefined);
+    const words = parts.map((p) => p.split(/\s+/).length), total = words.reduce((a, n) => a + n, 0);
+    let acc = 0;
+    parts.forEach((p, i) => {
+      const t = start !== undefined && end !== undefined ? start + ((end - start) * acc) / Math.max(total, 1) : start;
+      out.push({ who, text: p, t });
+      acc += words[i];
+    });
+  });
+  return out;
+}
+
 /** Builds the show from real data: the latest graded eval run plus the Flat 9 case. */
 
 /** The person's reply in the demo (their words, pre-filled so a 60-second video needn't wait on typing). */
@@ -110,16 +139,20 @@ export async function showData(store: OpsStore): Promise<ShowData | undefined> {
     const yes = find(/Yes, of course/);
     const env = process.env.OPS_SHOW_CLIPS?.split(',').map((p) => p.split('-').map(Number)).filter((p) => p.length === 2 && p.every(Number.isFinite)).map(([from, to]) => ({ from, to }));
     // 60-second cut: the doubt about VAT and the reassurance, then the yes and the read-back.
-    const clips = env?.length ? env : dodgy !== undefined && yes !== undefined && recorded !== undefined ? [{ from: dodgy - 2, to: dodgy + 7 }, { from: yes, to: recorded + 2 }] : undefined;
+    // One 12-second window: a real person pushes back ("That sounds dodgy") and the agent answers calmly and correctly.
+    const clips = env?.length ? env : dodgy !== undefined ? [{ from: dodgy - 0.5, to: dodgy + 12 }] : undefined;
+    void yes; void recorded;
     void q; void choose;
     const call = {
       name: 'Mr Langley',
-      role: 'Landlord',
+      role: 'Landlord (volunteer)',
       ask: 'Goal: get the landlord’s choice between two contractor quotes, read back and recorded.',
-      lines: turns.map((x) => ({ who: (x.role === 'agent' ? 'agent' : 'them') as 'agent' | 'them', text: x.text, t: x.t })),
+      lines: subtitles(turns),
+      context: 'Two quotes in: Eliza Bennett £1,370 (no VAT) or Kendall £2,040 inc VAT.',
+      result: '✓ Landlord chose Eliza Bennett, £1,370. Read back and confirmed.',
       audioUrl: `/ops/show/audio/${conv}`,
       clips,
-      real: { who: 'Real call with a real person', note: 'A random person who joined from my LinkedIn post played the landlord. Real recording, trimmed.', when: `Recorded ${at}` },
+      real: { who: 'Real call with a real person, trimmed', note: 'A random person who joined from my LinkedIn post played the landlord.', when: `Recorded ${at}` },
     };
     return finish(call);
   }
