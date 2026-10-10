@@ -139,24 +139,24 @@ Total: 45 minutes for steps 1 to 3; 65 with step 4. Cut at 15:05: whatever is no
 
 ## Acceptance criteria
 
-- [ ] **AC-AD-1 (R1).** With `ORGANISER_API_URL` unset, `withOrganiserApi(mock, readOrganiserEnv(process.env), id).toolset === mock`, and `pnpm verify` passes with no other test changed. Named test: `organiserApi.test.ts › off by default`.
-- [ ] **AC-AD-2 (R2, R5).** Given a fake server and `ORGANISER_TOOL_MAP` renaming `body` to `text`, when the agent's `send_message` runs, then the server receives the renamed argument, the ledger entry is `verified`, and its evidence starts with "organiser API accepted (HTTP 200". Named test: `organiserApi.test.ts › mapped write`.
-- [ ] **AC-AD-3 (R3, master plan section 6).** Given a server answering 500, then the first call trips the adapter, that call and every later call (in this and later cases in the same process) run on the mock, the server sees exactly one request, and the case still reaches a decision. Named test: `organiserApi.test.ts › trips on first failure`.
-- [ ] **AC-AD-4 (R4).** Given a 200 with `ok: false`, the agent gets a failed result, the adapter is not tripped, and the ledger records the action as not applied. Named test: `organiserApi.test.ts › business refusal`.
-- [ ] **AC-AD-5 (R6, runbook Step 6 pass signal).** `REASONING.md` has exactly one line starting `Toolset:` in each of the three modes (mock, organiser, tripped), and `result.json.toolset.mode` is `mock` or `organiser` with `tripped` present after a trip. Named test: `organiserApi.test.ts › reasoning line`.
-- [ ] **AC-AD-6 (R8).** With `ORGANISER_API_KEY=sk-test-123`, the string `sk-test-123` appears in no file the run writes. Named test: `organiserApi.test.ts › key never written` (renders the report and REASONING line and searches them); plus the manual grep in Verification.
+- [x] **AC-AD-1 (R1).** With `ORGANISER_API_URL` unset, `withOrganiserApi(mock, readOrganiserEnv(process.env), id).toolset === mock`, and `pnpm verify` passes with no other test changed. Named test: `organiserApi.test.ts › off by default`.
+- [x] **AC-AD-2 (R2, R5).** Given a fake server and `ORGANISER_TOOL_MAP` renaming `body` to `text`, when the agent's `send_message` runs, then the server receives the renamed argument, the ledger entry is `verified`, and its evidence starts with "organiser API accepted (HTTP 200". Named test: `organiserApi.test.ts › mapped write`.
+- [x] **AC-AD-3 (R3, master plan section 6).** Given a server answering 500, then the first call trips the adapter, that call and every later call (in this and later cases in the same process) run on the mock, the server sees exactly one request, and the case still reaches a decision. Named test: `organiserApi.test.ts › trips on first failure`.
+- [x] **AC-AD-4 (R4).** Given a 200 with `ok: false`, the agent gets a failed result, the adapter is not tripped, and the ledger records the action as not applied. Named test: `organiserApi.test.ts › business refusal`.
+- [x] **AC-AD-5 (R6, runbook Step 6 pass signal).** `REASONING.md` has exactly one line starting `Toolset:` in each of the three modes (mock, organiser, tripped), and `result.json.toolset.mode` is `mock` or `organiser` with `tripped` present after a trip. Named test: `organiserApi.test.ts › reasoning line`.
+- [x] **AC-AD-6 (R8).** With `ORGANISER_API_KEY=sk-test-123`, the string `sk-test-123` appears in no file the run writes. Named test: `organiserApi.test.ts › key never written` (renders the report and REASONING line and searches them); plus the manual grep in Verification.
 - [ ] **AC-AD-7 (R7, only if step 4 ships).** Named test: `organiserApi.test.ts › mcp`.
 
 ## Verification
 
 Run from the repo root and show the output.
 
-- [ ] `pnpm verify` exits 0.
-- [ ] `pnpm test -- src/agent/adapters/` passes (AC-AD-1 to AC-AD-6, and AC-AD-7 if built), offline.
+- [x] `pnpm verify` exits 0.
+- [x] `pnpm test -- src/agent/adapters/` passes (AC-AD-1 to AC-AD-6, and AC-AD-7 if built), offline.
 - [ ] Mock mode, live: `pnpm cases --in cases/practice --only 01 --out runs/ad-mock` then `grep -c "^Toolset: local mock" runs/ad-mock/01/REASONING.md` prints `1` (needs a key).
-- [ ] Tripped mode, live: `ORGANISER_API_URL=http://127.0.0.1:9 pnpm cases --in cases/practice --only 01,02 --out runs/ad-trip --concurrency 1` (port 9 refuses connections; concurrency 1 makes the order deterministic) shows a decision for both cases, the start line names the organiser API, `01`'s REASONING names the failure and `02`'s says the API was disabled after a failure in case 01; `jq .toolset runs/ad-trip/*/result.json` shows `tripped` (needs a key).
+- [x] Tripped mode, live: `ORGANISER_API_URL=http://127.0.0.1:9 pnpm cases --in cases/practice --only 01,02 --out runs/ad-trip --concurrency 1` (port 9 refuses connections; concurrency 1 makes the order deterministic) shows a decision for both cases, the start line names the organiser API, `01`'s REASONING names the failure and `02`'s says the API was disabled after a failure in case 01; `jq .toolset runs/ad-trip/*/result.json` shows `tripped` (needs a key).
 - [ ] `ORGANISER_API_KEY=sk-test-123 ORGANISER_API_URL=http://127.0.0.1:9 pnpm cases --in cases/practice --only 01 --out runs/ad-key; grep -r "sk-test-123" runs/ad-key` prints nothing (AC-AD-6).
-- [ ] `grep -E "ORGANISER_API_(URL|KEY|TRANSPORT)|ORGANISER_TOOL_MAP" .env.example` lists all four.
+- [x] `grep -E "ORGANISER_API_(URL|KEY|TRANSPORT)|ORGANISER_TOOL_MAP" .env.example` lists all four.
 - [ ] `/code-review` on the `run.ts` and `report.ts` diff before the PR.
 
 ## Risks
@@ -169,6 +169,17 @@ Run from the repo root and show the output.
 | The trip state leaks between tests | `resetTrip()` in `beforeEach`. |
 | Time: the adapter competes with the rehearsal | Hard stop at 15:05; it is the lowest-value M5 item unless the release supplies an API. |
 
+## Progress
+
+- [x] 12:45 BST, branch `marc/m5-runner`: steps 1 to 3. `toolMap.ts` (`readOrganiserEnv`, `resolveTarget`, `renameArgs`), `transport.ts` (HTTP), `organiserApi.ts` (`withOrganiserApi`, `toolsetLine`, `toolsetStartLine`, `withToolsetLine`), 14 tests against a fake `node:http` server including a `runCase` with the faux model. `run.ts` wiring: config read once, toolset wrapped per case, `result.json.toolset`, the REASONING line, the start line. `.env.example`, README section 4 env table and runbook Step 6 updated.
+- [x] Live tripped run (`ORGANISER_API_URL=http://127.0.0.1:9`, practice 01 and 02, concurrency 1): `decisions 2/2`; 01 REASONING says the API failed on call 1 (`list_tickets: network error: fetch failed`), 02 says it was disabled after a failure in case 01; `result.json.toolset` carries `tripped` and `disabledBy`; `grep -r sk-test-123` over the output is empty.
+- [ ] Step 4 (MCP over HTTP): cut. `ORGANISER_API_TRANSPORT=mcp` prints a warning and runs on the mock.
+
+## Discoveries
+
+- Another case's trip can land while a case is mid-run (concurrency > 1). Its later calls then go to the mock; the report carries `disabledMidCase` and the REASONING line says so.
+- `report.ts` was left alone (the M1 lane edits it): `run.ts` inserts the `Toolset:` line under the REASONING title with `withToolsetLine`.
+
 ## Decision log
 
 - Decision: the adapter wraps the mock `Toolset` rather than replacing it, so `caseAgent.ts` is untouched and the verified ledger keeps working.
@@ -177,3 +188,5 @@ Run from the repo root and show the output.
   Rationale: hackathon exception in `docs/plans/README.md`. Date/Author: 2026-10-10 12:20, Claude for Marc.
 - Decision: Marc approved the plan with every recommended default (Q1 to Q8): built last and small, after the runner flags, in the same lane (one writer for `run.ts`); hard stop 15:05.
   Rationale: answered in chat. Date/Author: 2026-10-10 12:06 BST, Marc.
+- Decision: MCP (step 4) is cut; a non-`http` transport disables the adapter with a warning instead of failing the run.
+  Rationale: time box; the runbook already says stdio MCP means mock. Date/Author: 2026-10-10 12:45 BST, Claude for Marc.

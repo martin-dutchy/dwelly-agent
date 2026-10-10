@@ -12,6 +12,8 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { chaosPlan } from './core/failures.js';
 import { basename, join } from 'node:path';
 import { parseArgs } from 'node:util';
+import { toolsetLine, toolsetStartLine, withOrganiserApi, withToolsetLine } from './agent/adapters/organiserApi.js';
+import { readOrganiserEnv } from './agent/adapters/toolMap.js';
 import { runCase } from './agent/caseAgent.js';
 import { type LoadedCase, casePrompt, listCases, loadCase } from './agent/cases.js';
 import { hintsFor } from './agent/maintenance/stateReconstruct.js';
@@ -57,6 +59,7 @@ const budgetMs = deadline ? deadline.getTime() - t0 : undefined;
 const runFlags = process.argv.slice(2).join(' ');
 
 const model = claude(values.model!);
+const organiser = readOrganiserEnv(process.env);
 const only = values.only?.split(',').map((s) => s.trim());
 const dirs = listCases(values.in!).filter((d) => !only || only.some((o) => d.endsWith(`/${o}`)));
 const outDirOf = (dir: string) => join(values.out!, basename(dir));
@@ -103,7 +106,8 @@ async function processCase(dir: string, timeoutMs: number): Promise<Row> {
       const hints = hintsFor(c);
       const prompt = casePrompt(c) + (hints.text ? `\n\n${hints.text}` : '');
       const screen = await prescreen(prompt);
-      const toolset = createOpsToolset(seedFromCase(c));
+      const adapter = withOrganiserApi(createOpsToolset(seedFromCase(c)), organiser, c.id);
+      const toolset = adapter.toolset;
       const writeTools = toolset.tools.filter((t) => t.kind === 'write').map((t) => t.name);
       const failures = chaosPlan(writeTools, Number(values.chaos), `${values.seed}:${c.id}`, c.failures);
       const chaos = Object.fromEntries(Object.entries(failures).filter(([k]) => !(k in c!.failures)));
@@ -119,9 +123,9 @@ async function processCase(dir: string, timeoutMs: number): Promise<Row> {
         thinkingLevel: values.thinking as 'off' | 'low' | 'medium' | 'high',
         timeoutMs,
       });
-      return { c, hints, screen, chaos, run };
+      return { c, hints, screen, chaos, run, toolsetReport: adapter.report() };
     };
-    const { c: lc, hints, screen, chaos, run } = await bounded(work(), timeoutMs + GUARD_GRACE_MS);
+    const { c: lc, hints, screen, chaos, run, toolsetReport } = await bounded(work(), timeoutMs + GUARD_GRACE_MS);
     const assistants = run.messages.filter((m: any) => m.role === 'assistant') as any[];
     const usage: Usage = {
       input: assistants.reduce((a, m) => a + (m.usage?.input ?? 0), 0),
@@ -132,11 +136,12 @@ async function processCase(dir: string, timeoutMs: number): Promise<Row> {
     };
     const retries = run.trace.filter((e: any) => e.type === 'retry').length;
     writeFileSync(join(outDir, 'ANSWER.md'), renderAnswer(lc, run.decision, run.ledger, run.error));
-    writeFileSync(join(outDir, 'REASONING.md'), renderReasoning(lc, run.decision, run.ledger, run.messages, usage, run.error, { screen, gateLog: run.gateLog, policyLog: run.policyLog, chaos }));
+    const reasoning = renderReasoning(lc, run.decision, run.ledger, run.messages, usage, run.error, { screen, gateLog: run.gateLog, policyLog: run.policyLog, chaos });
+    writeFileSync(join(outDir, 'REASONING.md'), withToolsetLine(reasoning, toolsetLine(toolsetReport)));
     writeFileSync(join(outDir, 'trace.jsonl'), run.trace.map((e) => JSON.stringify(e)).join('\n') + '\n');
     writeFileSync(
       join(outDir, 'result.json'),
-      JSON.stringify({ id: lc.id, model: values.model, cutoff: lc.cutoff, timeoutMs, chaos, screen, hintsError: hints.hintsError, gateLog: run.gateLog, policyLog: run.policyLog, decision: run.decision, ledger: run.ledger, state: run.state, usage: { ...usage, retries }, error: run.error }, null, 2),
+      JSON.stringify({ id: lc.id, model: values.model, cutoff: lc.cutoff, timeoutMs, toolset: toolsetReport, chaos, screen, hintsError: hints.hintsError, gateLog: run.gateLog, policyLog: run.policyLog, decision: run.decision, ledger: run.ledger, state: run.state, usage: { ...usage, retries }, error: run.error }, null, 2),
     );
     return {
       id: lc.id,
@@ -194,6 +199,7 @@ const base = baseTimeoutMs(Number(values.timeout), budgetMs, concurrency, todo.l
 console.log(
   `Running ${dirs.length} cases with ${values.model} (concurrency ${values.concurrency}, Jev ${jevEnabled() ? 'on' : 'off'}${Number(values.chaos) > 0 ? `, chaos ${values.chaos} seed ${values.seed}` : ''}${deadline ? `, deadline ${hhmm(deadline)}, case timeout ${Math.round(base / 1000)}s` : ''}${values.resume ? `, resuming ${done.length} of ${dirs.length}` : ''})…`,
 );
+console.log(toolsetStartLine(organiser, createOpsToolset().tools.map((t) => t.name)));
 const ran = await pool(todo, concurrency, async (dir) => {
   const t = caseTimeoutMs(base, deadline, Date.now());
   return t === 'skip' ? skipCase(dir) : processCase(dir, t);

@@ -105,7 +105,7 @@ grep -rilE 'https?://|api[_ -]?key|bearer|token|mcp' "$RELEASE"/*.md "$RELEASE"/
 ```
 Pass for "no toolset": the second command prints nothing (a plain `README.md` in the first listing is normal; `head -40` it). Then the mock toolset is the acting surface and the ledger is the evidence, which is the master plan's assumption.
 
-If a URL or key is supplied: the organiser adapter (`src/agent/adapters/organiserApi.ts`, Martin's, switched on by an env var named in its plan `src/agent/adapters/plans/organiser-api-adapter-plan.md`) is used. Pass signal for the adapter: in the first finished case, `grep -c '"verified"' ANSWERS/<id>/trace.jsonl` is ≥ 1 and `ANSWERS/<id>/REASONING.md` names the organiser toolset. If the first case errors on the adapter, unset the env var and re-run everything on the mock; the runner states the fallback in REASONING. If the adapter has not landed by 16:30, the answer to this step is "mock", whatever the release contains, and REASONING says the organiser tools were not used.
+If an HTTP tool API URL (and maybe a key) is supplied: set `ORGANISER_API_URL` (and `ORGANISER_API_KEY`) in `.env`; that is configuration, not a code change. If its tool names, routes or argument names differ from ours, `ORGANISER_TOOL_MAP` renames them (JSON, see `.env.example`); if it needs more than renames, or is MCP over stdio, leave the variables empty and run on the mock. The run's second line reads `Toolset: organiser API at <host> (http), K of 28 tools mapped`. Pass signal: in the first finished case, `grep '^Toolset' ANSWERS/<id>/REASONING.md` names the organiser API, and `grep -c '"verified"' ANSWERS/<id>/trace.jsonl` is ≥ 1. No manual fallback is needed: the first failure (network, timeout, HTTP ≥ 400, non-JSON) switches the whole run to the mock, and every affected REASONING says so in its `Toolset:` line.
 
 ### Decision table (16:35)
 
@@ -115,7 +115,7 @@ If a URL or key is supplied: the organiser adapter (`src/agent/adapters/organise
 | Step 2 counts = N, probe OK, `--at auto` recommended | Organiser format with recorded-action markers | `--in "$CASES" --at auto` |
 | Step 3 count = N, probe OK, briefs present | Practice format | `--in "$CASES"` |
 | Probe OK but "no brief file", or probe FAIL, or N = 0 | Third format: Step 5 | `--in runs/reality-converted --at 100%` |
-| Step 6 finds a toolset | Any of the above plus the adapter env var | as above |
+| Step 6 finds an HTTP tool API | Any of the above plus `ORGANISER_API_URL` (and `ORGANISER_API_KEY`, `ORGANISER_TOOL_MAP`) in `.env` | as above |
 
 ## At 16:37: run
 
