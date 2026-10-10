@@ -42,8 +42,7 @@ const CALLS: Record<string, { name: string; context: string; result: string; ask
     context: 'The tenant wants to fit her own washing machine. Who pays to fit it and to remove the old one?',
     result: '✓ Landlord approved: the tenant fits her own machine and pays to fit and remove. Read back and confirmed.',
     ask: 'Goal: the landlord’s decision, read back and recorded.',
-    // Boundaries sit in measured silences (ffmpeg silencedetect), so no word is cut.
-    clips: [{ from: 175.6, to: 183.7 }, { from: 207.9, to: 214.5 }],
+    clips: [{ from: 175, to: 184 }, { from: 208, to: 214 }],
   },
   conv_3201m4k0h0f0f8k8x455asj8ywqj: {
     name: 'Mr Langley',

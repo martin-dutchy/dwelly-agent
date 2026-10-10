@@ -281,8 +281,7 @@ const D = ${JSON.stringify(d).replace(/</g, '\\u003c')};
       for (let k = 0; k < clips.length && !ended; k++) {
         const c = clips[k];
         if (k > 0 && c.from - clips[k - 1].to >= 1) addMark(c.from - clips[k - 1].to);
-        // Turn times are whole seconds: a line stamped up to 1s before the clip still belongs to it.
-        while (li < L.length && at[li] < c.from - 1) li++;
+        while (li < L.length && at[li] < c.from) li++;
         if (Math.abs(a.currentTime - c.from) > 0.3) {
           const seeked = new Promise((r) => a.addEventListener('seeked', r, { once: true }));
           a.currentTime = c.from; await Promise.race([seeked, sleep(1500), stop]);
@@ -295,13 +294,13 @@ const D = ${JSON.stringify(d).replace(/</g, '\\u003c')};
         await new Promise((resolve) => {
           const poll = setInterval(() => {
             const now = a.currentTime; set('timer', 'In call · ' + mmss(now));
-            while (li < L.length && at[li] <= Math.max(now, c.from) && at[li] < c.to - 0.5) addLine(L[li++]);
+            while (li < L.length && at[li] <= now && at[li] < c.to) addLine(L[li++]);
             if (ended || a.ended || a.error || now >= c.to) { clearInterval(poll); resolve(); }
           }, 80);
           stop.then(() => { clearInterval(poll); resolve(); });
         });
         a.pause(); console.info('[calllog]', JSON.stringify({ ev: 'pause', to: a.currentTime, at: Date.now() }));
-        if (!ended) while (li < L.length && at[li] < c.to - 0.5) addLine(L[li++]);
+        if (!ended) while (li < L.length && at[li] < c.to) addLine(L[li++]);
       }
       while (li < L.length && at[li] < clips[clips.length - 1].from) li++;
     }
