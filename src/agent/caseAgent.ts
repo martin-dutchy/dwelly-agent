@@ -1,5 +1,5 @@
 import { Agent, type AgentEvent, type AgentTool, type StreamFn } from '@earendil-works/pi-agent-core';
-import { type Api, type Model, type TSchema, isRetryableAssistantError } from '@earendil-works/pi-ai';
+import { type Api, type Model, type ModelThinkingLevel, type TSchema, isRetryableAssistantError } from '@earendil-works/pi-ai';
 import { z } from 'zod';
 import { FailureInjector, type FailurePlan } from '../core/failures.js';
 import { type ToolContext, type ToolResult, executeTool, tools as coreTools } from '../core/tools.js';
@@ -43,7 +43,7 @@ export type CaseRunOptions = {
   timeoutMs?: number;
   toolset?: Toolset;
   maxRetries?: number;
-  thinkingLevel?: 'off' | 'low' | 'medium' | 'high';
+  thinkingLevel?: ModelThinkingLevel;
 };
 
 export async function runCase(opts: CaseRunOptions) {
@@ -80,7 +80,7 @@ export async function runCase(opts: CaseRunOptions) {
     },
   };
 
-  const trace: AgentEvent[] = [];
+  const trace: (AgentEvent & { ts?: string })[] = [];
   const gateLog: (GateResult & { tool: string; attempt: number })[] = [];
   const gateBlocks = new Map<string, number>(); // recipient -> blocks so far
   const policyLog: { tool: string; reason: string }[] = [];
@@ -181,7 +181,7 @@ export async function runCase(opts: CaseRunOptions) {
     },
   });
   agent.subscribe((e) => {
-    if (e.type !== 'message_update') trace.push(e);
+    if (e.type !== 'message_update') trace.push({ ts: new Date().toISOString(), ...e });
   });
 
   // Transient provider errors (429 rate limits, 5xx, overloaded) must not cost us the case:
@@ -194,7 +194,7 @@ export async function runCase(opts: CaseRunOptions) {
       if (last?.role !== 'assistant' || last.stopReason !== 'error' || !isRetryableAssistantError(last)) return;
       agent.state.messages = agent.state.messages.slice(0, -1);
       const delay = Math.min(30_000, 1500 * 2 ** (attempt - 1)) + Math.random() * 1000;
-      trace.push({ type: 'retry', attempt, delayMs: Math.round(delay), error: last.errorMessage } as any);
+      trace.push({ ts: new Date().toISOString(), type: 'retry', attempt, delayMs: Math.round(delay), error: last.errorMessage } as any);
       await new Promise((r) => setTimeout(r, delay));
       await agent.continue();
     }

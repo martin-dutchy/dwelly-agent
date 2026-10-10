@@ -1,5 +1,5 @@
 // The test loop: one command runs a frozen split, grades it, and diffs against the baseline.
-// Usage: pnpm loop [--split dev|holdout] [--chaos 0.15] [--seed 1] [--only 01,003] [--save-baseline]
+// Usage: pnpm loop [--split dev|holdout] [--chaos 0.15] [--seed 1] [--only 01,003] [--thinking medium] [--save-baseline]
 // Exits 1 on a regression (mean score down more than 5 points, a new critical, or lower coverage).
 // The holdout split prints aggregates only: never tune on it.
 import { spawnSync } from 'node:child_process';
@@ -14,6 +14,7 @@ const { values } = parseArgs({
     seed: { type: 'string', default: '1' },
     only: { type: 'string' },
     concurrency: { type: 'string', default: '6' },
+    thinking: { type: 'string', default: 'medium' },
     'save-baseline': { type: 'boolean', default: false },
   },
 });
@@ -42,7 +43,7 @@ for (const g of groups) {
   const out = join(root, slug(g.dir));
   console.log(`\n▶ ${split}: ${g.dir} (${ids.length} cases)${holdout ? ' — output hidden' : ''}`);
   const common = ['--only', ids.join(','), '--concurrency', values.concurrency!];
-  tsx(['src/run.ts', '--in', g.dir, '--out', out, ...common, '--chaos', values.chaos!, '--seed', values.seed!, ...(g.at ? ['--at', g.at] : [])]);
+  tsx(['src/run.ts', '--in', g.dir, '--out', out, ...common, '--chaos', values.chaos!, '--seed', values.seed!, '--thinking', values.thinking!, ...(g.at ? ['--at', g.at] : [])]);
   tsx(['src/eval/judge.ts', '--cases', g.dir, '--answers', out, '--label', `${split}-${slug(g.dir)}`, ...common, ...(holdout ? ['--summary-only'] : [])]);
   for (const id of ids) {
     const r = readJson(join(out, id, 'result.json'));

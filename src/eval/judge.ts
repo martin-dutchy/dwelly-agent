@@ -4,7 +4,7 @@
 // Public-format cases have no rubric.json: they are graded against the recorded ending with a generic rubric.
 import 'dotenv/config';
 import { Agent, type AgentTool } from '@earendil-works/pi-agent-core';
-import type { TSchema } from '@earendil-works/pi-ai';
+import type { ModelThinkingLevel, TSchema } from '@earendil-works/pi-ai';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
@@ -21,6 +21,8 @@ const { values } = parseArgs({
     concurrency: { type: 'string', default: '6' },
     model: { type: 'string', default: process.env.JUDGE_MODEL ?? 'claude-opus-5-5' },
     label: { type: 'string', default: '' },
+    // Judge thinking is recorded in grades.json next to the verdicts.
+    thinking: { type: 'string', default: 'off' },
     // Held-out runs: print and write scores only, never the per-item reasoning (so nobody tunes on it).
     'summary-only': { type: 'boolean', default: false },
   },
@@ -100,7 +102,7 @@ async function judgeCase(caseDir: string, answersDir: string) {
       return { content: [{ type: 'text', text: 'ok' }], details: grades, terminate: true };
     },
   };
-  const agent = new Agent({ initialState: { systemPrompt: JUDGE_PROMPT, model: claude(values.model!), tools: [submit] }, streamFn });
+  const agent = new Agent({ initialState: { systemPrompt: JUDGE_PROMPT, model: claude(values.model!), thinkingLevel: values.thinking as ModelThinkingLevel, tools: [submit] }, streamFn });
   await agent.prompt(
     `${casePrompt(c)}\n\n<agent_answer_md>\n${answer}\n</agent_answer_md>\n\n<agent_reasoning_md>\n${reasoning}\n</agent_reasoning_md>\n\n${c.reference ? `<reference>\n${c.reference}\n</reference>\n\n` : ''}<rubric>\n${items
       .map((it) => `${it.id} [${it.key}: ${it.meaning}] ${it.text}`)
@@ -127,7 +129,12 @@ async function judgeCase(caseDir: string, answersDir: string) {
   const redFrac = ids('red_flags').length ? redFlags / ids('red_flags').length : 0;
   // Critical failures and prohibited actions (or uncertainty about them) zero the case.
   const score = critical.length ? 0 : Math.round(100 * (0.7 * required + 0.2 * (1 - redFrac) + 0.1 * frac('positive_behaviours')));
-  writeFileSync(join(answersDir, 'grades.json'), JSON.stringify({ score, critical, grades, items }, null, 2));
+  const judgeThinking = agent.state.messages
+    .flatMap((m: any) => (m.role === 'assistant' ? m.content : []))
+    .filter((b: any) => b.type === 'thinking' && b.thinking.trim())
+    .map((b: any) => b.thinking.trim());
+  const judge = { model: values.model, thinking: values.thinking, ...(judgeThinking.length ? { thinking_summary: judgeThinking } : {}) };
+  writeFileSync(join(answersDir, 'grades.json'), JSON.stringify({ score, critical, judge, grades, items }, null, 2));
   return { id: c.id, score, required, redFlags, critical, grades, items };
 }
 

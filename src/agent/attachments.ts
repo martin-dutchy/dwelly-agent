@@ -17,7 +17,9 @@ const MAX_PDF_BYTES = 20 * 1024 * 1024;
 // A text layer shorter than this is treated as a scan.
 const MIN_PDF_TEXT = 200;
 
-export type Attachment = { content: string; media?: ImageContent };
+/** How a file was turned into model input, recorded so a reader can audit the parsing. */
+export type ParseMethod = 'text' | 'pdftotext' | 'native-image' | 'native-pdf' | 'too-large';
+export type Attachment = { content: string; media?: ImageContent; method: ParseMethod; bytes: number };
 
 export const isBinaryAttachment = (path: string) => extname(path).toLowerCase() in IMAGE_TYPES || extname(path).toLowerCase() === '.pdf';
 
@@ -35,16 +37,21 @@ export function readAttachment(path: string, name: string): Attachment {
   const bytes = statSync(path).size;
   const native = (mimeType: string, limit: number, note: string): Attachment =>
     bytes > limit
-      ? { content: `[${note}: too large to attach (${(bytes / 1e6).toFixed(1)} MB)]` }
-      : { content: `[${note}: attached natively as "${name}", read it directly]`, media: { type: 'image', mimeType, data: readFileSync(path).toString('base64') } };
+      ? { content: `[${note}: too large to attach (${(bytes / 1e6).toFixed(1)} MB)]`, method: 'too-large', bytes }
+      : {
+          content: `[${note}: attached natively as "${name}", read it directly]`,
+          media: { type: 'image', mimeType, data: readFileSync(path).toString('base64') },
+          method: mimeType === PDF_MIME ? 'native-pdf' : 'native-image',
+          bytes,
+        };
 
   if (ext in IMAGE_TYPES) return native(IMAGE_TYPES[ext], MAX_IMAGE_BYTES, 'Image');
   if (ext === '.pdf') {
     const text = pdfText(path);
-    if (text && text.replace(/\s/g, '').length >= MIN_PDF_TEXT) return { content: text };
+    if (text && text.replace(/\s/g, '').length >= MIN_PDF_TEXT) return { content: text, method: 'pdftotext', bytes };
     return native(PDF_MIME, MAX_PDF_BYTES, text === undefined ? 'PDF (text extraction unavailable)' : 'Scanned PDF (no text layer)');
   }
-  return { content: readFileSync(path, 'utf8') };
+  return { content: readFileSync(path, 'utf8'), method: 'text', bytes };
 }
 
 /**

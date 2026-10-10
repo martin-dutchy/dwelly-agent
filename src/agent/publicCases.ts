@@ -49,6 +49,7 @@ function resolveCutoff(index: string, total: number, at?: string): number {
 }
 
 const clip = (s: string) => (s.length > MAX_FILE_CHARS ? `${s.slice(0, MAX_FILE_CHARS)}\n…[truncated ${s.length - MAX_FILE_CHARS} chars]` : s);
+const truncated = (s: string) => (s.length > MAX_FILE_CHARS ? { truncatedChars: s.length - MAX_FILE_CHARS } : {});
 
 export function loadPublicCase(dir: string, at?: string) {
   const index = readFileSync(join(dir, 'index.md'), 'utf8');
@@ -73,7 +74,7 @@ export function loadPublicCase(dir: string, at?: string) {
   for (const f of allAtt.filter((f) => !linkedLater.has(f))) {
     const name = `attachments/${f}`;
     const a = readAttachment(join(attDir, f), name);
-    attachments.push({ name, content: clip(a.content) });
+    attachments.push({ name, content: clip(a.content), parse: { method: a.method, bytes: a.bytes, chars: a.content.length, ...truncated(a.content) } });
     if (a.media) media.push({ name, media: a.media });
   }
 
@@ -100,13 +101,27 @@ ${hidden.slice(0, 3).map(render).join('\n\n') || '_None: the decision point is t
 ## Case summary sections (hidden from the agent)
 ${parts.filter((p) => ['Overview', 'Next action at escalation', 'Outcome', 'Boundaries and remaining work'].includes(p.name)).map((p) => p.text).join('\n\n')}`;
 
+  const history = `${preamble.replace(/Total events: \d+\.?/, `Events shown: ${cutoff}.`)}\n\n${visible.map(render).join('\n\n')}`;
+  const spoilers = parts.filter((p) => SPOILER_SECTIONS.includes(p.name)).map((p) => p.name);
   return {
     id: basename(dir),
     brief,
-    inputs: [{ name: 'history.md', content: clip(`${preamble.replace(/Total events: \d+\.?/, `Events shown: ${cutoff}.`)}\n\n${visible.map(render).join('\n\n')}`) }, ...attachments],
+    inputs: [
+      {
+        name: 'history.md',
+        content: clip(history),
+        parse: { method: 'derived' as const, bytes: Buffer.byteLength(history), chars: history.length, ...truncated(history), note: `events 1-${cutoff} of ${events.length} from history.md` },
+      },
+      ...attachments,
+    ],
     media,
     reference,
     cutoff,
     totalEvents: events.length,
+    withheld: [
+      ...(hidden.length ? [{ name: 'history.md', reason: `events ${cutoff + 1}-${events.length} come after the decision point` }] : []),
+      ...(spoilers.length ? [{ name: 'index.md', reason: `sections that reveal the ending: ${spoilers.join(', ')}` }] : []),
+      ...[...linkedLater].map((f) => ({ name: `attachments/${f}`, reason: 'first linked from an event after the decision point' })),
+    ],
   };
 }

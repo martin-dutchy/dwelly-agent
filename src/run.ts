@@ -2,8 +2,12 @@
 // Usage: pnpm cases --in cases/practice --out ANSWERS [--only 01,06] [--concurrency 6] [--model claude-sonnet-5-5]
 // Robustness: add --chaos 0.15 [--seed x] to inject random tool failures into every case.
 // Public-format cases: pnpm cases --in "HackatonPublicCases/Property Management" --out runs/pm [--at auto|12|50%]
+// Thinking: --thinking off|minimal|low|medium|high|xhigh|max (default medium). Claude's summarised thinking is logged.
+// Per case: ANSWER.md, REASONING.md, TRANSCRIPT.md (full, untruncated), trace.jsonl, result.json.
+// Per run: RUN.md (index), run.json (manifest: git commit, args, models), run.log (console output).
 import 'dotenv/config';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { chaosPlan } from './core/failures.js';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
@@ -12,7 +16,7 @@ import { type LoadedCase, casePrompt, listCases, loadCase } from './agent/cases.
 import { claude, streamFn } from './agent/models.js';
 import { jevEnabled, prescreen, screenNote } from './agent/jev.js';
 import { createOpsToolset } from './agent/opsTools.js';
-import { type Usage, renderAnswer, renderReasoning } from './agent/report.js';
+import { type Usage, renderAnswer, renderReasoning, renderTranscript } from './agent/report.js';
 import { CASE_SYSTEM_PROMPT } from './agent/systemPrompt.js';
 
 const { values } = parseArgs({
@@ -30,11 +34,30 @@ const { values } = parseArgs({
   },
 });
 
+const THINKING = ['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'] as const;
+type Thinking = (typeof THINKING)[number];
+if (!THINKING.includes(values.thinking as Thinking)) throw new Error(`--thinking must be one of ${THINKING.join(', ')}`);
+const thinking = values.thinking as Thinking;
+
 const model = claude(values.model!);
+mkdirSync(values.out!, { recursive: true });
+const runLog = join(values.out!, 'run.log');
+// Console output is mirrored to run.log so a reader can see exactly what the run printed.
+const log = (line: string) => {
+  console.log(line);
+  appendFileSync(runLog, `${new Date().toISOString()} ${line}\n`);
+};
+const git = (...args: string[]) => {
+  try {
+    return execFileSync('git', args, { encoding: 'utf8' }).trim();
+  } catch {
+    return undefined;
+  }
+};
 const only = values.only?.split(',').map((s) => s.trim());
 const dirs = listCases(values.in!).filter((d) => !only || only.some((o) => d.endsWith(`/${o}`)));
 
-type Row = { id: string; outcome: string; actions: number; failed: number; cost: number; secs: number; error?: string };
+type Row = { id: string; outcome: string; severity?: string; actions: number; failed: number; escalated: boolean; cost: number; secs: number; error?: string };
 
 async function processCase(dir: string): Promise<Row> {
   const started = Date.now();
@@ -58,7 +81,7 @@ async function processCase(dir: string): Promise<Row> {
       failures,
       media: c.media,
       toolset,
-      thinkingLevel: values.thinking as 'off' | 'low' | 'medium' | 'high',
+      thinkingLevel: thinking,
       timeoutMs: Number(values.timeout) * 1000,
     });
     const assistants = run.messages.filter((m: any) => m.role === 'assistant') as any[];
@@ -69,18 +92,43 @@ async function processCase(dir: string): Promise<Row> {
       turns: assistants.length,
       durationMs: Date.now() - started,
     };
+    const thinkingTokens = assistants.reduce((a, m) => a + (m.usage?.reasoning ?? 0), 0);
     writeFileSync(join(outDir, 'ANSWER.md'), renderAnswer(c, run.decision, run.ledger, run.error));
     writeFileSync(join(outDir, 'REASONING.md'), renderReasoning(c, run.decision, run.ledger, run.messages, usage, run.error, { screen, gateLog: run.gateLog, policyLog: run.policyLog, chaos }));
+    writeFileSync(join(outDir, 'TRANSCRIPT.md'), renderTranscript(c, { model: values.model!, thinking, systemPrompt: CASE_SYSTEM_PROMPT, messages: run.messages, trace: run.trace, error: run.error }));
     writeFileSync(join(outDir, 'trace.jsonl'), run.trace.map((e) => JSON.stringify(e)).join('\n') + '\n');
     writeFileSync(
       join(outDir, 'result.json'),
-      JSON.stringify({ id: c.id, model: values.model, cutoff: c.cutoff, chaos, screen, gateLog: run.gateLog, policyLog: run.policyLog, decision: run.decision, ledger: run.ledger, state: run.state, usage, error: run.error }, null, 2),
+      JSON.stringify(
+        {
+          id: c.id,
+          model: values.model,
+          thinking,
+          cutoff: c.cutoff,
+          totalEvents: c.totalEvents,
+          inputs: c.inputs.map((i) => ({ name: i.name, ...i.parse })),
+          withheld: c.withheld,
+          chaos,
+          screen,
+          gateLog: run.gateLog,
+          policyLog: run.policyLog,
+          decision: run.decision,
+          ledger: run.ledger,
+          state: run.state,
+          usage: { ...usage, thinkingTokens },
+          error: run.error,
+        },
+        null,
+        2,
+      ),
     );
     return {
       id: c.id,
       outcome: run.decision?.outcome ?? 'NO DECISION',
+      severity: run.decision?.severity,
       actions: run.ledger.length,
       failed: run.ledger.filter((e) => e.status !== 'verified').length,
+      escalated: run.ledger.some((e) => e.tool === 'escalate_to_human' && e.status === 'verified'),
       cost: usage.cost,
       secs: usage.durationMs / 1000,
       error: run.error,
@@ -88,9 +136,11 @@ async function processCase(dir: string): Promise<Row> {
   } catch (e) {
     // A crash must never cost us the case: write an honest fallback and move on.
     const msg = e instanceof Error ? e.message : String(e);
+    const stack = e instanceof Error ? e.stack : undefined;
     writeFileSync(join(outDir, 'ANSWER.md'), `# Case ${c?.id ?? dir}: ANSWER\n\n**Outcome:** escalated (system failure)\n\nThe system crashed while processing this case: ${msg}\nA human must handle it.\n`);
-    writeFileSync(join(outDir, 'REASONING.md'), `# Case ${c?.id ?? dir}: REASONING\n\nRun crashed: ${msg}\n`);
-    return { id: c?.id ?? dir, outcome: 'CRASH', actions: 0, failed: 0, cost: 0, secs: (Date.now() - started) / 1000, error: msg };
+    writeFileSync(join(outDir, 'REASONING.md'), `# Case ${c?.id ?? dir}: REASONING\n\nRun crashed: ${msg}\n${stack ? `\n\`\`\`\n${stack}\n\`\`\`\n` : ''}`);
+    writeFileSync(join(outDir, 'result.json'), JSON.stringify({ id: c?.id ?? dir, model: values.model, thinking, crashed: true, error: msg, stack, inputs: c?.inputs.map((i) => ({ name: i.name, ...i.parse })) }, null, 2));
+    return { id: c?.id ?? dir, outcome: 'CRASH', actions: 0, failed: 0, escalated: false, cost: 0, secs: (Date.now() - started) / 1000, error: msg };
   }
 }
 
@@ -103,16 +153,52 @@ async function pool<T, R>(items: T[], n: number, fn: (t: T) => Promise<R>) {
         const idx = i++;
         results[idx] = await fn(items[idx]);
         const r = results[idx] as Row;
-        console.log(`  ✓ ${r.id} ${r.outcome} (${r.secs.toFixed(0)}s, $${r.cost.toFixed(3)})${r.error ? ` ERROR ${r.error}` : ''}`);
+        log(`  ✓ ${r.id} ${r.outcome} · ${r.actions} actions (${r.failed} not verified)${r.escalated ? ' · escalated' : ''} (${r.secs.toFixed(0)}s, $${r.cost.toFixed(3)})${r.error ? ` ERROR ${r.error}` : ''}`);
       }
     }),
   );
   return results;
 }
 
-console.log(`Running ${dirs.length} cases with ${values.model} (concurrency ${values.concurrency}, Jev ${jevEnabled() ? 'on' : 'off'}${Number(values.chaos) > 0 ? `, chaos ${values.chaos} seed ${values.seed}` : ''})…`);
+const manifest = {
+  startedAt: new Date().toISOString(),
+  command: process.argv.slice(2),
+  args: values,
+  model: values.model,
+  thinking,
+  jev: jevEnabled(),
+  commit: git('rev-parse', 'HEAD'),
+  dirty: !!git('status', '--porcelain'),
+  node: process.version,
+  cases: dirs.map((d) => d.split('/').at(-1)),
+};
+writeFileSync(join(values.out!, 'run.json'), JSON.stringify(manifest, null, 2));
+log(`Running ${dirs.length} cases from ${values.in} with ${values.model}, thinking ${thinking} (concurrency ${values.concurrency}, Jev ${jevEnabled() ? 'on' : 'off'}${Number(values.chaos) > 0 ? `, chaos ${values.chaos} seed ${values.seed}` : ''}) at commit ${manifest.commit?.slice(0, 8) ?? '?'}${manifest.dirty ? ' (uncommitted changes)' : ''}…`);
 const t0 = Date.now();
 const rows = await pool(dirs, Number(values.concurrency), processCase);
 console.table(rows.map((r) => ({ ...r, cost: `$${r.cost.toFixed(3)}`, secs: Math.round(r.secs) })));
 const total = rows.reduce((a, r) => a + r.cost, 0);
-console.log(`Done in ${((Date.now() - t0) / 1000).toFixed(0)}s · total cost $${total.toFixed(2)} · decisions ${rows.filter((r) => !['NO DECISION', 'CRASH'].includes(r.outcome)).length}/${rows.length}`);
+const decided = rows.filter((r) => !['NO DECISION', 'CRASH'].includes(r.outcome)).length;
+log(`Done in ${((Date.now() - t0) / 1000).toFixed(0)}s · total cost $${total.toFixed(2)} · decisions ${decided}/${rows.length}`);
+
+const finishedAt = new Date().toISOString();
+writeFileSync(join(values.out!, 'run.json'), JSON.stringify({ ...manifest, finishedAt, totalCost: total, decided, rows }, null, 2));
+writeFileSync(
+  join(values.out!, 'RUN.md'),
+  `# Run ${manifest.startedAt}
+
+- **Command:** \`pnpm cases ${manifest.command.join(' ')}\`
+- **Cases from:** \`${values.in}\` · **Model:** \`${values.model}\` · **Thinking:** \`${thinking}\` · **Jev:** ${manifest.jev ? 'on' : 'off'}${Number(values.chaos) > 0 ? ` · **Chaos:** ${values.chaos} (seed ${values.seed})` : ''}
+- **Commit:** \`${manifest.commit ?? 'unknown'}\`${manifest.dirty ? ' (with uncommitted changes)' : ''} · **Node:** ${manifest.node}
+- **Finished:** ${finishedAt} · **Decisions:** ${decided}/${rows.length} · **Cost:** $${total.toFixed(2)}
+
+Each case folder holds \`ANSWER.md\` (decision and verified actions), \`REASONING.md\` (inputs and how they were parsed, checks, ledger, condensed trace with thinking), \`TRANSCRIPT.md\` (everything the model saw and did, untruncated), \`trace.jsonl\` (raw timestamped events) and \`result.json\`. Console output is in \`run.log\`.
+
+| Case | Outcome | Severity | Actions | Not verified | Escalated | Secs | Cost | Error |
+|---|---|---|---|---|---|---|---|---|
+${rows
+  .map((r) => `| [${r.id}](${r.id}/ANSWER.md) · [reasoning](${r.id}/REASONING.md) · [transcript](${r.id}/TRANSCRIPT.md) | ${r.outcome} | ${r.severity ?? ''} | ${r.actions} | ${r.failed} | ${r.escalated ? 'yes' : ''} | ${Math.round(r.secs)} | $${r.cost.toFixed(3)} | ${(r.error ?? '').replace(/\|/g, '\\|').replace(/\n/g, ' ')} |`)
+  .join('\n')}
+`,
+);
+log(`Run index: ${join(values.out!, 'RUN.md')}`);

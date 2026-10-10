@@ -1,12 +1,14 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import type { ImageContent } from '@earendil-works/pi-ai';
 import { basename, join, relative } from 'node:path';
-import { isBinaryAttachment, readAttachment } from './attachments.js';
+import { type ParseMethod, isBinaryAttachment, readAttachment } from './attachments.js';
 import { type FailurePlan, normaliseFailurePlan } from '../core/failures.js';
 import type { Ticket } from './opsTools.js';
 import { isPublicCase, loadPublicCase } from './publicCases.js';
 
-export type CaseInput = { name: string; content: string };
+/** How an input was parsed: shown in REASONING.md so a reader can audit what the model saw. */
+export type ParseInfo = { method: ParseMethod | 'derived'; bytes: number; chars: number; truncatedChars?: number; note?: string };
+export type CaseInput = { name: string; content: string; parse?: ParseInfo };
 /** Images and scanned PDFs, sent to the model as native content blocks. */
 export type CaseMedia = { name: string; media: ImageContent };
 export type LoadedCase = {
@@ -21,6 +23,8 @@ export type LoadedCase = {
   reference?: string;
   cutoff?: number;
   totalEvents?: number;
+  /** Files in the case folder deliberately not shown to the agent, with why. */
+  withheld?: { name: string; reason: string }[];
 };
 
 // Never shown to the agent.
@@ -54,11 +58,12 @@ export function loadCase(dir: string, at?: string): LoadedCase {
     .sort()
     .map((p) => {
       const name = relative(dir, p);
-      const a = isBinaryAttachment(p) ? readAttachment(p, name) : { content: readFileSync(p, 'utf8') };
+      const a = isBinaryAttachment(p) ? readAttachment(p, name) : { content: readFileSync(p, 'utf8'), method: 'text' as const, bytes: statSync(p).size };
       if (a.media) media.push({ name, media: a.media });
       let content = a.content;
-      if (content.length > MAX_FILE_CHARS) content = `${content.slice(0, MAX_FILE_CHARS)}\n…[truncated ${content.length - MAX_FILE_CHARS} chars]`;
-      return { name, content };
+      const over = content.length - MAX_FILE_CHARS;
+      if (over > 0) content = `${content.slice(0, MAX_FILE_CHARS)}\n…[truncated ${over} chars]`;
+      return { name, content, parse: { method: a.method, bytes: a.bytes, chars: a.content.length, ...(over > 0 ? { truncatedChars: over } : {}) } };
     });
   const seedTickets = inputs
     .filter((i) => /ticket/i.test(i.name) && i.name.endsWith('.json'))
@@ -78,6 +83,9 @@ export function loadCase(dir: string, at?: string): LoadedCase {
     media,
     failures: existsSync(failuresPath) ? normaliseFailurePlan(JSON.parse(readFileSync(failuresPath, 'utf8'))) : {},
     seedTickets,
+    withheld: walk(dir)
+      .filter((p) => HIDDEN.has(basename(p)))
+      .map((p) => ({ name: relative(dir, p), reason: 'grading/test-harness file, never shown to the agent' })),
   };
 }
 
