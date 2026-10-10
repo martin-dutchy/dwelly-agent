@@ -9,9 +9,11 @@
 //   Ctrl-C once: in-flight cases get the fallback answer, unstarted ones are skipped; twice: exit at once.
 // Ends with an estimated operational-value line and writes <out>/RUN_SUMMARY.md (per-case table and the summary lines).
 import 'dotenv/config';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { chaosPlan } from './core/failures.js';
-import { basename, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { toolsetLine, toolsetStartLine, withOrganiserApi, withToolsetLine } from './agent/adapters/organiserApi.js';
 import { readOrganiserEnv } from './agent/adapters/toolMap.js';
@@ -22,7 +24,7 @@ import { claude, streamFn } from './agent/models.js';
 import { jevEnabled, prescreen, screenNote } from './agent/jev.js';
 import { seedFromCase } from './agent/opsSeed.js';
 import { createOpsToolset } from './agent/opsTools.js';
-import { type Usage, renderAnswer, renderReasoning } from './agent/report.js';
+import { type Usage, renderAnswer, renderReasoning, renderTranscript } from './agent/report.js';
 import { operationalValue, runSummaryMarkdown, valueLine } from './agent/runValue.js';
 import { CASE_SYSTEM_PROMPT } from './agent/systemPrompt.js';
 import { baseTimeoutMs, caseTimeoutMs, hhmm, parseDeadline } from './runner/budget.js';
@@ -54,6 +56,13 @@ if (!['on', 'off'].includes(values.critic!)) {
   console.error('--critic must be on or off');
   process.exit(1);
 }
+const THINKING = ['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'] as const;
+type Thinking = (typeof THINKING)[number];
+if (!THINKING.includes(values.thinking as Thinking)) {
+  console.error(`--thinking must be one of ${THINKING.join(', ')}`);
+  process.exit(1);
+}
+const thinking = values.thinking as Thinking;
 const criticModel = values.critic === 'on' ? claude(process.env.CRITIC_MODEL || 'claude-opus-5-5') : undefined;
 
 const t0 = Date.now();
@@ -71,6 +80,28 @@ const runFlags = process.argv
   .join(' ');
 
 const model = claude(values.model!);
+try {
+  mkdirSync(values.out!, { recursive: true });
+} catch (e) {
+  console.error(`cannot create ${values.out}: ${e instanceof Error ? e.message : e}`);
+  process.exit(1);
+}
+const runLog = join(values.out!, 'run.log');
+/** Console output, mirrored with timestamps to <out>/run.log. */
+const log = (line: string) => {
+  console.log(line);
+  try {
+    appendFileSync(runLog, `${new Date().toISOString()} ${line}\n`);
+  } catch {}
+};
+const REPO = dirname(dirname(fileURLToPath(import.meta.url)));
+const git = (...args: string[]) => {
+  try {
+    return execFileSync('git', args, { cwd: REPO, timeout: 5000, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+  } catch {
+    return undefined;
+  }
+};
 const organiser = readOrganiserEnv(process.env);
 const only = values.only?.split(',').map((s) => s.trim());
 const dirs = listCases(values.in!).filter((d) => !only || only.some((o) => d.endsWith(`/${o}`)));
@@ -132,7 +163,7 @@ async function processCase(dir: string, timeoutMs: number): Promise<Row> {
         failures,
         media: c.media,
         toolset,
-        thinkingLevel: values.thinking as 'off' | 'low' | 'medium' | 'high',
+        thinkingLevel: thinking,
         timeoutMs,
         critic: criticModel && { model: criticModel, streamFn, attachments: c.inputs.map((i) => i.name) },
       });
@@ -148,13 +179,24 @@ async function processCase(dir: string, timeoutMs: number): Promise<Row> {
       durationMs: Date.now() - started,
     };
     const retries = run.trace.filter((e: any) => e.type === 'retry').length;
+    const thinkingTokens = assistants.reduce((a, m) => a + (m.usage?.reasoning ?? 0), 0);
     writeFileSync(join(outDir, 'ANSWER.md'), renderAnswer(lc, run.decision, run.ledger, run.error));
     const reasoning = renderReasoning(lc, run.decision, run.ledger, run.messages, usage, run.error, { screen, gateLog: run.gateLog, policyLog: run.policyLog, chaos, critic: run.critic });
     writeFileSync(join(outDir, 'REASONING.md'), withToolsetLine(reasoning, toolsetLine(toolsetReport)));
-    writeFileSync(join(outDir, 'trace.jsonl'), run.trace.map((e) => JSON.stringify(e)).join('\n') + '\n');
+    // Debug artefacts: a failure here must not replace a good answer with the crash fallback.
+    try {
+      writeFileSync(join(outDir, 'TRANSCRIPT.md'), renderTranscript(lc, { model: values.model!, thinking, systemPrompt: CASE_SYSTEM_PROMPT, messages: run.messages, trace: run.trace, error: run.error }));
+    } catch (e) {
+      log(`  ! ${lc.id} TRANSCRIPT.md not written: ${e instanceof Error ? e.message : e}`);
+    }
+    try {
+      writeFileSync(join(outDir, 'trace.jsonl'), run.trace.map((e) => JSON.stringify(e)).join('\n') + '\n');
+    } catch (e) {
+      log(`  ! ${lc.id} trace.jsonl not written: ${e instanceof Error ? e.message : e}`);
+    }
     writeFileSync(
       join(outDir, 'result.json'),
-      JSON.stringify({ id: lc.id, model: values.model, cutoff: lc.cutoff, timeoutMs, toolset: toolsetReport, chaos, screen, hintsError: hints.hintsError, gateLog: run.gateLog, policyLog: run.policyLog, decision: run.decision, ledger: run.ledger, state: run.state, usage: { ...usage, retries }, error: run.error, critic: run.critic }, null, 2),
+      JSON.stringify({ id: lc.id, model: values.model, thinking, cutoff: lc.cutoff, totalEvents: lc.totalEvents, inputs: lc.inputs.map((i) => ({ name: i.name, ...i.parse })), withheld: lc.withheld, timeoutMs, toolset: toolsetReport, chaos, screen, hintsError: hints.hintsError, gateLog: run.gateLog, policyLog: run.policyLog, decision: run.decision, ledger: run.ledger, state: run.state, usage: { ...usage, retries, thinkingTokens }, error: run.error, critic: run.critic }, null, 2),
     );
     return {
       id: lc.id,
@@ -197,7 +239,7 @@ async function pool<T, R>(items: T[], n: number, fn: (t: T) => Promise<R>) {
         const idx = i++;
         results[idx] = await fn(items[idx]);
         const r = results[idx] as Row;
-        console.log(`  ✓ ${r.id} ${r.outcome} (${r.secs.toFixed(0)}s, $${r.cost.toFixed(3)})${r.error ? ` ERROR ${r.error}` : ''}`);
+        log(`  ✓ ${r.id} ${r.outcome} · ${r.actions} actions (${r.failed} not verified) (${r.secs.toFixed(0)}s, $${r.cost.toFixed(3)})${r.error ? ` ERROR ${r.error}` : ''}`);
       }
     }),
   );
@@ -209,11 +251,27 @@ const done = values.resume ? dirs.filter((d) => isComplete(outDirOf(d))) : [];
 const todo = dirs.filter((d) => !done.includes(d));
 const base = baseTimeoutMs(Number(values.timeout), budgetMs, concurrency, todo.length);
 
+const manifest = {
+  startedAt: new Date(t0).toISOString(),
+  command: `pnpm cases ${runFlags}`,
+  args: values,
+  model: values.model,
+  thinking,
+  critic: criticModel?.id ?? 'off',
+  jev: jevEnabled(),
+  commit: git('rev-parse', 'HEAD'),
+  dirty: !!git('status', '--porcelain'),
+  node: process.version,
+  cases: dirs.map((d) => basename(d)),
+};
+try {
+  writeFileSync(join(values.out!, 'run.json'), JSON.stringify(manifest, null, 2));
+} catch {}
 const startLines = [
-  `Running ${dirs.length} cases with ${values.model} (concurrency ${values.concurrency}, Jev ${jevEnabled() ? 'on' : 'off'}${criticModel ? `, critic ${criticModel.id}` : ''}${Number(values.chaos) > 0 ? `, chaos ${values.chaos} seed ${values.seed}` : ''}${deadline ? `, deadline ${hhmm(deadline)}, case timeout ${Math.round(base / 1000)}s` : ''}${values.resume ? `, resuming ${done.length} of ${dirs.length}` : ''})…`,
+  `Running ${dirs.length} cases with ${values.model}, thinking ${thinking} (concurrency ${values.concurrency}, Jev ${jevEnabled() ? 'on' : 'off'}${criticModel ? `, critic ${criticModel.id}` : ''}${Number(values.chaos) > 0 ? `, chaos ${values.chaos} seed ${values.seed}` : ''}${deadline ? `, deadline ${hhmm(deadline)}, case timeout ${Math.round(base / 1000)}s` : ''}${values.resume ? `, resuming ${done.length} of ${dirs.length}` : ''}) at commit ${manifest.commit?.slice(0, 8) ?? 'unknown'}${manifest.dirty ? ' with uncommitted changes' : ''}…`,
   toolsetStartLine(organiser, createOpsToolset().tools.map((t) => t.name)),
 ];
-for (const l of startLines) console.log(l);
+for (const l of startLines) log(l);
 const ran = await pool(todo, concurrency, async (dir) => {
   const t = caseTimeoutMs(base, deadline, Date.now());
   return t === 'skip' ? skipCase(dir) : processCase(dir, t);
@@ -226,16 +284,17 @@ const wallMs = Date.now() - t0;
 const skipped = rows.filter((r) => r.note === 'budget').length;
 const doneLine = `Done in ${(wallMs / 1000).toFixed(0)}s · total cost $${total.toFixed(2)} · decisions ${rows.filter((r) => !NO_DECISION.has(r.outcome)).length}/${rows.length} · resumed ${done.length} · budget-skipped ${skipped}`;
 const retrySummary = retryLine(retryStats(ran), concurrency, ran.length - skipped, wallMs, budgetMs);
-console.log(doneLine);
-console.log(retrySummary);
+log(doneLine);
+log(retrySummary);
 if (skipped) console.log(`Skipped cases can be re-run with the same command plus --resume (and a new --deadline).`);
 try {
   const value = valueLine(operationalValue(rows), organiser ? 'organiser API, local mock after any failure' : 'local mock environment');
-  console.log(value);
+  log(value);
   mkdirSync(values.out!, { recursive: true });
   writeFileSync(join(values.out!, 'RUN_SUMMARY.md'), runSummaryMarkdown({ command: `pnpm cases ${runFlags}`, startLines, rows, doneLine, retryLine: retrySummary, valueLine: value }));
+  writeFileSync(join(values.out!, 'run.json'), JSON.stringify({ ...manifest, finishedAt: new Date().toISOString(), totalCost: total, rows }, null, 2));
 } catch (e) {
-  console.error(`Could not write RUN_SUMMARY.md: ${e instanceof Error ? e.message : String(e)}`);
+  console.error(`Could not write RUN_SUMMARY.md or run.json: ${e instanceof Error ? e.message : String(e)}`);
 }
 
 // Abandoned agents (timed out past the guard, or interrupted) may still be running: flush the output and exit.

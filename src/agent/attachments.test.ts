@@ -18,7 +18,7 @@ describe('attachments', () => {
   it('keeps text files as text', () => {
     const p = join(dir, 'note.md');
     writeFileSync(p, 'hello');
-    expect(readAttachment(p, 'note.md')).toEqual({ content: 'hello' });
+    expect(readAttachment(p, 'note.md')).toEqual({ content: 'hello', method: 'text', bytes: 5 });
   });
 
   it('rewrites PDF blocks into document blocks for the API', () => {

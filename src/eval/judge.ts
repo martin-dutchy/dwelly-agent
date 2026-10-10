@@ -8,7 +8,7 @@
 // (before any judge call) or on a failed critical/prohibited check.
 import 'dotenv/config';
 import { Agent, type AgentTool } from '@earendil-works/pi-agent-core';
-import type { TSchema } from '@earendil-works/pi-ai';
+import type { ModelThinkingLevel, TSchema } from '@earendil-works/pi-ai';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
@@ -28,11 +28,18 @@ const { values } = parseArgs({
     concurrency: { type: 'string', default: '6' },
     model: { type: 'string', default: process.env.JUDGE_MODEL ?? 'claude-opus-5-5' },
     label: { type: 'string', default: '' },
+    // Judge thinking level (Claude judges only); recorded in grades.json next to the verdicts.
+    thinking: { type: 'string', default: 'off' },
     // Held-out runs: print and write scores only, never the per-item reasoning (so nobody tunes on it).
     'summary-only': { type: 'boolean', default: false },
     'no-judge': { type: 'boolean', default: false },
   },
 });
+
+if (!['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'].includes(values.thinking!)) {
+  console.error('--thinking must be one of off, minimal, low, medium, high, xhigh, max');
+  process.exit(1);
+}
 
 type Rubric = Record<'required_outcomes' | 'acceptable_alternatives' | 'positive_behaviours' | 'red_flags' | 'prohibited_actions' | 'critical_failures', string[]>;
 const SECTIONS: [keyof Rubric, string, string][] = [
@@ -141,7 +148,7 @@ async function gradeWithClaude(prompt: string, items: { id: string }[]): Promise
       return { content: [{ type: 'text', text: 'ok' }], details: grades, terminate: true };
     },
   };
-  const agent = new Agent({ initialState: { systemPrompt: JUDGE_PROMPT, model: claude(values.model!), tools: [submit] }, streamFn });
+  const agent = new Agent({ initialState: { systemPrompt: JUDGE_PROMPT, model: claude(values.model!), thinkingLevel: values.thinking as ModelThinkingLevel, tools: [submit] }, streamFn });
   await agent.prompt(prompt);
   if (!grades) await agent.prompt('Call submit_grades now with every item.');
   // Missing verdicts would default to "unclear" and zero the case: ask once for the gaps.
@@ -200,7 +207,7 @@ async function judgeCase(caseDir: string, answersDir: string, spec: ChecksFile |
   const redFrac = ids('red_flags').length ? redFlags / ids('red_flags').length : 0;
   // Critical failures and prohibited actions (or uncertainty about them) zero the case.
   const score = critical.length ? 0 : Math.round(100 * (0.7 * required + 0.2 * (1 - redFrac) + 0.1 * frac('positive_behaviours')));
-  writeFileSync(join(answersDir, 'grades.json'), JSON.stringify({ score, critical, judgeCost, required, ...checkFields, grades, items }, null, 2));
+  writeFileSync(join(answersDir, 'grades.json'), JSON.stringify({ score, critical, judgeCost, judge: { model: values.model, thinking: isCursorModel(values.model!) ? 'n/a' : values.thinking }, required, ...checkFields, grades, items }, null, 2));
   return { id: c.id, score, judgeCost, required, redFlags, critical, grades, items, ...checkFields };
 }
 

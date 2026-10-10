@@ -1,5 +1,5 @@
 import { Agent, type AgentEvent, type AgentTool, type StreamFn } from '@earendil-works/pi-agent-core';
-import { type Api, type Model, type TSchema, isRetryableAssistantError } from '@earendil-works/pi-ai';
+import { type Api, type Model, type ModelThinkingLevel, type TSchema, isRetryableAssistantError } from '@earendil-works/pi-ai';
 import { z } from 'zod';
 import { FailureInjector, type FailurePlan } from '../core/failures.js';
 import { type ToolContext, type ToolResult, executeTool, tools as coreTools } from '../core/tools.js';
@@ -86,7 +86,7 @@ export type CaseRunOptions = {
   timeoutMs?: number;
   toolset?: Toolset;
   maxRetries?: number;
-  thinkingLevel?: 'off' | 'low' | 'medium' | 'high';
+  thinkingLevel?: ModelThinkingLevel;
   /** Pre-submit review of the first valid draft by a second model. Off when absent. */
   critic?: { model: Model<Api>; streamFn: StreamFn; timeoutMs?: number; attachments: string[] };
 };
@@ -136,7 +136,7 @@ export async function runCase(opts: CaseRunOptions) {
     },
   };
 
-  const trace: AgentEvent[] = [];
+  const trace: (AgentEvent & { ts?: string })[] = [];
   const gateLog: (GateResult & { tool: string; attempt: number })[] = [];
   const gateBlocks = new Map<string, number>(); // recipient -> blocks so far
   const policyLog: { tool: string; reason: string }[] = [];
@@ -146,7 +146,7 @@ export async function runCase(opts: CaseRunOptions) {
   let critic: CriticResult | undefined;
   let revisionMode = false;
   let draft: Partial<Decision> | undefined;
-  let criticEvent: (CriticResult & { type: 'critic' }) | undefined;
+  let criticEvent: (CriticResult & { type: 'critic'; ts: string }) | undefined;
 
   const reviewDraft = async (c: NonNullable<CaseRunOptions['critic']>, d: Partial<Decision>): Promise<CriticResult> => {
     const empty = { model: c.model.id, ms: 0, cost: 0, items: [], kept: [], dropped: [] };
@@ -277,7 +277,7 @@ export async function runCase(opts: CaseRunOptions) {
         // One review per case, of the first draft that passes every check above; never a second round.
         if (opts.critic && !critic) {
           critic = await reviewDraft(opts.critic, d);
-          criticEvent = { type: 'critic', ...critic };
+          criticEvent = { type: 'critic', ts: new Date().toISOString(), ...critic };
           trace.push(criticEvent as any);
           if (critic.status === 'ok' && critic.kept.length) {
             revisionMode = true;
@@ -312,7 +312,7 @@ export async function runCase(opts: CaseRunOptions) {
     },
   });
   agent.subscribe((e) => {
-    if (e.type !== 'message_update') trace.push(e);
+    if (e.type !== 'message_update') trace.push({ ts: new Date().toISOString(), ...e });
   });
 
   // Transient provider errors (429 rate limits, 5xx, overloaded) must not cost us the case:
@@ -325,7 +325,7 @@ export async function runCase(opts: CaseRunOptions) {
       if (last?.role !== 'assistant' || last.stopReason !== 'error' || !isRetryableAssistantError(last)) return;
       agent.state.messages = agent.state.messages.slice(0, -1);
       const delay = Math.min(30_000, 1500 * 2 ** (attempt - 1)) + Math.random() * 1000;
-      trace.push({ type: 'retry', attempt, delayMs: Math.round(delay), error: last.errorMessage } as any);
+      trace.push({ ts: new Date().toISOString(), type: 'retry', attempt, delayMs: Math.round(delay), error: last.errorMessage } as any);
       await new Promise((r) => setTimeout(r, delay));
       // An abort during the backoff has nothing to cancel, so the timeout must also stop the retry.
       if (timedOut) return;

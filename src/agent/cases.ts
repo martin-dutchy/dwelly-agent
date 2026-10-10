@@ -1,12 +1,14 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import type { ImageContent } from '@earendil-works/pi-ai';
 import { basename, join, relative } from 'node:path';
-import { isBinaryAttachment, readAttachment } from './attachments.js';
+import { type ParseMethod, isBinaryAttachment, readAttachment } from './attachments.js';
 import { type FailurePlan, normaliseFailurePlan } from '../core/failures.js';
 import type { Ticket } from './opsTools.js';
-import { clip, isPublicCase, loadPublicCase } from './publicCases.js';
+import { clip, isPublicCase, loadPublicCase, parseInfo } from './publicCases.js';
 
-export type CaseInput = { name: string; content: string };
+/** How an input was parsed: shown in REASONING.md so a reader can audit what the model saw. */
+export type ParseInfo = { method: ParseMethod | 'derived'; bytes: number; chars: number; truncatedChars?: number; note?: string };
+export type CaseInput = { name: string; content: string; parse?: ParseInfo };
 /** Images and scanned PDFs, sent to the model as native content blocks. */
 export type CaseMedia = { name: string; media: ImageContent };
 export type LoadedCase = {
@@ -23,6 +25,8 @@ export type LoadedCase = {
   totalEvents?: number;
   /** Public-format cases only: attachments the visible history names that are not in attachments/. */
   missingAttachments?: string[];
+  /** Files or parts of files in the case folder deliberately not shown to the agent, with why. */
+  withheld?: { name: string; reason: string }[];
 };
 
 // Never shown to the agent.
@@ -46,7 +50,10 @@ function extractTickets(json: unknown): Ticket[] {
 
 /** `at` (public-format cases): events to show, as a number, a percentage like "50%", "auto" (recorded marker or 50 %) or "none" (all). Default: "auto" under HackatonPublicCases/, "none" elsewhere. */
 export function loadCase(dir: string, at?: string): LoadedCase {
-  if (isPublicCase(dir)) return { ...loadPublicCase(dir, at), dir, failures: {}, seedTickets: [] };
+  if (isPublicCase(dir)) {
+    const pc = loadPublicCase(dir, at);
+    return { ...pc, dir, failures: {}, seedTickets: [], withheld: [...pc.withheld, ...harnessFiles(dir)] };
+  }
   const files = walk(dir).filter((p) => !HIDDEN.has(basename(p)));
   const briefPath = ['case.md', 'CASE.md', 'README.md', 'task.md'].map((f) => join(dir, f)).find(existsSync);
   const media: CaseMedia[] = [];
@@ -55,9 +62,9 @@ export function loadCase(dir: string, at?: string): LoadedCase {
     .sort()
     .map((p) => {
       const name = relative(dir, p);
-      const a = isBinaryAttachment(p) ? readAttachment(p, name) : { content: readFileSync(p, 'utf8') };
+      const a = isBinaryAttachment(p) ? readAttachment(p, name) : { content: readFileSync(p, 'utf8'), method: 'text' as const, bytes: statSync(p).size };
       if (a.media) media.push({ name, media: a.media });
-      return { name, content: clip(a.content) };
+      return { name, content: clip(a.content), parse: parseInfo(a.method, a.bytes, a.content) };
     });
   const seedTickets = inputs
     .filter((i) => /ticket/i.test(i.name) && i.name.endsWith('.json'))
@@ -77,8 +84,15 @@ export function loadCase(dir: string, at?: string): LoadedCase {
     media,
     failures: existsSync(failuresPath) ? normaliseFailurePlan(JSON.parse(readFileSync(failuresPath, 'utf8'))) : {},
     seedTickets,
+    withheld: harnessFiles(dir),
   };
 }
+
+/** Grading and test-harness files in the case folder, which the agent never sees. */
+const harnessFiles = (dir: string) =>
+  walk(dir)
+    .filter((p) => HIDDEN.has(basename(p)))
+    .map((p) => ({ name: relative(dir, p), reason: 'grading or test-harness file, never shown to the agent' }));
 
 export function listCases(root: string): string[] {
   return readdirSync(root)

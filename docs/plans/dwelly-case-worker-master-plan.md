@@ -264,6 +264,7 @@ Create each as a default plan (not ExecPlan) in `docs/plans/`, named with the mi
   - [x] (2026-10-10 12:38 BST) Baselines re-saved on `main` 4cfac5a: final mean 91.0, quick 83.6, both 48/48 decided and 0 critical.
   - [x] (2026-10-10 12:55 BST, PR #28) Adapter: an organiser refusal is never read back as verified.
   - [x] (2026-10-10 12:57 BST, PR #25) Runbook: explicit `--critic off`, `pnpm checks` in the verify step, warning against re-running without `--resume`.
+  - [x] (2026-10-10 13:20 BST) PR #11 ported onto `main` (run logs, `TRANSCRIPT.md`, thinking levels, parse info, withheld files); see the M5 sub-plan Progress.
   - [ ] 15:15 rehearsal per the runbook.
   - [x] (2026-10-10 11:45 BST, Marc) Runbook half: `.claude/skills/reality-test-run/SKILL.md` has the 5-minute format-triage checklist (organiser / practice / third format / API-MCP), every step a command with a pass signal; `scripts/convert-to-organiser.ts` converts loose files per case to `index.md` + `history.md` + `attachments/` with `--dry-run`, `--check` and a loader `--probe`; 8 Vitest tests next to it. Runner flags and the adapter are Martin's and listed as pending in the skill; rehearsal table left as placeholders.
 - [ ] M6 Voice (gated)
