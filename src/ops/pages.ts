@@ -360,7 +360,10 @@ export function taskPage(o: { t: HumanTask; c: OpsCase; openTasks: number; error
   const x = t.context;
   const reco = t.recommendation?.trim();
   const evts = triggers(x.recent_history);
-  const trigger = [...evts].reverse().find((e) => e.text && !/^(Agency|.*system)/i.test(e.from ?? '')) ?? evts.at(-1);
+  // Organiser-format cases: the latest message that did not come from the agency. File-based cases have no
+  // ordered history, so quote the case's own task instead of guessing which file triggered it.
+  const task = c.files ? c.index_md.match(/## Task\s+([\s\S]*?)(\n## |$)/)?.[1]?.trim() : undefined;
+  const trigger = task ? { head: 'The case', from: '', channel: '', text: task } : ([...evts].reverse().find((e) => e.text && !/^(Agency|.*system)/i.test(e.from ?? '')) ?? evts.at(-1));
   const facts = (x.known ?? '').split(/(?<=[.;])\s+(?=[A-Z0-9£])/).map((s) => s.trim()).filter(Boolean);
   const unverified = [...(x.missing ? [x.missing] : []), ...(x.conflicts ?? [])];
   const cannot = (x.missing_info ?? []).filter((m) => !x.missing?.includes(m));

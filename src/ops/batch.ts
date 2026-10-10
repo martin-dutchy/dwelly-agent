@@ -14,7 +14,7 @@ export const CASE_SETS: Record<string, { name: string; dir: () => string }> = {
   'pm-public': { name: 'Public Property Management cases', dir: () => join(process.cwd(), 'HackatonPublicCases', 'Property Management') },
 };
 
-export async function startBatch(store: OpsStore, worker: Worker, set: keyof typeof CASE_SETS, only?: string[]) {
+export async function startBatch(store: OpsStore, worker: Worker, set: keyof typeof CASE_SETS, only?: string[], answersRoot = process.env.OPS_RUNS_DIR ?? join(process.cwd(), 'runs', 'ops')) {
   const spec = CASE_SETS[set];
   if (!spec) throw new Error(`unknown case set ${String(set)}`);
   const casesDir = spec.dir();
@@ -23,7 +23,7 @@ export async function startBatch(store: OpsStore, worker: Worker, set: keyof typ
     .sort();
   const id = newId('eval').replace('_', '-').slice(0, 13);
   const stamp = new Date().toLocaleString('en-GB', { timeZone: 'Europe/London', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-  const batch = await store.addBatch({ id, name: `${spec.name}, ${stamp}`, case_set: set, total: ids.length, answers_dir: join(process.cwd(), 'runs', 'ops', id), cases_dir: casesDir, grading: 'not_started' });
+  const batch = await store.addBatch({ id, name: `${spec.name}, ${stamp}`, case_set: set, total: ids.length, answers_dir: join(answersRoot, id), cases_dir: casesDir, grading: 'not_started' });
   // Ingest them all first (status "queued"), then the worker's pool works through them.
   for (const caseNo of ids) await ingestPublicCase(store, worker, caseNo, undefined, casesDir, batch.id);
   return batch;

@@ -205,7 +205,8 @@ describe('eval runs', () => {
         return { decision: decision({ outcome: 'action_taken', next_actions: [{ type: 'ASSIGN_PROVIDER', action: 'Assign', recipient: 'Swift, contractor', channel: 'email', ledger_id: 'A1' }] }), ledger: [entry('A1', 'assign_contractor', { contractor: 'Swift' })] };
       },
     });
-    const b = await startBatch(store, worker, 'pm-public', ['003', '021', '032']);
+    const { mkdtempSync } = await import('node:fs');
+    const b = await startBatch(store, worker, 'pm-public', ['003', '021', '032'], mkdtempSync(`${(await import('node:os')).tmpdir()}/ops-test-`));
     expect(b.total).toBe(3);
     // Eval-run cases stay out of the live inbox.
     expect(await store.listCases()).toHaveLength(0);
