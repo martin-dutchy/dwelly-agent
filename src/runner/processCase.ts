@@ -9,7 +9,7 @@ import type { OrganiserConfig } from '../agent/adapters/toolMap.js';
 import { runCase } from '../agent/caseAgent.js';
 import { type LoadedCase, casePrompt, loadCase } from '../agent/cases.js';
 import { compileBrief, renderBrief } from '../agent/brief/index.js';
-import type { CaseBrief, CaseBundle, HarnessFlags, Skill } from '../agent/harness/contracts.js';
+import type { CaseBrief, CaseBundle, HarnessFlags, SituationTag, Skill } from '../agent/harness/contracts.js';
 import { flagsLine } from '../agent/harness/flags.js';
 import { fromLoadedCase, ingest, toLoadedCase } from '../agent/ingest/index.js';
 import { hintsFor } from '../agent/maintenance/stateReconstruct.js';
@@ -18,7 +18,7 @@ import { prescreen, screenNote } from '../agent/jev.js';
 import { seedFromCase } from '../agent/opsSeed.js';
 import { type Toolset, createOpsToolset } from '../agent/opsTools.js';
 import { type Usage, renderAnswer, renderReasoning, renderTranscript } from '../agent/report.js';
-import { CASE_SYSTEM_PROMPT } from '../agent/systemPrompt.js';
+import { CASE_SYSTEM_PROMPT, CASE_SYSTEM_PROMPT_V2 } from '../agent/systemPrompt.js';
 import { crashFiles, writeFallback } from './fallback.js';
 import { loadTolerant } from './load.js';
 import { CaseStopped, type ToolCallRecord, bounded, checkpoint, stoppable } from './supervise.js';
@@ -83,16 +83,18 @@ export async function processCase(dir: string, timeoutMs: number, env: CaseEnv):
       }
       if (!flags.brief) hints = hintsFor(c);
       let skills: Skill[] = [];
+      let tags: SituationTag[] = [];
       if (flags.skills || needBrief) {
         try {
-          const tags = classify(bundle, brief);
+          tags = classify(bundle, brief);
           if (brief) brief.tags = tags;
           if (flags.skills) skills = selectSkills(tags);
         } catch (e) {
           harnessErrors.push(`skills: ${e instanceof Error ? e.message : String(e)}`);
         }
       }
-      const skillText = renderSkills(skills);
+      const skillText = renderSkills(skills, tags);
+      const systemPrompt = flags.skills ? CASE_SYSTEM_PROMPT_V2 : CASE_SYSTEM_PROMPT;
       const prompt = casePrompt(c) + (hints.text ? `\n\n${hints.text}` : '') + (skillText ? `\n\n${skillText}` : '');
       const screen = await prescreen(prompt);
       checkpoint(stop.signal);
@@ -104,7 +106,7 @@ export async function processCase(dir: string, timeoutMs: number, env: CaseEnv):
       const run = await runCase({
         caseId: c.id,
         prompt: prompt + screenNote(screen),
-        systemPrompt: CASE_SYSTEM_PROMPT,
+        systemPrompt,
         model: env.model,
         streamFn: env.streamFn,
         failures,
@@ -115,12 +117,12 @@ export async function processCase(dir: string, timeoutMs: number, env: CaseEnv):
         critic: env.criticModel && { model: env.criticModel, streamFn: env.streamFn, attachments: c.inputs.map((i) => i.name) },
         harness: { flags, bundle, brief, skills, briefText: flags.brief ? hints.text : undefined },
       });
-      const harness = { flags: flagsLine(flags), enabled: flags, tags: brief?.tags ?? [], skills: skills.map((s) => s.id), errors: harnessErrors, log: run.harnessLog };
-      return { c, hints, screen, chaos, run, harness, brief, toolsetReport: adapter.report(), inputProblems: loaded.problems };
+      const harness = { flags: flagsLine(flags), enabled: flags, tags, skills: skills.map((s) => s.id), errors: harnessErrors, log: run.harnessLog };
+      return { c, hints, screen, chaos, run, harness, brief, systemPrompt, toolsetReport: adapter.report(), inputProblems: loaded.problems };
     };
     const guarded = work();
     guarded.catch(() => {});
-    const { c: lc, hints, screen, chaos, run, harness, brief, toolsetReport, inputProblems } = await bounded(guarded, timeoutMs + env.graceMs, stop, env.interrupt).catch((e) => {
+    const { c: lc, hints, screen, chaos, run, harness, brief, systemPrompt, toolsetReport, inputProblems } = await bounded(guarded, timeoutMs + env.graceMs, stop, env.interrupt).catch((e) => {
       if (e instanceof CaseStopped) env.onStopped?.();
       throw e;
     });
@@ -140,7 +142,7 @@ export async function processCase(dir: string, timeoutMs: number, env: CaseEnv):
     writeFileSync(join(outDir, 'REASONING.md'), withToolsetLine(reasoning, toolsetLine(toolsetReport)));
     // Debug artefacts: a failure here must not replace a good answer with the crash fallback.
     try {
-      writeFileSync(join(outDir, 'TRANSCRIPT.md'), renderTranscript(lc, { model: env.modelId, thinking: env.thinking, systemPrompt: CASE_SYSTEM_PROMPT, messages: run.messages, trace: run.trace, error: run.error }));
+      writeFileSync(join(outDir, 'TRANSCRIPT.md'), renderTranscript(lc, { model: env.modelId, thinking: env.thinking, systemPrompt, messages: run.messages, trace: run.trace, error: run.error }));
     } catch (e) {
       env.log(`  ! ${lc.id} TRANSCRIPT.md not written: ${e instanceof Error ? e.message : e}`);
     }

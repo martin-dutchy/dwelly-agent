@@ -496,7 +496,13 @@ Run from the repo root (or from the workstream's worktree in Wave 1). Show the o
   - in `caseAgent.ts`, the timeout message now wins over "Request was aborted".
 
   `pnpm verify` green. The smoke run with every flag on wrote `brief` to `result.json`, but the case got a 400 from the API (see Discoveries, `.env`).
-- [ ] Wave 1: B · C · D · E · T
+- [x] (15:50) WS D merged into `h2/base` (`pnpm verify` 38 files and 689 tests green). It adds 18 skills, a deterministic classifier, selection capped at 3, and `CASE_SYSTEM_PROMPT_V2` (127 lines). `CASE_SYSTEM_PROMPT` is byte-identical to before and frozen at `skills/legacy/maintenance-policy-v1.md`. Wave 2 wiring in `processCase.ts`:
+  - `CASE_SYSTEM_PROMPT_V2` is used for both `runCase` and `TRANSCRIPT.md` when `skills` is on;
+  - `renderSkills(skills, tags)` names matching skills that the cap left out;
+  - `result.json` `harness.tags` records the classifier tags whenever they are computed, even with `brief` off.
+
+  Smoke run with every flag on, practice 05 and 23: 2/2 decided, 0 unverified actions, $0.18. Tags and skills recorded (05: landlord-approval and quote-invoice; 23: gas-emergency, vulnerable-occupant and identity-privacy). No guard blocks, completion bounces or `load_skill` calls.
+- [ ] Wave 1: B · C · E · T
 - [ ] Wave 2
 - [ ] Wave 3
 - [ ] Wave 4
@@ -520,6 +526,7 @@ Run from the repo root (or from the workstream's worktree in Wave 1). Show the o
 - Observation (WS F): with today's checks, a verified `escalate_to_human` with an empty `decision.escalations` (case 06 in the smoke run) is never checked for packet completeness. Requiring a packet for each verified escalation is a candidate extra check, to be decided on Wave 3 data. Not added yet.
 - Observation (15:35): the main checkout's `.env` changed twice after the worktrees were created, so worktrees had different, stale copies. WS F got 404 "workspace not found" until it blanked `ANTHROPIC_WORKSPACE_ID`. All worktrees were re-synced from the current `dwelly-agent/.env` at 15:36. Before Wave 3, re-copy it again.
 - Observation (15:39): the `dwelly-agent/.env` saved at 15:30 sets `ANTHROPIC_WORKSPACE_ID` to a 36-character UUID. `src/agent/models.ts` sends it as the `anthropic-workspace-id` header, and the API rejects it ("must be a valid workspace ID"). Every LLM call fails in 1 s, in the main checkout as well as in the worktrees. Evidence: `pnpm cases --in cases/practice --only 01` in `dwelly-agent` returned 400 at 15:39. Raised with Marc. At his choice, `ANTHROPIC_WORKSPACE_ID` was blanked in `dwelly-agent/.env` and all worktrees (backup at `/tmp/dwelly-env-backup-1539`). The re-test of practice 01 in `dwelly-agent` decided (escalated, 6 verified actions, 32 s).
+- Observation (WS D): the out-of-hours rule counts Saturday daytime as staffed. Out of hours means before 08:00, after 18:00 or on Sunday, and it applies only to emergencies and lockouts. Keyword tagging over whole JSON records gave false positives, so the classifier reads only the free-text values (`classify.ts` skips names, trades and ids). Evidence: `src/agent/skills/classify.ts` L6 and L273. Wave 2 to-do: add `verify_identity` and `share_tenant_contact` to `identity-privacy.md` once WS E merges.
 
 ## Decision log
 
