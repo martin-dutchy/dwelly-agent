@@ -118,13 +118,13 @@ describe('guards inside the agent loop', () => {
     faux.setResponses([
       fauxAssistantMessage([fauxToolCall('update_bank_details', { party: 'L-01', sort_code: '00-00-00', account_number: '1', verification_done: 'email' })]),
       fauxAssistantMessage([
-        fauxToolCall('submit_decision', { outcome: 'escalated', severity: 'routine', summary: 's', answers: [], actions_claimed: [], failed_actions: [], conflicts: [], assumptions: [] }),
+        fauxToolCall('submit_decision', { outcome: 'no_action', severity: 'routine', summary: 's', answers: [], actions_claimed: [], failed_actions: [], conflicts: [], assumptions: [] }),
       ]),
     ]);
     const run = await runCase({ caseId: 'guard', prompt: 'p', systemPrompt: 's', model: faux.getModel(), streamFn: models.streamSimple.bind(models), toolset: ops() });
     const results = run.messages.filter((m: any) => m.role === 'toolResult').map((m: any) => m.content[0].text);
     expect(results[0]).toMatch(/Blocked by policy/);
     expect(run.ledger).toHaveLength(0);
-    expect(run.decision?.outcome).toBe('escalated');
+    expect(run.decision?.outcome).toBe('no_action');
   });
 });

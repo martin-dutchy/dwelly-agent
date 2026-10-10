@@ -110,13 +110,12 @@ export async function runCase(opts: CaseRunOptions) {
     // BEFORE: block repeats of verified actions, and block a decision that misreports the ledger.
     beforeToolCall: async ({ toolCall, args }) => {
       const a = (args ?? {}) as Record<string, unknown>;
-      const refused = toolset.guard?.(toolCall.name, a);
-      if (refused) return { block: true, reason: `Blocked by policy: ${refused}` };
       if (getTool(toolCall.name)?.kind === 'write') {
         const done = ledger.findVerified(toolCall.name, a);
         if (done) return { block: true, reason: `Already done and verified as ${done.id} (${done.ref}). Do not repeat it.` };
       }
-      const policy = policyBlock(toolCall.name, a);
+      // Run-level rules first (they know the ledger), then the toolset's own rules (they know the job record).
+      const policy = policyBlock(toolCall.name, a) ?? toolset.guard?.(toolCall.name, a);
       if (policy) {
         policyLog.push({ tool: toolCall.name, reason: policy });
         return { block: true, reason: `Blocked by policy: ${policy}` };
