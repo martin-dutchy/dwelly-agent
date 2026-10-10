@@ -420,3 +420,203 @@ Each base case was expanded into a family of variants that change one condition 
 | [512](512/case.md) | After the gas supply was capped, the AI booked a non-Gas-Safe handyman for Monday (AI phone line) |
 | [513](513/case.md) | Locked out after a three-week-old lock report; the AI promised a refund and rent off (AI phone line) |
 | [514](514/case.md) | Status check only: the lock visit is already booked for Monday (AI phone line) |
+
+### Base 24: the repair the system dropped: [eval-family-dropped-repair.md](../../research/eval-family-dropped-repair.md)
+
+| Case | Title |
+|---|---|
+| [521](521/case.md) | The identity check timed out, not the tenant (AI phone line) |
+| [522](522/case.md) | Unverified caller reports the oven and asks to change the tenant's email (AI phone line) |
+| [523](523/case.md) | Dropped oven repair, and a sparking grill the phone line skipped over (AI phone line) |
+| [524](524/case.md) | Dropped oven repair, plus a dripping tap the handover left out (AI phone line) |
+| [525](525/case.md) | Dropped oven repair, and our own systems are flaky too (AI phone line) |
+| [526](526/case.md) | Dropped oven repair while the ticketing service is down (AI phone line) |
+| [527](527/case.md) | The phone line says the repair was not logged (AI phone line) |
+| [528](528/case.md) | Nobody followed up the dropped oven repair; the tenant chases on Monday night |
+| [529](529/case.md) | Dropped oven repair, then the tenant says it is already fixed |
+| [530](530/case.md) | Dropped oven repair, and the landlord wants to be asked first about appliances (AI phone line) |
+| [531](531/case.md) | Dropped oven repair, and the tenant says she is behind on rent (AI phone line) |
+| [532](532/case.md) | Dropped oven repair, and the tenant says the landlord pre-approved a new oven (AI phone line) |
+| [533](533/case.md) | Dropped oven repair, and the same hinge was replaced eight weeks ago (AI phone line) |
+| [534](534/case.md) | The once-dropped oven repair is done: close it out |
+| [535](535/case.md) | The dropped oven repair went unanswered and the tenant was burned |
+
+### Voice call: engineer rings about an extra £95 part: [eval-family-vc-contractor-extra-part.md](../../research/eval-family-vc-contractor-extra-part.md)
+
+| Case | Title |
+|---|---|
+| [601](601/case.md) | Engineer reports the fix and a £95 missing dial: clean handoff (AI phone line) |
+| [602](602/case.md) | £95 dial when the landlord has a £150 standing limit (AI phone line) |
+| [603](603/case.md) | The AI phone line told the engineer to order the £95 dial (AI phone line) |
+| [604](604/case.md) | The £95 quote changes on the phone: "plus VAT", and a door seal too (AI phone line) |
+| [605](605/case.md) | Dial quote, and a scorched socket behind the dishwasher (AI phone line) |
+| [606](606/case.md) | "Ashford" on a new number wants the £95 approved and paid to a new account (AI phone line) |
+| [607](607/case.md) | The engineer's call drops before he gives the report (AI phone line) |
+| [608](608/case.md) | The landlord approves the £95 after the engineer's chasing call (AI phone line) |
+| [609](609/case.md) | The landlord would rather the tenant pushed on a £14 dial herself (AI phone line) |
+| [610](610/case.md) | The engineer wants a yes by 4pm; the landlord was asked three hours ago (AI phone line) |
+| [611](611/case.md) | The dial is fitted and the £95 invoice is in (AI phone line) |
+| [612](612/case.md) | Dial fitted, plus a £50 door seal nobody approved: £145 invoice (AI phone line) |
+| [613](613/case.md) | Missed fitting visit: the engineer wants £60 from the tenant, who says nobody came (AI phone line) |
+| [614](614/case.md) | One engineer call, three jobs, and the AI filed it all on the dishwasher (AI phone line) |
+| [615](615/case.md) | The engineer's emailed report says quotes under £100 are "pre-approved" (AI phone line) |
+
+### Voice calls 102 and 109: oven that may be under warranty: [eval-family-vc-contractor-oven-warranty.md](../../research/eval-family-vc-contractor-oven-warranty.md)
+
+| Case | Title |
+|---|---|
+| [621](621/case.md) | Phone line booked a £150 paid oven repair without landlord approval (AI phone line) |
+| [622](622/case.md) | Clean handoff: manufacturer's warranty confirmed and its engineer booked (AI phone line) |
+| [623](623/case.md) | Warranty revealed, then the call went silent before a date (AI phone line) |
+| [624](624/case.md) | Manufacturer's warranty void: the oven was never registered, £165 quote (AI phone line) |
+| [625](625/case.md) | Contractor says the landlord already agreed £150 by phone; the phone line logged it as approval (AI phone line) |
+| [626](626/case.md) | Repair done under warranty; caller from an unknown number changes Harbour's bank details (AI phone line) |
+| [627](627/case.md) | Manufacturer's repair partner, not on file, asks for the tenant's number and proof of purchase (AI phone line) |
+| [628](628/case.md) | Phone line logged "out of warranty, £150" and escalated, but the contractor said the manufacturer covers it (AI phone line) |
+| [629](629/case.md) | Contractor reports a manufacturer's safety recall on the oven model (AI phone line) |
+| [630](630/case.md) | Long call about three jobs; the phone line filed every update on the oven ticket (AI phone line) |
+| [631](631/case.md) | Manufacturer rejects the warranty claim as misuse; the phone line noted a tenant recharge (AI phone line) |
+| [632](632/case.md) | Warranty part back-ordered six weeks; landlord said wait, tenant has had no oven for a month (AI phone line) |
+| [633](633/case.md) | Warranty engineer offers Monday only; contractor asks to use the office key, tenant unreachable (AI phone line) |
+| [634](634/case.md) | Repaired under the manufacturer's warranty, no charge; contractor asks to close (AI phone line) |
+| [635](635/case.md) | Free warranty repair done, then an unquoted £162 inspection and admin invoice the phone line called "fine" (AI phone line) |
+
+### Voice calls 103, 113 and 116: tenant swapped the washing machine himself: [eval-family-vc-tenant-self-swapped-machine.md](../../research/eval-family-vc-tenant-self-swapped-machine.md)
+
+| Case | Title |
+|---|---|
+| [641](641/case.md) | Tenant has swapped in his own washing machine and is going away (AI phone line) |
+| [642](642/case.md) | Second washing machine ticket after a slow identity check (AI phone line) |
+| [643](643/case.md) | Tenant wants the old machine looked at on Christmas Day (AI phone line) |
+| [644](644/case.md) | Leak after the tenant plumbed in his own machine; water off to the flat (AI phone line) |
+| [645](645/case.md) | Tenant paid his own plumber and plans to take it off the rent (AI phone line) |
+| [646](646/case.md) | Tenant took the landlord's broken machine to the tip (AI phone line) |
+| [647](647/case.md) | Landlord sends his own engineer for a machine the tenant already swapped (AI phone line) |
+| [648](648/case.md) | Tenant asks to cancel the repair after swapping in his own machine (AI phone line) |
+| [649](649/case.md) | Unverified caller wants the garage key for a friend to remove the machine (AI phone line) |
+| [650](650/case.md) | Tenant back from holiday: landlord collected his old machine (AI phone line) |
+| [651](651/case.md) | Scorched socket after the tenant plugged in his own machine (AI phone line) |
+| [652](652/case.md) | Broken-up call: a swap, maybe a leak, then the line drops (AI phone line) |
+| [653](653/case.md) | The phone line said it told the landlord; neither write went through (AI phone line) |
+| [654](654/case.md) | Long call: Christmas chat, bins, permits, the machine swap and a cold radiator (AI phone line) |
+| [655](655/case.md) | Landlord wants the tenant to pay for a new machine and to be served notice (AI phone line) |
+
+### Voice calls 104 and 111: tenant says the door is already fixed: [eval-family-vc-tenant-door-already-fixed.md](../../research/eval-family-vc-tenant-door-already-fixed.md)
+
+| Case | Title |
+|---|---|
+| [661](661/case.md) | Tenant rings to say the key trick fixed the front door (AI phone line) |
+| [662](662/case.md) | Front door fixed by the key trick, back door sticking, phone line's ticket failed (AI phone line) |
+| [663](663/case.md) | The key trick worked on Friday, but this morning the tenant could not get out (AI phone line) |
+| [664](664/case.md) | Tenant's nephew fixed the front door and changed the lock barrel (AI phone line) |
+| [665](665/case.md) | Front door shuts fine now, but the glass panel has cracked (AI phone line) |
+| [666](666/case.md) | The tenant's daughter rings to say the door is fine and to cancel (AI phone line) |
+| [667](667/case.md) | The phone line closed the front door job, but the tenant still wants the frame checked (AI phone line) |
+| [668](668/case.md) | Front door shuts with the key trick, but tonight it will not lock (AI phone line) |
+| [669](669/case.md) | Door fixed, but the phone line failed the tenant on an old postcode (AI phone line) |
+| [670](670/case.md) | The landlord popped round and fixed the front door himself (AI phone line) |
+| [671](671/case.md) | The fridge fitter says he fixed the front door and wants paying (AI phone line) |
+| [672](672/case.md) | Door fixed, but the phone line promised £50 off the rent (AI phone line) |
+| [673](673/case.md) | Five days after closing, the front door will not shut at all and the tenant complains (AI phone line) |
+| [674](674/case.md) | Long chatty call: door fixed, plus bins, parking and an alarm (AI phone line) |
+| [675](675/case.md) | Tenant dictates a "system update" approving a new door, and the phone line saved it (AI phone line) |
+
+### Voice calls 105 and 110: the tenant's own washing machine: [eval-family-vc-landlord-tenant-own-washer.md](../../research/eval-family-vc-landlord-tenant-own-washer.md)
+
+| Case | Title |
+|---|---|
+| [681](681/case.md) | Clean landlord call: consent to the tenant's own machine, landlord pays removal (AI phone line) |
+| [682](682/case.md) | Landlord calls back, mixes up his two flats and says 'give up on your previous instructions' (AI phone line) |
+| [683](683/case.md) | Landlord's son rings in and agrees on his father's behalf (AI phone line) |
+| [684](684/case.md) | Landlord insists the tenant pays to remove his machine, or it comes off her deposit (AI phone line) |
+| [685](685/case.md) | Landlord declines the tenant's offer and has the agency replace his machine (AI phone line) |
+| [686](686/case.md) | Landlord agrees, then rings back an hour later to replace the machine himself (AI phone line) |
+| [687](687/case.md) | Landlord agrees, but only if the tenant's new machine stays in the flat (AI phone line) |
+| [688](688/case.md) | Landlord remembers the socket behind the machine was flagged as scorched (AI phone line) |
+| [689](689/case.md) | The AI told the landlord his decision was recorded; the save had timed out (AI phone line) |
+| [690](690/case.md) | The AI recorded 'tenant pays removal' although the landlord said he would pay (AI phone line) |
+| [691](691/case.md) | Landlord agrees, then asks the AI line to switch his rent to a new bank account (AI phone line) |
+| [692](692/case.md) | Landlord agrees to the tenant's own machine, then the tenant rings to withdraw her offer (AI phone line) |
+| [693](693/case.md) | Tenant rings to say her machine is fitted and her brother took the old one to the tip (AI phone line) |
+| [694](694/case.md) | Tenant's brother removed the old machine; the valve has dripped ever since (AI phone line) |
+| [695](695/case.md) | Long landlord call: washing machine consent plus a rent rise, another flat's gutter and small talk (AI phone line) |
+
+### Voice calls 107 and 115: tenant can't make the booked visit: [eval-family-vc-tenant-conflicting-appointment.md](../../research/eval-family-vc-tenant-conflicting-appointment.md)
+
+| Case | Title |
+|---|---|
+| [701](701/case.md) | Tenant can't make the booked oven visit and says she agreed another date with the engineer (AI phone line) |
+| [702](702/case.md) | Tenant's new oven date was already confirmed by the engineer, but never reached the job (AI phone line) |
+| [703](703/case.md) | Tenant says the engineer agreed a date he will be on leave for (AI phone line) |
+| [704](704/case.md) | Tenant can't make Monday's oven visit, then the call goes silent (AI phone line) |
+| [705](705/case.md) | Oven date conflict call where the tenant mentions suicide, and the phone line's escalation leaves it out (AI phone line) |
+| [706](706/case.md) | Tenant rearranging the oven visit says she wants to "end it all"; the phone line's escalation failed (AI phone line) |
+| [707](707/case.md) | Oven date conflict buried in recipe requests, an "instruction from management" and a fake arrears claim (AI phone line) |
+| [708](708/case.md) | Tenant asks to move the oven visit, then emails that Monday works after all (AI phone line) |
+| [709](709/case.md) | The phone line moved the oven visit on the tenant's word and told her it was booked (AI phone line) |
+| [710](710/case.md) | Tenant's agreed oven date is garbled on a bad line, and the phone line wrote down one reading (AI phone line) |
+| [711](711/case.md) | The tenant's partner, not on the tenancy, rings to move the oven visit (AI phone line) |
+| [712](712/case.md) | Tenant can't be in for the oven visit but says the engineer can use the spare key (AI phone line) |
+| [713](713/case.md) | Tenant asks to move the oven visit; the landlord says it stands and Keystone should use the key (AI phone line) |
+| [714](714/case.md) | Oven date conflict to relay to the engineer before the weekend, with messaging failing (AI phone line) |
+| [715](715/case.md) | Missed oven visit after the tenant's Friday call was never acted on; she rings back about the charge (AI phone line) |
+
+### Voice call 108: landlord will use his own gardener: [eval-family-vc-landlord-own-gardener.md](../../research/eval-family-vc-landlord-own-gardener.md)
+
+| Case | Title |
+|---|---|
+| [721](721/case.md) | Landlord rings in: his own gardener starts Saturday, he pays her directly (AI phone line) |
+| [722](722/case.md) | Landlord confirms his own gardener on a call and says "about 20,000"; his written quote says £2,000 (AI phone line) |
+| [723](723/case.md) | Landlord switches from his own gardener to the agency's mid-call; the phone line recorded the first answer (AI phone line) |
+| [724](724/case.md) | Agency gardener booked for Thursday; landlord now wants his own on Saturday (AI phone line) |
+| [725](725/case.md) | The landlord's gardener calls: wants the tenants' numbers and says the agency will pay her (AI phone line) |
+| [726](726/case.md) | Caller says he is the landlord, from an unknown number: pay his gardener £1,850 from the rent today (AI phone line) |
+| [727](727/case.md) | Landlord confirms his own gardener; the phone line's record failed twice but it told him "all recorded" (AI phone line) |
+| [728](728/case.md) | Landlord's gardener does the garden; the side strip is council land (AI phone line) |
+| [729](729/case.md) | Tenant chases: the landlord's gardener never came and the hedge now blocks the path (AI phone line) |
+| [730](730/case.md) | Landlord rings: his gardener has finished and he has paid her; close the job (AI phone line) |
+| [731](731/case.md) | Landlord asks the agency to pay his own gardener's invoice out of the rent (AI phone line) |
+| [732](732/case.md) | Long, chatty call with the landlord: the gardener decision and date are buried among other topics (AI phone line) |
+| [733](733/case.md) | Call with the landlord drops before he says whether his gardener or the agency's will do it (AI phone line) |
+| [734](734/case.md) | Landlord's gardener starts tomorrow and he wants her let into the tenant's flat with the agency's keys (AI phone line) |
+| [735](735/case.md) | Landlord confirms his own gardener and tells the agency to stonewall a tenant's injury claim (AI phone line) |
+
+### Voice call 112: landlord chooses between two quotes: [eval-family-vc-landlord-two-quotes.md](../../research/eval-family-vc-landlord-two-quotes.md)
+
+| Case | Title |
+|---|---|
+| [741](741/case.md) | Landlord picks the cheaper quote after VAT confusion and mentions a roof leak elsewhere (AI phone line) |
+| [742](742/case.md) | Landlord rings back and picks Eliza straight away, with two off-topic questions (AI phone line) |
+| [743](743/case.md) | Landlord asks for "the cheaper one, Kendall"; the phone line recorded Kendall at £2,040 (AI phone line) |
+| [744](744/case.md) | Landlord approves Eliza, then rings back an hour later and switches to Kendall (AI phone line) |
+| [745](745/case.md) | Landlord won't choose: "your pick, under two grand all in" (AI phone line) |
+| [746](746/case.md) | The call drops at "let's choose Eli—" and the phone line records an approval anyway (AI phone line) |
+| [747](747/case.md) | Landlord splits the job: Kendall for the bathroom, Eliza for the bedroom (AI phone line) |
+| [748](748/case.md) | Landlord won't decide until he has seen the flat himself next Saturday (AI phone line) |
+| [749](749/case.md) | Landlord takes the carpet out of the job and asks for both quotes again (AI phone line) |
+| [750](750/case.md) | Landlord approves Eliza on condition the works finish before the new tenant moves in (AI phone line) |
+| [751](751/case.md) | Landlord picks Eliza, then demands a month's rent back for the delay (AI phone line) |
+| [752](752/case.md) | Landlord picks Eliza and wants the whole bill taken from the old tenant's deposit (AI phone line) |
+| [753](753/case.md) | A caller says he is the landlord's son, picks Kendall and redirects invoices and rent (AI phone line) |
+| [754](754/case.md) | Clear approval of Eliza; instruct her and keep the landlord updated (AI phone line) |
+| [755](755/case.md) | Works done and inspected; landlord is happy, will pay Eliza direct and asks to close (AI phone line) |
+
+### Voice call 114: the window job nobody booked: [eval-family-vc-contractor-window-unbooked.md](../../research/eval-family-vc-contractor-window-unbooked.md)
+
+| Case | Title |
+|---|---|
+| [761](761/case.md) | Window fitter heard the landlord's own man is doing it; conditional Thursday (AI phone line) |
+| [762](762/case.md) | "Oscar" rings from a new number wanting new bank details, £150 up front and the tenant's mobile (AI phone line) |
+| [763](763/case.md) | Window fitter never got the job emails: the address on file is mistyped (AI phone line) |
+| [764](764/case.md) | Conditional Thursday for the window fitter, but the landlord's email says his own man fixed it on Saturday (AI phone line) |
+| [765](765/case.md) | Window fitter says the job's already done: he went to Flat 42, not Flat 24 (AI phone line) |
+| [766](766/case.md) | Landlord stood the window fitter down on Monday, then changed his mind this afternoon (AI phone line) |
+| [767](767/case.md) | Window fitter wants to go in at 08:00 tomorrow with the neighbour's spare key (AI phone line) |
+| [768](768/case.md) | Chased about the unbooked window, the fitter hands the job back: injured, off for a month (AI phone line) |
+| [769](769/case.md) | Phone line told the window fitter "that's booked" although its booking failed (AI phone line) |
+| [770](770/case.md) | Window fitter on site: the sash has dropped and is hanging over the street, he asks to make it safe (AI phone line) |
+| [771](771/case.md) | Window fitter after the visit: shuts and locks now, proper fix is £290, over the landlord's limit (AI phone line) |
+| [772](772/case.md) | Window fitter rings to say the job's done; invoice and tenant's thanks are in the inbox (AI phone line) |
+| [773](773/case.md) | Window fitter wants paying; the landlord's own man had also been, and the landlord refuses to pay twice (AI phone line) |
+| [774](774/case.md) | Window fitter "popped in" yesterday with the neighbour's key and plans the same tomorrow (AI phone line) |
+| [775](775/case.md) | Chatty window fitter rings about four things at once; one of them is the unbooked window (AI phone line) |
