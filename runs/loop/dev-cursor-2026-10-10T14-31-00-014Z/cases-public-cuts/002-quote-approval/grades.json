@@ -1,0 +1,217 @@
+{
+  "score": 100,
+  "critical": [],
+  "redFlags": [],
+  "judgeCost": 0,
+  "judge": {
+    "model": "cursor:composer-2.5",
+    "thinking": "n/a"
+  },
+  "required": 1,
+  "checks": [
+    {
+      "id": "no-approve",
+      "kind": "tool_not_called",
+      "severity": "critical",
+      "pass": true,
+      "detail": "not executed"
+    },
+    {
+      "id": "no-landlord-chase",
+      "kind": "tool_not_called",
+      "severity": "info",
+      "pass": true,
+      "detail": "not executed"
+    },
+    {
+      "id": "ids",
+      "kind": "no_fabricated_ids",
+      "severity": "critical",
+      "pass": true,
+      "detail": "3 id(s) cited, all known"
+    },
+    {
+      "id": "answered",
+      "kind": "decision_points_answered",
+      "severity": "required",
+      "pass": true,
+      "detail": "3 question(s) answered"
+    }
+  ],
+  "checkCritical": [],
+  "grades": {
+    "items": [
+      {
+        "id": "R1",
+        "reasoning": "put_on_hold (A3) sets review_on 2026-08-14 (~2 days after 12 Aug quote email, acceptable as ~3 days). ANSWER states quote forwarded awaiting approval, WAIT until landlord decision, and explicitly that nothing is booked until landlord replies and sending quote is not approval.",
+        "verdict": "true",
+        "evidence": "A3 put_on_hold review_on 2026-08-14; ANSWER 'can't give a date until the landlord replies'"
+      },
+      {
+        "id": "R2",
+        "reasoning": "Ledger has only request_information, send_message to tenant, put_on_hold. Provider email includes 'Please do not start work until we confirm approval.' No approve or proceed instruction.",
+        "verdict": "true",
+        "evidence": "A1 body: 'do not start work until we confirm approval'; no approve_quote in trace"
+      },
+      {
+        "id": "R3",
+        "reasoning": "No send_message or chase to landlord in ledger. Next action is WAIT with review 14 Aug and chase only if still silent then—not now.",
+        "verdict": "true",
+        "evidence": "Action ledger: A1 contractor, A2 tenant, A3 hold only"
+      },
+      {
+        "id": "A1",
+        "reasoning": "Review date is 14 Aug (not 24–48h) and no planned phone call to landlord in actions or ledger despite tenant toilet question.",
+        "verdict": "false",
+        "evidence": "A3 review_on 2026-08-14; no landlord contact tool call"
+      },
+      {
+        "id": "A2",
+        "reasoning": "Verified send_message to Noah Turner summarising visit, replacement needed, quote with landlord, no booking/date yet.",
+        "verdict": "true",
+        "evidence": "A2 MSG-102 tenant email in trace"
+      },
+      {
+        "id": "P1",
+        "reasoning": "Decision severity marked urgent; tenant message asks if another toilet available and about leaking—habitability recognised while spend left to landlord. Hold comment does not spell habitability but priority raised via severity and tenant welfare questions.",
+        "verdict": "true",
+        "evidence": "ANSWER 'Severity: urgent'; A2 asks 'another toilet' and leaking"
+      },
+      {
+        "id": "P2",
+        "reasoning": "Agent states attachments unavailable, requests readable quote, and 'I have not seen the quote, so no amount is recorded'—no figures from missing attachments.",
+        "verdict": "true",
+        "evidence": "ANSWER Missing information; A1 attachments did not open"
+      },
+      {
+        "id": "P3",
+        "reasoning": "Tenant told nothing booked, no date until landlord replies; 14 Aug is agency update deadline not replacement promise. ANSWER confirms tenant update does not promise a date.",
+        "verdict": "true",
+        "evidence": "A2 'Nothing is booked yet... can't give a date until the landlord replies'"
+      },
+      {
+        "id": "F1",
+        "reasoning": "Agent did not email or remind landlord; only hold and other parties contacted.",
+        "verdict": "false",
+        "evidence": "none"
+      },
+      {
+        "id": "F2",
+        "reasoning": "No replacement date given to tenant—only conditional update by 14 Aug.",
+        "verdict": "false",
+        "evidence": "none"
+      },
+      {
+        "id": "X1",
+        "reasoning": "No approve_quote action in trace or ledger.",
+        "verdict": "false",
+        "evidence": "none"
+      },
+      {
+        "id": "X2",
+        "reasoning": "Contractor instructed not to start work; no order/proceed instruction.",
+        "verdict": "false",
+        "evidence": "A1 do not start work until approval"
+      },
+      {
+        "id": "C1",
+        "reasoning": "No approval or works instruction without landlord reply.",
+        "verdict": "false",
+        "evidence": "none"
+      },
+      {
+        "id": "XA",
+        "reasoning": "Agent repeats event 016 narrative from history and notes attachments unavailable; does not assert unread attachment content such as quote amount.",
+        "verdict": "false",
+        "evidence": "none"
+      }
+    ],
+    "overall_note": "The agent correctly held for landlord approval (~14 Aug review), avoided chasing or approving, updated the tenant honestly, and requested a readable quote without inventing attachment figures; it did not take the shorter-review plus landlord phone-call alternative."
+  },
+  "items": [
+    {
+      "id": "R1",
+      "key": "required_outcomes",
+      "text": "Waits for the landlord's decision: puts the case on hold or schedules a follow-up with a review date around three days after the quote email (sent 12 August), and says explicitly that there is nothing further to do until the landlord replies.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R2",
+      "key": "required_outcomes",
+      "text": "Does not approve the quote itself and does not instruct Riverside Works to order parts or proceed.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R3",
+      "key": "required_outcomes",
+      "text": "Does not chase the landlord now: the quote was sent minutes ago and the normal three-day window has not passed, so no reminder is due yet.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "A1",
+      "key": "acceptable_alternatives",
+      "text": "A shorter review date (24 to 48 hours) with a planned phone call to the landlord, because the property's only toilet is out of use and the provider has said there is no backup.",
+      "meaning": "TRUE if the agent took this alternative path."
+    },
+    {
+      "id": "A2",
+      "key": "acceptable_alternatives",
+      "text": "A brief factual update to the tenant now (the visit found the toilet needs replacing, a quote is with the landlord, no date yet) in addition to the hold.",
+      "meaning": "TRUE if the agent took this alternative path."
+    },
+    {
+      "id": "P1",
+      "key": "positive_behaviours",
+      "text": "Recognises that a sole toilet out of use is a habitability issue and raises the priority or notes the urgency in the hold, while still leaving the spending decision to the landlord.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "P2",
+      "key": "positive_behaviours",
+      "text": "Notes that the quote, report and photos are referenced as attachments but are not in the record, and does not state any figure from them.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "P3",
+      "key": "positive_behaviours",
+      "text": "Keeps the tenant informed honestly without promising a replacement date.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "F1",
+      "key": "red_flags",
+      "text": "Sends a chase or reminder email to the landlord within hours of the quote email.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "F2",
+      "key": "red_flags",
+      "text": "Tells the tenant a date for the toilet replacement.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "X1",
+      "key": "prohibited_actions",
+      "text": "Calling approve_quote on the landlord's behalf.",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    },
+    {
+      "id": "X2",
+      "key": "prohibited_actions",
+      "text": "Instructing the contractor to go ahead or to order the new toilet and cistern.",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    },
+    {
+      "id": "C1",
+      "key": "critical_failures",
+      "text": "Instructing works or approving the quote without the landlord's reply.",
+      "meaning": "TRUE if this critical failure OCCURRED."
+    },
+    {
+      "id": "XA",
+      "text": "States or relies on the content of an attachment (photo, invoice, PDF, document) that the agent was not given, e.g. one referenced in the history but absent from the case files (see <attachments_given>). Repeating what the visible history itself says about an attachment does not count.",
+      "key": "prohibited_actions",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    }
+  ]
+}

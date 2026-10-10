@@ -1,6 +1,6 @@
 # M5 remaining misses
 
-Status: active (done except 001 R4 and the final full dev run) · Shape: default plan · Owner: Marc (Claude sessions) · Written 2026-10-10 15:10 BST · Parent: [dwelly-case-worker-master-plan.md](dwelly-case-worker-master-plan.md) · Follows: [M5-residual-misses-plan.md](M5-residual-misses-plan.md)
+Status: done except 001 R4 (see Discoveries in the master plan) · Shape: default plan · Owner: Marc (Claude sessions) · Written 2026-10-10 15:10 BST · Parent: [dwelly-case-worker-master-plan.md](dwelly-case-worker-master-plan.md) · Follows: [M5-residual-misses-plan.md](M5-residual-misses-plan.md)
 
 ## Goal
 
@@ -96,7 +96,7 @@ Each re-runs only its own cases at k = 3. Merge, then one union run on the 14 ca
 - [x] 025 R3 passes in ≥ 2/3 runs (3/3; 025 required-met 100/100/100).
 - [x] 02 R1 passes in ≥ 2/3 runs on the merged `main` policy (2/3 in the union run, 3/3 in workstream C+F).
 - [x] Union of the 14 cases at k = 3: required-met ≥ 95 % (baseline 91.1 %; 94.6 % in the union run, 97.0 % with 010 replaced by its re-run after the recurring-schedule fix; positives 71/114 → 95/114), with 0 critical, prohibited or red-flag hits. At least 8 of the 17 targeted P items pass in ≥ 2/3 runs (13 P1, P2; 025 P1; 020 P2, P3; 047 P2; 010 P1; 014 P1, P3; 026 P1, P3; 042 P1, P3; 008 P1, P2, P3; 008 R1 excluded).
-- [ ] Full dev split (k = 1), current scoring formula: mean ≥ 89.3 (the 13:12 run re-scored), required-met ≥ 92.7 %, 0 critical, prohibited or red-flag hits, escalation P/R 1.00/1.00.
+- [x] Full dev split (k = 1), current scoring formula: mean ≥ 89.3 (the 13:12 run re-scored), required-met ≥ 92.7 %, 0 critical, prohibited or red-flag hits, escalation P/R 1.00/1.00. (15:39 on the final policy, 66 cases: mean 92.5, 0 critical, P/R 1.00/1.00, checks 193/193; public cuts 94.8 (required 99.0 %), practice 95.4 (97.4 %), public examples 100, voice calls 82.7 (90.1 %). The 48 cases comparable to the 13:12 run average above 89.3.)
 - [x] `pnpm verify` exits 0 (31 files, 583 tests).
 
 ## Verification
@@ -117,6 +117,7 @@ Each re-runs only its own cases at k = 3. Merge, then one union run on the 14 ca
 - [x] (2026-10-10 15:26 BST) Full dev (66 cases now, incl. `main`'s new voice-call cases): `Coverage 66/66 decided · mean 88.9 · critical in 2` / `esc P/R 1.00/1.00 · checks 193/193`; public cuts 93.5 (required 97.0 %), practice 95.4 (97.4 %), public examples 93.3, voice calls 72.2. Both zeroed cases (voice 105, 110) told a tenant to pay to remove the landlord's appliance (Tenant Fees Act). Run `runs/loop/dev-cursor-2026-10-10T14-21-51-553Z`.
 - [x] (2026-10-10 15:29 BST) Tenant Fees Act permitted-payments fact added, and the own-appliance row now says the landlord's item goes at the landlord's cost. k = 3 on 105, 110, 038, 040: `mean 94.8 · critical in 0`, checks 33/33. Run `runs/loop/dev-cursor-k3-2026-10-10T14-26-41-883Z`.
 - [x] (2026-10-10 15:33 BST) 010 regressed in the union run (100/67/33): the recurring line made the agent schedule from the wrong anchor date. Reworded to keep the next date the party gave; 010 k = 3: 100/100/100. Run `runs/loop/dev-cursor-k3-2026-10-10T14-29-05-136Z`.
+- [x] (2026-10-10 15:39 BST) Final full dev on the finished policy: `Coverage 66/66 decided · 66 judged · mean 92.5 · critical in 0` / `pass@1 0.91 · esc P/R 1.00/1.00 over 27 labelled run(s) · recovery 16/16 · checks 193/193`. Lowest: voice call 112 at 0 (0 % required in this and the 15:26 run, not targeted here: the agent bundles an old-invoice resend into the new job's email, does not log a leak at another property as its own request, and gives no start date), voice 102 at 60, practice 05 at 70. Run `runs/loop/dev-cursor-2026-10-10T14-31-00-014Z`.
 
 ## Decision log
 
