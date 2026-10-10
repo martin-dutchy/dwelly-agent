@@ -12,6 +12,13 @@ It runs as a batch over a folder of case folders:
 
 and writes, for every case, `ANSWER.md` (the decision, the actions taken, the drafted communications), `REASONING.md` (evidence, conflicts found, what failed, why it did or did not escalate), `TRANSCRIPT.md` (the full model transcript, thinking included), `trace.jsonl` (every agent event and tool call, timestamped) and `result.json`. One case crashing or timing out never stops the batch: that case gets an honest failure record saying a human must handle it.
 
+It also runs as a web portal for the people who work alongside it (`src/ops/`, served by `pnpm voice:serve` at `/`):
+
+- **Live** (`/ops/live`, the home page): "Import cases" ingests every case in a case folder, runs the case worker on each one (six at a time), and shows each case as a card that updates as it finishes: done with its next step and confirmed actions, handed to a person with the question, or failed. Each card links the case timeline, its `ANSWER.md` and its `REASONING.md`, which are also written to `runs/ops/<run>/<case>/`.
+- **Decisions** (`/ops`): every case the agent escalated, as a one-page brief (the tenant's words, the case so far, what is known and not known, why it needs a person, the agent's suggestion). A person decides or replies to the tenant on WhatsApp, and the case worker carries on from the answer.
+- **Case timelines and eval runs** (`/ops/cases/<id>`, `/ops/evals`): every tool call with its read-back status (✓ confirmed, ◐ not confirmed, ✕ failed, ⊘ denied by a rule), and whole runs over a case set graded by the same judge as `pnpm eval`.
+- **Demo** (`/ops/show`): the 60-second walkthrough in the demo video, replayed from a real graded run and a real recorded phone call.
+
 How it decides:
 
 - **One agent loop** (Claude Sonnet 5.5 on `@earendil-works/pi-agent-core`) with a lettings policy (`src/core/policy.md`) and 28 case tools covering the agency's workflow: landlord decisions, quotes, invoices, visits, holds with review dates, follow-ups, messages, closing checks and escalation (full list in section 5).
@@ -46,7 +53,7 @@ Both columns come from one run of the whole dev split with three runs per case, 
 
 Escalation precision and recall against our expected-escalation labels: 1.00 / 1.00 over 54 labelled case-runs. Two further runs on commit `16adacd` (one change earlier, before the landlord-hearsay check): the dev split with 15 % of tool calls failing at random (`--chaos 0.15 --seed 1`, k = 1) scored a mean of 89.0 with 0 critical failures and recovered from 38 of 38 injected failures; the held-out split (11 cases never used for tuning, aggregates only, k = 1) scored a mean of 92.0 with 0 critical failures.
 
-TBD: after 15:45 BST, re-run on the frozen code (`pnpm loop --profile final --k 3 --save-baseline`, values from `evals/baseline-final-dev-k3.json`) and update this table and the label line above with its time and commit.
+These figures were measured at 12:57 BST on commit `3172ad8`. Later commits (mainly the ops portal and voice work, plus agent fixes) were not re-measured with this harness before the freeze, so treat the table as the state of the agent at that commit.
 
 **Operational value.** Every completed `pnpm cases` run ends with a value line, also saved in `<out>/RUN_SUMMARY.md` with the per-case table: cases handled without escalation, cases escalated, verified write actions (failed ones are not counted) and the environment they ran in (the local mock unless an organiser API is configured), agent cost and seconds per case, and an estimate of human time. The estimate is verified write actions × 6.5 min, less 3 min of human review per escalated case, never below zero. Both minute figures are Dwelly's own published numbers for its maintenance work (about 30 actions at 6–7 min each per task, about 3 min per escalation; see `research/dwelly-company.md`), so the result is an estimate of routine work moved off a person, not a measured saving.
 
@@ -112,6 +119,12 @@ pnpm cases --in "HackatonPublicCases/Property Management" --out runs/pm --only 0
 pnpm eval --cases "HackatonPublicCases/Property Management" --answers runs/pm
 ```
 
+```bash
+# The ops portal (Live, Decisions, case timelines, eval runs, demo) on http://localhost:3000
+ADMIN_PASSWORD= pnpm voice:serve   # empty ADMIN_PASSWORD turns the login off locally; without DATABASE_URL the store is in memory
+# then open http://localhost:3000 and press "Import cases"; OPS_IMPORT_DIR=<folder> adds another case folder to import
+```
+
 Images and scanned PDFs (no text layer) are sent to Claude natively. PDFs with a text layer go through `pdftotext`.
 
 `--at auto` uses the case's recorded escalation point when it has one; otherwise it cuts halfway through the history (Property Management cases have no marker).
@@ -158,6 +171,8 @@ See `.env.example` for the full list.
 | Service | Used for | How it is configured | Required? |
 |---|---|---|---|
 | Anthropic API (Claude) | The case agent (`claude-sonnet-5-5` by default) and the rubric grader of our evaluation (`claude-opus-5-5` by default). The quick `pnpm loop` profile uses `claude-haiku-5-5` as the agent with `claude-sonnet-5-5` grading. With `--critic on`, one extra `claude-opus-5-5` call per case reviews the draft decision before it is filed (`src/agent/critic/`). Called through `@earendil-works/pi-ai`. | `ANTHROPIC_API_KEY`, `CASE_MODEL`, `JUDGE_MODEL`; optional `ANTHROPIC_WORKSPACE_ID`, `LLM_CONCURRENCY`, `CRITIC`, `CRITIC_MODEL` | Yes |
+| Anthropic API (Claude), ops portal | The portal's case worker (`OPS_CASE_MODEL`, default `claude-sonnet-5-5`) and the decision page's short brief (`OPS_BRIEF_MODEL`, default `claude-haiku-5-5`; falls back to the task's own words on error). | `OPS_CASE_MODEL`, `OPS_BRIEF_MODEL`; `OPS_CONCURRENCY`, `OPS_EVAL_CONCURRENCY`, `OPS_IMPORT_DIR` | Portal only |
+| Twilio WhatsApp | Optional real delivery of replies to the tenant from the decision page, and inbound tenant messages via `/ops/whatsapp/webhook`. Without it, replies are recorded on the case and shown as simulated delivery. | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_FROM` | No |
 | TypeSafe Jev | Optional fast classifier that pre-screens each case for severity and checks outgoing messages before they are sent (`src/agent/jev.ts`), called through `@earendil-works/pi-ai`. Fails open: if it errors, the agent carries on and the error is logged. | `TYPESAFE_API_KEY`; `USE_JEV=0` to disable; `JEV_BLOCK_THRESHOLD`, `JEV_MODEL` | No |
 | Cursor SDK (`@cursor/sdk`) | Optional rubric grader for our evaluation, billed to a Cursor plan: a judge model id starting with `cursor:` (e.g. `pnpm eval --model cursor:composer-2.5`, or `pnpm loop --profile cursor`) grades through a text-only Cursor agent in an empty temp folder (`src/eval/cursorJudge.ts`). Never used by the case agent or for `ANSWERS/`. | `CURSOR_API_KEY`; optional `CURSOR_JUDGE_MODEL` | No |
 | poppler `pdftotext` (local binary, no network) | Extracts text from PDF attachments that have a text layer. Images and scanned PDFs go to Claude natively. | `brew install poppler` | No: without it every PDF is sent to Claude natively instead |
