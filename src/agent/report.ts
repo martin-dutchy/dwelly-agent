@@ -138,10 +138,30 @@ function received(c: LoadedCase) {
     const withheld = c.cutoff < c.totalEvents ? ` (events ${c.cutoff + 1}–${c.totalEvents} withheld)` : ' (the full history)';
     lines.push(`- Cut point: history events 1–${c.cutoff} of ${c.totalEvents}${withheld}`);
   }
-  lines.push(...c.inputs.map((i) => `- \`${i.name}\` (${c.media?.some((m) => m.name === i.name) ? 'sent to the model natively' : `${i.content.length} chars`})`));
+  lines.push(
+    ...c.inputs.map((i) => {
+      const p = i.parse;
+      if (!p) return `- \`${i.name}\` (${c.media?.some((m) => m.name === i.name) ? 'sent to the model natively' : `${i.content.length} chars`})`;
+      const how = [PARSE_LABEL[p.method] ?? p.method, p.note, p.truncatedChars ? `truncated: ${p.truncatedChars.toLocaleString('en-GB')} chars dropped` : ''].filter(Boolean).join('; ');
+      return `- \`${i.name}\` (${p.bytes.toLocaleString('en-GB')} bytes, ${p.chars.toLocaleString('en-GB')} chars parsed): ${how}`;
+    }),
+  );
   if (c.missingAttachments) lines.push(`- Referenced in the history but not provided: ${c.missingAttachments.map((a) => `\`${a}\``).join(', ') || 'none'}`);
+  // The cut point line above already covers the later history events.
+  const withheld = (c.withheld ?? []).filter((w) => !(w.name === 'history.md' && c.cutoff !== undefined));
+  if (withheld.length) lines.push('', '**Withheld from the agent:**', ...withheld.map((w) => `- \`${w.name}\`: ${w.reason}`));
+  lines.push('', 'The exact prompt text is in `TRANSCRIPT.md`.');
   return lines.join('\n');
 }
+
+const PARSE_LABEL: Record<string, string> = {
+  text: 'read as text',
+  pdftotext: 'PDF text layer extracted with pdftotext',
+  'native-image': 'image sent to the model natively',
+  'native-pdf': 'scanned PDF (no text layer) sent to the model natively',
+  'too-large': 'too large to attach; the model is only told it exists',
+  derived: 'built by the loader',
+};
 
 export function renderReasoning(
   c: LoadedCase,
@@ -163,6 +183,7 @@ export function renderReasoning(
   for (const m of messages) {
     if (m.role === 'assistant') {
       for (const b of m.content ?? []) {
+        if (b.type === 'thinking' && b.thinking?.trim()) steps.push(`${++n}. 💭 **Thinking (summary):** ${short(b.thinking.trim().replace(/\n+/g, ' '), 1200)}`);
         if (b.type === 'text' && b.text.trim()) steps.push(`${++n}. **Agent:** ${b.text.trim()}`);
         if (b.type === 'toolCall') {
           steps.push(`${++n}. **Tool call** \`${b.name}\` ${short(b.arguments, 400)}`);
@@ -204,6 +225,48 @@ ${steps.join('\n')}
 ${error ? `\n**Run error:** ${error}\n` : ''}
 ## Run
 - Model turns: ${usage.turns} · Tokens in/out: ${usage.input}/${usage.output} · Cost: $${usage.cost.toFixed(4)} · Duration: ${(usage.durationMs / 1000).toFixed(1)}s
-- Raw event trace: \`trace.jsonl\`
+- Full untruncated transcript (prompts, model thinking, every tool call and result): \`TRANSCRIPT.md\` · Raw timestamped events: \`trace.jsonl\` · Machine-readable result: \`result.json\`
 `;
+}
+
+const fence = (s: string, lang = '') => {
+  const ticks = '`'.repeat(Math.max(3, ...[...s.matchAll(/`+/g)].map((m) => m[0].length + 1)));
+  return `${ticks}${lang}\n${s}\n${ticks}`;
+};
+const pretty = (v: unknown) => (typeof v === 'string' ? v : JSON.stringify(v, null, 2));
+const clock = (ms?: number) => (ms ? new Date(ms).toISOString().slice(11, 19) : '');
+
+/**
+ * Everything the model saw and did, nothing truncated: system prompt, the exact case prompt,
+ * then each turn with its (summarised) thinking, text, tool calls and raw tool results.
+ */
+export function renderTranscript(c: LoadedCase, run: { model: string; thinking: string; systemPrompt: string; messages: any[]; trace: any[]; error?: string }) {
+  const out: string[] = [`# Case ${c.id}: TRANSCRIPT`, '', `Model \`${run.model}\` · thinking \`${run.thinking}\` (Claude returns a summary of its thinking, shown as 💭 below).`, '', '## System prompt', fence(run.systemPrompt)];
+  let turn = 0;
+  for (const m of run.messages) {
+    if (m.role === 'user') {
+      const blocks = typeof m.content === 'string' ? [{ type: 'text', text: m.content }] : (m.content ?? []);
+      out.push('', `## User ${clock(m.timestamp)}`);
+      for (const b of blocks) out.push(b.type === 'text' ? fence(b.text) : `_[${b.mimeType ?? b.type} attachment, ${Math.round(((b.data?.length ?? 0) * 3) / 4).toLocaleString('en-GB')} bytes, sent natively]_`);
+    } else if (m.role === 'assistant') {
+      const u = m.usage ?? {};
+      out.push(
+        '',
+        `## Turn ${++turn} · assistant ${clock(m.timestamp)}`,
+        `_stop: ${m.stopReason ?? '?'} · tokens in ${u.input ?? 0} (+${u.cacheRead ?? 0} cached) / out ${u.output ?? 0}${u.reasoning ? ` (thinking ${u.reasoning})` : ''} · $${(u.cost?.total ?? 0).toFixed(4)}${m.errorMessage ? ` · **error:** ${m.errorMessage}` : ''}_`,
+      );
+      for (const b of m.content ?? []) {
+        if (b.type === 'thinking') out.push('', `### 💭 Thinking${b.redacted ? ' (redacted)' : ''}`, b.thinking?.trim() ? fence(b.thinking.trim()) : '_(empty: thinking omitted by the API)_');
+        else if (b.type === 'text' && b.text.trim()) out.push('', '### Text', b.text.trim());
+        else if (b.type === 'toolCall') out.push('', `### 🔧 Tool call \`${b.name}\` (${b.id})`, fence(pretty(b.arguments), 'json'));
+      }
+    } else if (m.role === 'toolResult') {
+      const t = (m.content ?? []).map((b: any) => (b.type === 'text' ? b.text : `[${b.type}]`)).join('\n');
+      out.push('', `### ${m.isError ? '⚠️ ' : '↩️ '}Result \`${m.toolName}\` (${m.toolCallId}) ${clock(m.timestamp)}`, fence(t));
+    }
+  }
+  const retries = run.trace.filter((e) => e.type === 'retry');
+  if (retries.length) out.push('', '## Provider retries', ...retries.map((r) => `- ${r.ts ?? ''} attempt ${r.attempt} after ${r.delayMs}ms: ${r.error}`));
+  if (run.error) out.push('', '## Run error', run.error);
+  return out.join('\n') + '\n';
 }
