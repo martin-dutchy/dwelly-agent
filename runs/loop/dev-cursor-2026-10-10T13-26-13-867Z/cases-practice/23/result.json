@@ -1,0 +1,410 @@
+{
+  "id": "23",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "inputs": [
+    {
+      "name": "inputs/ai_phone_line_actions.json",
+      "method": "text",
+      "bytes": 1005,
+      "chars": 1005
+    },
+    {
+      "name": "inputs/call_transcript.txt",
+      "method": "text",
+      "bytes": 4272,
+      "chars": 4264
+    },
+    {
+      "name": "inputs/crm.json",
+      "method": "text",
+      "bytes": 1688,
+      "chars": 1686
+    },
+    {
+      "name": "inputs/crm_record_T-1001.json",
+      "method": "text",
+      "bytes": 337,
+      "chars": 337
+    },
+    {
+      "name": "inputs/policy_extract.md",
+      "method": "text",
+      "bytes": 894,
+      "chars": 894
+    },
+    {
+      "name": "inputs/tickets.json",
+      "method": "text",
+      "bytes": 1482,
+      "chars": 1480
+    }
+  ],
+  "withheld": [
+    {
+      "name": "checks.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    },
+    {
+      "name": "rubric.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    },
+    {
+      "name": "tool_failures.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    }
+  ],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Emergency gas job JOB-101 at visit stage; Bow Gas & Heating assigned for a same-day window (14:00-20:00, target, not yet confirmed by contractor). Waiting on NGES attendance, engineer report, tenant welfare reply. E-4902 stays open as the P1.",
+    "next_actions": [
+      {
+        "type": "ASSIGN_PROVIDER",
+        "action": "Raised emergency JOB-101 and assigned Gas Safe Bow Gas & Heating, same-day window",
+        "recipient": "Bow Gas & Heating, contractor",
+        "channel": "internal",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Told tenant: stay out, call 0800 111 999, apology for our verification error, engineer coming today, welfare check, next update this evening",
+        "recipient": "Jonah Okafor, tenant",
+        "channel": "sms",
+        "ledger_id": "A3"
+      },
+      {
+        "type": "OTHER",
+        "action": "Told landlord of gas emergency same day and the action taken",
+        "recipient": "Margaret Ellison, landlord",
+        "channel": "email",
+        "ledger_id": "A4"
+      },
+      {
+        "type": "WAIT",
+        "action": "Evening follow-up: NGES/engineer outcome, welfare, temporary heating if capped",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A6"
+      }
+    ],
+    "boundaries": [
+      "Assigning the engineer does not mean the contractor has confirmed the time or that the gas is safe.",
+      "Marking E-4901 invalid does not close it in the queue; a human should close it.",
+      "Nothing yet decides the cause, cost, or lock job R-4766."
+    ],
+    "remaining_work": [
+      "Confirm NGES attended and engineer's confirmed arrival time; ops on-call, this evening",
+      "Welfare check and temporary heating/hot water if supply capped",
+      "Human to close E-4901 and fix the AI line's find_tenant omission",
+      "Move R-4766 (stiff front door lock, open since 22 Sep) forward, and ask tenant what else is broken; routine, next week"
+    ],
+    "missing_info": [
+      "Whether the tenant has actually called NGES",
+      "Contractor confirmation of arrival time",
+      "Tenant's current location/welfare"
+    ],
+    "outcome": "action_taken",
+    "severity": "emergency",
+    "summary": "Caller Jonah Okafor (T-1002) reported a gas smell. The AI line verified him against the wrong record (T-1001, Amelia Clarke) because find_tenant was never run; his details actually match T-1002. I raised emergency JOB-101, assigned Gas Safe Bow Gas & Heating for a same-day window, messaged the tenant and landlord, and set an evening follow-up.",
+    "answers": [
+      {
+        "question": "What is the situation right now, and what is the most urgent thing to do?",
+        "answer": "A vulnerable tenant has a strong gas smell in his kitchen and is outside. Most urgent: make sure he stays out and has called NGES 0800 111 999, and get a Gas Safe engineer booked same day. Done."
+      },
+      {
+        "question": "Are E-4901 and E-4902 both valid? What do you do with each, and why?",
+        "answer": "E-4902 (P1 gas) is valid and stays open, now backed by JOB-101. E-4901 (P3 identity failure) is invalid: the line checked T-1001 (Amelia Clarke, different person) instead of T-1002; Jonah's name, DOB and phone match T-1002. I noted this on E-4901 for a human to close and flagged the process fault. No identity check was needed to give safety advice anyway."
+      },
+      {
+        "question": "What actions do you take in the next hour, and who do you tell?",
+        "answer": "Created and assigned JOB-101 to Bow Gas & Heating; texted the tenant (safety, apology, welfare, update this evening); emailed the landlord Margaret Ellison (emergency, approved per her notes); noted E-4901; scheduled an evening follow-up. R-4766 lock and other worries handled after the emergency."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Created emergency gas job JOB-101"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Assigned Bow Gas & Heating, 14:00-20:00 today"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "SMS to tenant"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Email to landlord"
+      },
+      {
+        "ledger_id": "A5",
+        "description": "Note on E-4901 that it is invalid"
+      },
+      {
+        "ledger_id": "A6",
+        "description": "Evening follow-up FUP-105"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "AI line verified against T-1001 (Amelia Clarke, P-201); caller is T-1002 Jonah Okafor, P-202. CRM T-1002 trusted: name, DOB and phone match.",
+      "Transcript shows the caller giving several DOB versions, but his final statement 2 Nov 1985 matches T-1002."
+    ],
+    "assumptions": [
+      "Emergency window 14:00-20:00 is a target; the contractor has not confirmed it.",
+      "Tenant prefers email but SMS was used for speed; an email follow-up can come in the evening."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "create_ticket",
+      "args": {
+        "property": "P-202",
+        "category": "gas",
+        "severity": "emergency",
+        "description": "Tenant Jonah Okafor reports strong smell of gas in kitchen (call 10 Oct 2026 12:46). Tenant has left property and was told to call NGES 0800 111 999. Gas Safe engineer needed same day to find and repair fault after NGES makes safe. Tenant is vulnerable (anxiety, prefers email). Do not send non-Gas Safe contractors.",
+        "tenant": "T-1002",
+        "related_ticket_ref": "R-4766"
+      },
+      "key": "create_ticket:{category:\"gas\",description:\"Tenant Jonah Okafor reports strong smell of gas in kitchen (call 10 Oct 2026 12:46). Tenant has left property and was told to call NGES 0800 111 999. Gas Safe engineer needed same day to find and repair fault after NGES makes safe. Tenant is vulnerable (anxiety, prefers email). Do not send non-Gas Safe contractors.\",property:\"P-202\",related_ticket_ref:\"R-4766\",severity:\"emergency\",tenant:\"T-1002\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "JOB-101",
+      "evidence": [
+        "Ticket JOB-101 read back at stage init"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "assign_contractor",
+      "args": {
+        "ticket_ref": "JOB-101",
+        "contractor": "Bow Gas & Heating",
+        "visit_window": "2026-10-10 14:00-20:00"
+      },
+      "key": "assign_contractor:{contractor:\"Bow Gas & Heating\",ticket_ref:\"JOB-101\",visit_window:\"2026-10-10 14:00-20:00\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "JOB-101",
+      "evidence": [
+        "Ticket JOB-101 read back at stage visit"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Jonah Okafor",
+        "recipient_role": "tenant",
+        "channel": "sms",
+        "contact": "+447700900102",
+        "ticket_ref": "JOB-101",
+        "body": "Hi Jonah, it's Northbridge. Sorry about the trouble on the phone: our system checked the wrong record, that was our error and your details are fine. Please stay outside, don't use switches or flames, and if you haven't already call the National Gas Emergency line on 0800 111 999 (999 if in immediate danger). We've asked a Gas Safe engineer (Bow Gas & Heating) to attend today and will confirm their time once they do. Please don't go back in until the gas service says it's safe. Are you OK, and do you have somewhere to stay? We'll also look at the other things you're worried about, including your stiff front door lock. We'll update you again by this evening."
+      },
+      "key": "send_message:{body:\"Hi Jonah, it's Northbridge. Sorry about the trouble on the phone: our system checked the wrong record, that was our error and your details are fine. Please stay outside, don't use switches or flames, and if you haven't already call the National Gas Emergency line on 0800 111 999 (999 if in immediate danger). We've asked a Gas Safe engineer (Bow Gas & Heating) to attend today and will confirm their time once they do. Please don't go back in until the gas service says it's safe. Are you OK, and do you have somewhere to stay? We'll also look at the other things you're worried about, including your stiff front door lock. We'll update you again by this evening.\",channel:\"sms\",contact:\"+447700900102\",recipient_name:\"Jonah Okafor\",recipient_role:\"tenant\",ticket_ref:\"JOB-101\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-102",
+      "evidence": [
+        "MSG-102 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Margaret Ellison",
+        "recipient_role": "landlord",
+        "channel": "email",
+        "contact": "margaret@ellisonlettings.co.uk",
+        "ticket_ref": "JOB-101",
+        "body": "Dear Margaret, today (10 Oct) the tenant at 27 Bethnal Green Road reported a strong smell of gas in the kitchen. They have left the property and been told to call the National Gas Emergency line. Per your standing instruction for emergencies, we have raised JOB-101 and instructed Bow Gas & Heating (Gas Safe registered) to attend today to find and repair the fault once the gas service has made it safe. The supply may be capped; the tenant is vulnerable so we will consider temporary heating/hot water. We'll update you when the engineer has reported and send any quote over your limit for approval."
+      },
+      "key": "send_message:{body:\"Dear Margaret, today (10 Oct) the tenant at 27 Bethnal Green Road reported a strong smell of gas in the kitchen. They have left the property and been told to call the National Gas Emergency line. Per your standing instruction for emergencies, we have raised JOB-101 and instructed Bow Gas & Heating (Gas Safe registered) to attend today to find and repair the fault once the gas service has made it safe. The supply may be capped; the tenant is vulnerable so we will consider temporary heating/hot water. We'll update you when the engineer has reported and send any quote over your limit for approval.\",channel:\"email\",contact:\"margaret@ellisonlettings.co.uk\",recipient_name:\"Margaret Ellison\",recipient_role:\"landlord\",ticket_ref:\"JOB-101\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-103",
+      "evidence": [
+        "MSG-103 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A5",
+      "tool": "add_note",
+      "args": {
+        "entity": "E-4901",
+        "note": "Invalid: phone line never ran find_tenant and verified caller against T-1001 (Amelia Clarke, different tenant/property) instead of T-1002 Jonah Okafor, whose name, DOB 1985-11-02 and phone match the CRM. No identity problem; no action beyond closing. Process fault: AI line must call find_tenant first. No T-1001 data disclosed."
+      },
+      "key": "add_note:{entity:\"E-4901\",note:\"Invalid: phone line never ran find_tenant and verified caller against T-1001 (Amelia Clarke, different tenant/property) instead of T-1002 Jonah Okafor, whose name, DOB 1985-11-02 and phone match the CRM. No identity problem; no action beyond closing. Process fault: AI line must call find_tenant first. No T-1001 data disclosed.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NOTE-104",
+      "evidence": [
+        "NOTE-104 found in the add_note log"
+      ]
+    },
+    {
+      "id": "A6",
+      "tool": "schedule_follow_up",
+      "args": {
+        "ticket_ref": "JOB-101",
+        "due_on": "2026-10-10",
+        "purpose": "Evening: confirm NGES attended, Bow Gas visit happened, tenant welfare/temporary heating if supply capped; then address R-4766 lock and other worries.",
+        "party": "Jonah Okafor / Bow Gas & Heating"
+      },
+      "key": "schedule_follow_up:{due_on:\"2026-10-10\",party:\"Jonah Okafor / Bow Gas & Heating\",purpose:\"Evening: confirm NGES attended, Bow Gas visit happened, tenant welfare/temporary heating if supply capped; then address R-4766 lock and other worries.\",ticket_ref:\"JOB-101\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "FUP-105",
+      "evidence": [
+        "FUP-105 found in the schedule_follow_up log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "R-4766",
+        "tenant_id": "T-1002",
+        "category": "security",
+        "stage": "init",
+        "description": "Front door lock very stiff, key hard to turn",
+        "created": "2026-09-22",
+        "assigned_contractor": null
+      },
+      {
+        "ref": "JOB-101",
+        "stage": "visit",
+        "property": "P-202",
+        "tenant": "T-1002",
+        "category": "gas",
+        "severity": "emergency",
+        "description": "Tenant Jonah Okafor reports strong smell of gas in kitchen (call 10 Oct 2026 12:46). Tenant has left property and was told to call NGES 0800 111 999. Gas Safe engineer needed same day to find and repair fault after NGES makes safe. Tenant is vulnerable (anxiety, prefers email). Do not send non-Gas Safe contractors.",
+        "related_ticket_ref": "R-4766",
+        "contractor": "Bow Gas & Heating",
+        "visit_window": "2026-10-10 14:00-20:00"
+      }
+    ],
+    "records": [
+      {
+        "id": "MSG-102",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Jonah Okafor",
+          "recipient_role": "tenant",
+          "channel": "sms",
+          "contact": "+447700900102",
+          "body": "Hi Jonah, it's Northbridge. Sorry about the trouble on the phone: our system checked the wrong record, that was our error and your details are fine. Please stay outside, don't use switches or flames, and if you haven't already call the National Gas Emergency line on 0800 111 999 (999 if in immediate danger). We've asked a Gas Safe engineer (Bow Gas & Heating) to attend today and will confirm their time once they do. Please don't go back in until the gas service says it's safe. Are you OK, and do you have somewhere to stay? We'll also look at the other things you're worried about, including your stiff front door lock. We'll update you again by this evening.",
+          "ticket_ref": "JOB-101"
+        },
+        "at": 1791638790835
+      },
+      {
+        "id": "MSG-103",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Margaret Ellison",
+          "recipient_role": "landlord",
+          "channel": "email",
+          "contact": "margaret@ellisonlettings.co.uk",
+          "body": "Dear Margaret, today (10 Oct) the tenant at 27 Bethnal Green Road reported a strong smell of gas in the kitchen. They have left the property and been told to call the National Gas Emergency line. Per your standing instruction for emergencies, we have raised JOB-101 and instructed Bow Gas & Heating (Gas Safe registered) to attend today to find and repair the fault once the gas service has made it safe. The supply may be capped; the tenant is vulnerable so we will consider temporary heating/hot water. We'll update you when the engineer has reported and send any quote over your limit for approval.",
+          "ticket_ref": "JOB-101"
+        },
+        "at": 1791638790835
+      },
+      {
+        "id": "NOTE-104",
+        "tool": "add_note",
+        "args": {
+          "entity": "E-4901",
+          "note": "Invalid: phone line never ran find_tenant and verified caller against T-1001 (Amelia Clarke, different tenant/property) instead of T-1002 Jonah Okafor, whose name, DOB 1985-11-02 and phone match the CRM. No identity problem; no action beyond closing. Process fault: AI line must call find_tenant first. No T-1001 data disclosed."
+        },
+        "at": 1791638790835
+      },
+      {
+        "id": "FUP-105",
+        "tool": "schedule_follow_up",
+        "args": {
+          "ticket_ref": "JOB-101",
+          "due_on": "2026-10-10",
+          "party": "Jonah Okafor / Bow Gas & Heating",
+          "purpose": "Evening: confirm NGES attended, Bow Gas visit happened, tenant welfare/temporary heating if supply capped; then address R-4766 lock and other worries."
+        },
+        "at": 1791638793500
+      }
+    ],
+    "properties": [
+      {
+        "id": "P-202",
+        "address": "27 Bethnal Green Road, London E1 6LA",
+        "tenanted": true,
+        "landlord": {
+          "name": "Margaret Ellison",
+          "email": "margaret@ellisonlettings.co.uk",
+          "phone": "+447700900202",
+          "spend_limit_gbp": 250,
+          "notes": [
+            "Overseas Oct-Dec, email preferred.",
+            "Approve emergencies without asking, routine over £250 needs approval."
+          ]
+        },
+        "contractors": [
+          {
+            "contractor_id": "C-21",
+            "name": "Bow Gas & Heating",
+            "trades": [
+              "gas",
+              "heating"
+            ],
+            "gas_safe_registered": true,
+            "gas_safe_number": "(on file)",
+            "phone": "+447700900321",
+            "out_of_hours": true
+          },
+          {
+            "contractor_id": "C-14",
+            "name": "Hackney Locks 24/7",
+            "trades": [
+              "locksmith"
+            ],
+            "phone": "+447700900314",
+            "out_of_hours": true
+          },
+          {
+            "contractor_id": "C-30",
+            "name": "Handy Andy Repairs",
+            "trades": [
+              "general",
+              "appliances"
+            ],
+            "gas_safe_registered": false,
+            "phone": "+447700900330",
+            "out_of_hours": false
+          }
+        ]
+      }
+    ]
+  },
+  "usage": {
+    "input": 12,
+    "output": 4165,
+    "cost": 0.0846469,
+    "turns": 5,
+    "durationMs": 32023,
+    "retries": 0,
+    "thinkingTokens": 519
+  }
+}
