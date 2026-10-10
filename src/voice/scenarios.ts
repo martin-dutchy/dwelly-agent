@@ -198,6 +198,10 @@ export const scenarios: Scenario[] = [
     direction: 'outbound',
     source: { case: '014', events: 'e09–e14', cutAfterEvent: 12, today: '2024-06-07' },
     counterparty: 'Ms Fletcher, the tenant',
+    world: {
+      properties: [{ property_id: 'P-014', address: 'Flat 12, 52 Meadow Row, Kingshaven, ZZ9 5ZZ', landlord: 'Landlord', monthly_rent_gbp: 1300 }],
+      tenants: [tenant('T-014', 'Ms Fletcher', '1970-01-01', 'P-014')],
+    },
     facts: [
       'Property: Flat 12, 52 Meadow Row, Kingshaven, ZZ9 5ZZ. Tenant: Ms Fletcher.',
       "Reported: the front door has to be slammed shut; the fridge-freezer fitter said the door and frame wobble and the glass could shatter.",
@@ -595,6 +599,8 @@ export const scenarioById = (id: string | undefined) => scenarios.find((s) => s.
 export function worldFor(scenarioId: string | undefined): VoiceWorld {
   const w = { ...newWorld(), case_log: [] } as VoiceWorld;
   const s = scenarioById(scenarioId);
+  // We rang this tenant on the number we hold, so they count as identified (no date-of-birth check).
+  if (s?.role === 'tenant' && s.direction === 'outbound' && s.world?.tenants?.[0]) w.pre_verified = s.world.tenants[0].tenant_id;
   if (s?.world) {
     w.tenants.push(...(s.world.tenants ?? []));
     w.properties.push(...(s.world.properties ?? []));

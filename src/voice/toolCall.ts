@@ -32,7 +32,11 @@ const calls = new Map<string, { world: VoiceWorld; ledger: ActionLedger; seen: n
 function callState(conversationId: string) {
   const now = Date.now();
   for (const [id, c] of calls) if (now - c.seen > CALL_TTL_MS) (calls.delete(id), scenarioOf.delete(id));
-  const c = calls.get(conversationId) ?? { world: seedWorld(scenarioOf.get(conversationId)), ledger: new ActionLedger(), seen: now, found: new Set<string>() };
+  let c = calls.get(conversationId);
+  if (!c) {
+    c = { world: seedWorld(scenarioOf.get(conversationId)), ledger: new ActionLedger(), seen: now, found: new Set<string>() };
+    if (c.world.pre_verified) (restoreVerified(conversationId, c.world.pre_verified), c.found.add(c.world.pre_verified));
+  }
   c.seen = now;
   calls.set(conversationId, c);
   return c;
