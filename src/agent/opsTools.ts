@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { executeWith } from '../core/executor.js';
 import type { ToolContext, ToolDef, ToolResult } from '../core/tools.js';
 import { type LedgerEntry, canonical } from './ledger.js';
-import { addressKnown, foreignAddresses, invoiceFlags, mentionsDate, quoteAppears, quoteSpeakers, quoteTotal, tooThinForApproval, visitProblems } from './opsChecks.js';
+import { addressKnown, foreignAddresses, hearsaySpeaker, invoiceFlags, mentionsDate, namesAttachment, quoteAppears, quoteSpeakers, quoteTotal, tooThinForApproval, visitProblems } from './opsChecks.js';
 import type { Verification } from './verify.js';
 
 /**
@@ -520,8 +520,13 @@ export function createOpsToolset(seed: OpsSeed | Ticket[] = []): Toolset {
           return `"${quote}" is too thin to rely on as approval. Record it as unclear and ask the landlord to confirm in words.`;
         if (!evidence || a.decision === 'unclear') return undefined;
         const raw = quote.trim();
-        if (raw && (quoteAppears(raw, evidence) || evidence.includes(raw))) return undefined;
-        if (mediaNames.some((m) => String(a.source ?? '').includes(m.split('/').at(-1)!))) return undefined;
+        if (raw && (quoteAppears(raw, evidence) || evidence.includes(raw))) {
+          const speakers = quoteSpeakers(raw, evidence);
+          if (speakers?.length && speakers.every(hearsaySpeaker))
+            return `Those words were written by ${[...new Set(speakers)].join(' / ')}, not the landlord. A tenant or contractor saying the landlord agreed is hearsay, not a landlord decision. Record the decision as unclear and ask the landlord directly (request_landlord_approval); do not instruct or approve on it.`;
+          return undefined;
+        }
+        if (namesAttachment(String(a.source ?? ''), mediaNames)) return undefined;
         return `The evidence_quote "${raw.slice(0, 120)}" is not in the case. Copy the landlord's words exactly as written (no paraphrase; date and channel go in source)${mediaNames.length ? ', or name the image or scanned attachment they come from in source' : ''}, or record the decision as unclear and ask the landlord.`;
       }
       case 'set_visit': {

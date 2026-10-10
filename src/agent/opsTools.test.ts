@@ -2,7 +2,7 @@ import { createModels, fauxAssistantMessage, fauxProvider, fauxToolCall } from '
 import { describe, expect, it } from 'vitest';
 import { runCase } from './caseAgent.js';
 import { loadCase } from './cases.js';
-import { foreignAddresses, invoiceFlags, mentionsDate, quoteAppears, quoteSpeakers, quoteTotal, tooThinForApproval, visitProblems } from './opsChecks.js';
+import { foreignAddresses, hearsaySpeaker, invoiceFlags, mentionsDate, namesAttachment, quoteAppears, quoteSpeakers, quoteTotal, tooThinForApproval, visitProblems } from './opsChecks.js';
 import { seedFromCase } from './opsSeed.js';
 import { createOpsToolset, landlordInformedProblem } from './opsTools.js';
 
@@ -75,6 +75,19 @@ describe('visit confirmation', () => {
     expect(quoteSpeakers('arranged the repair for the 8 September 2025', history)).toEqual(['Tenant']);
     expect(quoteSpeakers('Confirmed for 1st September, 10am', history)).toEqual(['Contractor']);
     expect(quoteSpeakers('anything', '{"crm": true}')).toBeUndefined();
+  });
+
+  it('treats only the tenant and contractors as hearsay about the landlord', () => {
+    expect(['Tenant', 'Contractor', 'Maintenance provider'].every(hearsaySpeaker)).toBe(true);
+    expect(['Landlord', 'Agency / system', 'Northbridge Lettings', 'Northbridge Lettings system', 'Cedar Homes', 'unknown'].some(hearsaySpeaker)).toBe(false);
+  });
+
+  it('matches an attachment by its whole file name only', () => {
+    expect(namesAttachment('attachments/quote.pdf', ['attachments/quote.pdf'])).toBe(true);
+    expect(namesAttachment('see quote.pdf.', ['attachments/quote.pdf'])).toBe(true);
+    expect(namesAttachment('oldquote.pdf', ['attachments/quote.pdf'])).toBe(false);
+    expect(namesAttachment('quote.pdf.bak', ['attachments/quote.pdf'])).toBe(false);
+    expect(namesAttachment('quote.pdf', [])).toBe(false);
   });
 
   it("will not book a date only the tenant stated, and books one the provider confirmed", () => {
@@ -187,6 +200,70 @@ describe('ops guards', () => {
     const scanned = ops({}, { evidence: 'no text', mediaNames: ['attachments/letter.jpg'] });
     expect(scanned.guard!('record_landlord_decision', { ticket_ref: 'NBL-1', decision: 'approved', evidence_quote: 'Go ahead', source: 'letter.jpg' })).toBeUndefined();
     expect(scanned.guard!('record_landlord_decision', { ticket_ref: 'NBL-1', decision: 'approved', evidence_quote: 'Go ahead' })).toMatch(/image or scanned attachment/);
+  });
+
+  it('skips the text check only for an attachment that exists, named in full', () => {
+    const t = ops({}, { evidence: 'no text', mediaNames: ['attachments/1.png', 'attachments/Landlord reply.jpg'] });
+    const rec = (source: string) => t.guard!('record_landlord_decision', { ticket_ref: 'NBL-1', decision: 'approved', evidence_quote: 'Go ahead', source });
+    expect(rec('attachments/1.png')).toBeUndefined();
+    expect(rec('image "Landlord reply.jpg", 12/10')).toBeUndefined();
+    expect(rec('scan (1.PNG).')).toBeUndefined();
+    expect(rec('event 21.png')).toMatch(/not in the case/);
+    expect(rec('attachments/other.jpg')).toMatch(/not in the case/);
+    expect(rec('photo')).toMatch(/not in the case/);
+  });
+
+  describe('who wrote the landlord decision', () => {
+    const history = [
+      '## 2026-08-07 11:49 UTC — event 003',
+      '- **From:** Agency / system',
+      'Spoke to landlord who approved for me to instruct a contractor to attend.',
+      '## 2026-08-08 09:00 UTC — event 004',
+      '- **From:** Tenant',
+      'The landlord told me he is happy for you to send someone.',
+      '## 2026-08-09 09:00 UTC — event 005',
+      '- **From:** Contractor',
+      'Spoke to the landlord on the phone, he said go ahead.',
+      '## 2026-08-10 09:00 UTC — event 006',
+      '- **From:** Maintenance provider',
+      'Landlord has given the go ahead for the boiler.',
+      '## 2026-08-11 09:00 UTC — event 007',
+      '- **From:** Landlord',
+      'Yes please go ahead with the boiler.',
+      '## 2026-08-12 09:00 UTC — event 008',
+      '- **From:** Northbridge Lettings system',
+      'Landlord approved the quote of £605.',
+    ].join('\n');
+    const rec = (decision: string, evidence_quote: string, evidence = history) =>
+      ops({}, { evidence }).guard!('record_landlord_decision', { ticket_ref: 'NBL-1', decision, evidence_quote, source: 'history' });
+
+    it('blocks an approval the tenant or a contractor reports', () => {
+      expect(rec('approved', 'he is happy for you to send someone')).toMatch(/written by Tenant.*hearsay.*unclear.*request_landlord_approval/);
+      expect(rec('approved', 'Spoke to the landlord on the phone, he said go ahead')).toMatch(/written by Contractor.*hearsay/);
+      expect(rec('approved', 'Landlord has given the go ahead for the boiler')).toMatch(/Maintenance provider/);
+      expect(rec('declined', 'he said go ahead')).toMatch(/hearsay/);
+    });
+
+    it("allows the landlord's own words and agency or system records", () => {
+      expect(rec('approved', 'Yes please go ahead with the boiler')).toBeUndefined();
+      expect(rec('approved', 'Spoke to landlord who approved for me to instruct a contractor')).toBeUndefined();
+      expect(rec('approved', 'Landlord approved the quote of £605')).toBeUndefined();
+    });
+
+    it('allows a quote that a landlord or agency event also contains', () => {
+      expect(rec('approved', 'go ahead')).toBeUndefined();
+    });
+
+    it('does not block when the case has no event structure, or the decision is unclear', () => {
+      expect(rec('approved', 'Spoke to the landlord on the phone, he said go ahead', 'Contractor email 09/08:\n> Spoke to the landlord on the phone, he said go ahead.')).toBeUndefined();
+      expect(rec('unclear', 'Spoke to the landlord on the phone, he said go ahead')).toBeUndefined();
+    });
+
+    it('blocks the provider-reported approval on the real public cut', () => {
+      const t = createOpsToolset(seedFromCase(loadCase('cases/public-cuts/006-provider-says-landlord-approved')));
+      const r = t.guard!('record_landlord_decision', { ticket_ref: t.state.tickets[0].ref, decision: 'approved', evidence_quote: 'Spoke to the landlord on the phone, he said go ahead', source: 'event 015' });
+      expect(r).toMatch(/written by Contractor/);
+    });
   });
 
   it('will not close until the landlord is shown to know', () => {
