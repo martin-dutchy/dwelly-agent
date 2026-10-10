@@ -128,7 +128,8 @@ export async function showData(store: OpsStore): Promise<ShowData | undefined> {
   // Which real call to feature, best first (OPS_SHOW_CALL overrides): the positive landlord approval, then the VAT one.
   const prefer = [process.env.OPS_SHOW_CALL, ...Object.keys(CALLS)].filter(Boolean) as string[];
   const rank = (ref?: string | null) => { const i = prefer.indexOf(ref ?? ''); return i < 0 ? 99 : i; };
-  const voice = (await store.listCases(200)).filter((c) => c.source === 'voice' && c.source_ref?.startsWith('conv_')).sort((a, b) => rank(a.source_ref) - rank(b.source_ref));
+  // The show features the Flat 9 landlord call (Ben Hartley). Set OPS_SHOW_REAL_CALL=1 to feature a recorded real call instead.
+  const voice = process.env.OPS_SHOW_REAL_CALL === '1' ? (await store.listCases(200)).filter((c) => c.source === 'voice' && c.source_ref?.startsWith('conv_')).sort((a, b) => rank(a.source_ref) - rank(b.source_ref)) : [];
   for (const vc of voice) {
     const ve = await store.events(vc.id);
     const callEv = ve.find((e) => e.kind === 'call');

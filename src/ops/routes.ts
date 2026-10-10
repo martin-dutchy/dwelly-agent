@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { CASE_SETS, gradeBatch, importRun, startBatch } from './batch.js';
 import { batchView } from './batchView.js';
 import { evalRunPage, evalsPage } from './evalPages.js';
-import { DEMO_CASE, DEMO_TENANT, BEN_SCENARIO, contractorQuote, demoCase, isDemoCall, onDemoCall, recordedLandlordCall, resetDemo, tenantWhatsApp } from './demo.js';
+import { DEMO_CASE, DEMO_TENANT, BEN_SCENARIO, contractorQuote, demoCase, isDemoCall, onDemoCall, recordedLandlordCall, resetDemo, seedDemo, tenantWhatsApp } from './demo.js';
 import { demoPage } from './demoPage.js';
 import { showData } from './showData.js';
 import { showPage } from './showPage.js';
@@ -58,6 +58,8 @@ export async function createOps(store: OpsStore = createOpsStore()): Promise<Ops
       }
     } catch {}
   }
+  // The show's Flat 9 case: run it through WhatsApp, the quote and Ben's call so its steps are real agent output.
+  if (!process.env.DATABASE_URL && process.env.OPS_SEED_DEMO !== '0') void seedDemo(store, worker).catch((e) => console.error('[ops] seed demo', e));
   // Without a database, bring back earlier eval runs from disk so a restart loses nothing.
   if (!process.env.DATABASE_URL && process.env.OPS_IMPORT_RUNS !== '0') {
     const root = join(process.cwd(), 'runs', 'ops');

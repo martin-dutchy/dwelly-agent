@@ -192,3 +192,24 @@ export async function onDemoCall(store: OpsStore, worker: Worker, call: CallRow,
 }
 
 export const isDemoCall = (call: CallRow) => call.scenario_id === BEN_SCENARIO.id;
+
+/** Run the whole Flat 9 scenario once (tenant WhatsApp, HeatRight's quote, Ben's call without the bank twist). */
+export async function seedDemo(store: OpsStore, worker: Worker) {
+  const waitIdle = async () => {
+    for (let i = 0; i < 200; i++) {
+      const c = await demoCase(store);
+      if (c && c.status !== 'agent_working' && c.status !== 'queued') return;
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+  };
+  await resetDemo(store);
+  await tenantWhatsApp(store, worker, 'No hot water since this morning. Heating still works, no smell, nothing leaking.');
+  await new Promise((r) => setTimeout(r, 500));
+  await waitIdle();
+  await contractorQuote(store, worker);
+  await new Promise((r) => setTimeout(r, 500));
+  await waitIdle();
+  await recordedLandlordCall(store, worker, false);
+  await new Promise((r) => setTimeout(r, 500));
+  await waitIdle();
+}
