@@ -352,6 +352,57 @@ describe('ops guards', () => {
   });
 });
 
+describe('identity, consent and priority', () => {
+  const evidence = [
+    '### 2026-10-09 09:14 UTC — event 004',
+    '- **From:** Tenant',
+    'Yes, happy for the plumber to have my number to arrange the visit.',
+    '### 2026-10-09 10:02 UTC — event 005',
+    '- **From:** Contractor',
+    'Landlord said I can have the tenant number.',
+    'CRM: authorised contact Jonah Reid, son, added 2026-03-01.',
+  ].join('\n');
+
+  it('verify_identity needs words from the case, and is read back from the log', async () => {
+    const t = ops({}, { evidence });
+    const args = { party: 'Jonah Reid', role: 'third_party', evidence_quote: 'authorised contact Jonah Reid, son', source: 'crm' };
+    expect(t.guard!('verify_identity', args)).toBeUndefined();
+    expect(t.guard!('verify_identity', { ...args, evidence_quote: 'He knew his date of birth' })).toMatch(/not in the case.*treat Jonah Reid as unverified/);
+    expect(t.guard!('verify_identity', { ...args, evidence_quote: 'ok' })).toMatch(/too short/);
+    expect(ops().guard!('verify_identity', { ...args, evidence_quote: 'He knew his date of birth' })).toBeUndefined();
+    const res = await t.execute('verify_identity', args, ctx);
+    expect(res).toMatchObject({ ok: true, verification_id: expect.stringMatching(/^IDV-/) });
+    expect(t.verify('verify_identity', args, res, ctx)).toMatchObject({ status: 'verified' });
+  });
+
+  it("share_tenant_contact needs the tenant's own consent in the case, and is read back on the ticket", async () => {
+    const t = ops({}, { evidence });
+    const args = { ticket_ref: 'NBL-1', provider: 'Keystone Plumbing', consent_quote: 'happy for the plumber to have my number', source: 'event 004' };
+    expect(t.guard!('share_tenant_contact', args)).toBeUndefined();
+    expect(t.guard!('share_tenant_contact', { ...args, consent_quote: 'Tenant agreed by phone' })).toMatch(/not in the case.*request_information/);
+    expect(t.guard!('share_tenant_contact', { ...args, consent_quote: 'Landlord said I can have the tenant number' })).toMatch(/written by Contractor, not the tenant/);
+    expect(t.verify('share_tenant_contact', args, undefined, ctx).status).toBe('not_applied');
+    await t.execute('share_tenant_contact', args, ctx);
+    expect(t.verify('share_tenant_contact', args, undefined, ctx).status).toBe('verified');
+    expect(t.state.tickets[0].contact_shared).toEqual([{ provider: 'Keystone Plumbing', consent_quote: args.consent_quote, source: 'event 004' }]);
+  });
+
+  it('update_ticket raises the priority, never lowers it, and reads it back', async () => {
+    const t = ops({ severity: 'urgent' });
+    expect(t.guard!('update_ticket', { ref: 'NBL-1', priority: 'routine' })).toMatch(/is urgent and can only go up; routine would lower it/);
+    expect(t.guard!('update_ticket', { ref: 'NBL-1', priority: 'urgent' })).toBeUndefined();
+    expect(t.guard!('update_ticket', { ref: 'NBL-1', priority: 'emergency' })).toBeUndefined();
+    expect(ops({ priority: 'P1' }).guard!('update_ticket', { ref: 'NBL-1', priority: 'urgent' })).toMatch(/is P1/);
+    expect(ops().guard!('update_ticket', { ref: 'NBL-1', priority: 'routine' })).toBeUndefined();
+    expect(t.guard!('update_ticket', { ref: 'NBL-1', note: 'tenant changed the window' })).toBeUndefined();
+    const args = { ref: 'NBL-1', priority: 'emergency' };
+    expect(await t.execute('update_ticket', args, ctx)).toMatchObject({ ok: true, priority: 'emergency' });
+    expect(t.verify('update_ticket', args, undefined, ctx).status).toBe('verified');
+    expect(t.verify('update_ticket', { ref: 'NBL-1', priority: 'urgent' }, undefined, ctx)).toMatchObject({ status: 'not_applied', evidence: expect.stringMatching(/priority is emergency/) });
+    expect(await t.execute('update_ticket', { ref: 'NBL-1', note: 'x' }, ctx)).not.toHaveProperty('priority');
+  });
+});
+
 describe('case seeding', () => {
   it('rebuilds the public job at the decision point', () => {
     const c = loadCase('HackatonPublicCases/Property Management/021', '3');

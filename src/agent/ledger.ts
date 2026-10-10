@@ -1,4 +1,7 @@
+import { type FailureClass, canonical, classifyFailure } from '../core/failures.js';
 import type { Verification } from './verify.js';
+
+export { canonical };
 
 export type LedgerStatus = 'verified' | 'failed' | 'unverifiable';
 
@@ -12,17 +15,13 @@ export type LedgerEntry = {
   status: LedgerStatus;
   ref?: string;
   evidence: string[];
+  /** Set while the entry is failed: what kind of failure, and what to do next. */
+  failureClass?: FailureClass;
+  nextStep?: string;
 };
 
-export const canonical = (v: unknown): string =>
-  Array.isArray(v)
-    ? `[${v.map(canonical).join(',')}]`
-    : v && typeof v === 'object'
-      ? `{${Object.keys(v)
-          .sort()
-          .map((k) => `${k}:${canonical((v as Record<string, unknown>)[k])}`)
-          .join(',')}}`
-      : JSON.stringify(v);
+/** The failure class and next step as one sentence for the model, or '' when the entry is not failed. */
+export const failureNote = (e: LedgerEntry) => (e.failureClass ? ` Failure class: ${e.failureClass}. Next: ${e.nextStep}` : '');
 
 /**
  * Source of truth for "what did the agent actually do". ANSWER.md's action table is rendered
@@ -44,13 +43,15 @@ export class ActionLedger {
     const key = this.keyOf(tool, args);
     const status: LedgerStatus = v.status === 'verified' ? 'verified' : v.status === 'unverifiable' ? 'unverifiable' : 'failed';
     const prior = this.entries.find((e) => e.key === key && e.status !== 'verified');
+    const typed = (attempts: number) => (status === 'failed' ? classifyFailure(tool, attempts, apiError) : { failureClass: undefined, nextStep: undefined });
     if (prior) {
       // A retry of the same intent updates the same entry: one action, several attempts.
-      Object.assign(prior, { attempts: prior.attempts + 1, apiError, status, ref: v.ref ?? prior.ref });
+      Object.assign(prior, { attempts: prior.attempts + 1, apiError, status, ref: v.ref ?? prior.ref }, typed(prior.attempts + 1));
       prior.evidence.push(v.evidence);
       return prior;
     }
     const entry: LedgerEntry = { id: `A${this.entries.length + 1}`, tool, args, key, attempts: 1, apiError, status, ref: v.ref, evidence: [v.evidence] };
+    if (status === 'failed') Object.assign(entry, typed(1));
     this.entries.push(entry);
     return entry;
   }

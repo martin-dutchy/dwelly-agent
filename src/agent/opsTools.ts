@@ -40,6 +40,15 @@ export const WORK_OUTCOMES = ['completed', 'partial', 'needs_quote', 'no_access'
 export const DOC_KINDS = ['invoice', 'quote', 'photos', 'inspection_report', 'certificate', 'other'] as const;
 export const CLOSE_MODES = ['final_checks', 'without_payment', 'by_supervisor'] as const;
 export const VISIT_CONFIRMERS = ['provider', 'landlord', 'assigned_this_run'] as const;
+export const PRIORITIES = ['emergency', 'urgent', 'routine'] as const;
+
+const PRIORITY_RANK: Record<string, number> = { emergency: 3, p1: 3, urgent: 2, p2: 2, routine: 1, p3: 1, p4: 0 };
+const rankOf = (v: unknown) => PRIORITY_RANK[String(v ?? '').trim().toLowerCase()];
+/** The highest priority the job record carries (priority, severity or urgency), as [label, rank]. */
+export function currentPriority(t: Ticket): [string, number] | undefined {
+  const known = [t.priority, t.severity, t.urgency].filter((v) => rankOf(v) !== undefined).map((v) => [String(v), rankOf(v)] as [string, number]);
+  return known.sort((a, b) => b[1] - a[1])[0];
+}
 
 export type Toolset = {
   tools: ToolDef[];
@@ -139,15 +148,21 @@ export function createOpsToolset(seed: OpsSeed | Ticket[] = []): Toolset {
     }),
     def({
       name: 'update_ticket',
-      description: 'Move a ticket to another stage and/or add a note (e.g. a tenant changed the access window).',
+      description: 'Move a ticket to another stage, raise its priority, and/or add a note (e.g. a tenant changed the access window).',
       kind: 'write',
-      parameters: z.object({ ref: z.string(), stage: z.enum(STAGES).optional(), note: z.string().optional() }),
-      run: ({ ref, stage, note }) => {
+      parameters: z.object({
+        ref: z.string(),
+        stage: z.enum(STAGES).optional(),
+        note: z.string().optional(),
+        priority: z.enum(PRIORITIES).optional().describe('Raise the priority when the fault is more serious than recorded. It can only go up (routine < urgent < emergency).'),
+      }),
+      run: ({ ref, stage, note, priority }) => {
         const t = ticket(ref);
         if (!t) return { ok: false, error: 'not_found' };
         if (stage) t.stage = stage;
         if (note) t.notes = [...((t.notes as string[]) ?? []), note];
-        return { ok: true, ref, stage: t.stage };
+        if (priority) t.priority = priority;
+        return { ok: true, ref, stage: t.stage, ...(priority ? { priority } : {}) };
       },
     }),
     def({
@@ -455,6 +470,33 @@ export function createOpsToolset(seed: OpsSeed | Ticket[] = []): Toolset {
       run: (a) => ({ ok: true, note_id: record('add_note', a, 'NOTE').id }),
     }),
     def({
+      name: 'verify_identity',
+      description:
+        'Record that a person is who they say they are, before you disclose anything to them or act on their request: details they gave that match the records, or the records naming them as an authorised contact.',
+      kind: 'write',
+      parameters: z.object({
+        party: z.string().describe('Who, by name'),
+        role: z.enum(['tenant', 'landlord', 'contractor', 'neighbour', 'third_party']),
+        evidence_quote: z.string().describe('Words copied exactly from the case that establish who they are, e.g. the matching details or the authorised-contact entry. Checked against the case text.'),
+        source: z.string().optional().describe('Where the words are, e.g. "inputs/crm.json" or "call transcript 10:02"'),
+      }),
+      run: (a) => ({ ok: true, verification_id: record('verify_identity', a, 'IDV').id }),
+    }),
+    def({
+      name: 'share_tenant_contact',
+      description:
+        "Give the tenant's phone or email to the contractor on a job. Only with the tenant's consent quoted from the case; without it, the contractor arranges access through the agency.",
+      kind: 'write',
+      parameters: z.object({
+        ...ticketRef,
+        provider: z.string().describe('The contractor receiving the details'),
+        consent_quote: z.string().describe("The tenant's words agreeing to share their contact details, copied exactly from the case. Checked against the case text."),
+        source: z.string().optional().describe('Where the words are, e.g. "inputs/whatsapp.txt 09:14"'),
+      }),
+      run: ({ ticket_ref, provider, consent_quote, source }) =>
+        onTicket(ticket_ref, (t) => ((t.contact_shared = [...((t.contact_shared as unknown[]) ?? []), { provider, consent_quote, source }]), { contact_shared: t.contact_shared })),
+    }),
+    def({
       name: 'escalate_to_human',
       description:
         'Hand a decision to a human with a packet they can act on in about 3 minutes. Use for emergencies, legal/financial/safeguarding decisions, suspected fraud, unresolvable conflicts or failed actions.',
@@ -486,6 +528,7 @@ export function createOpsToolset(seed: OpsSeed | Ticket[] = []): Toolset {
     skip_document: (t, a) => (((t.documents as any[]) ?? []).some((d) => d.kind === a.kind && d.skipped) ? undefined : 'skip not on the ticket'),
     confirm_keys_returned: (t) => (t.keys_returned ? undefined : 'keys not marked returned'),
     close_ticket: (t) => (t.stage === 'completed' ? undefined : `stage is ${t.stage}`),
+    share_tenant_contact: (t, a) => (((t.contact_shared as any[]) ?? []).some((s) => s.provider === a.provider) ? undefined : `contact not shared with ${a.provider}`),
   };
 
   const knownAddresses = () => [...state.tickets.map((t) => String(t.property ?? '')), ...state.properties.map((p) => p.address)].filter(Boolean);
@@ -511,6 +554,15 @@ export function createOpsToolset(seed: OpsSeed | Ticket[] = []): Toolset {
     if (speakers && !speakers.some((s) => role.test(s)))
       return `Those words come from ${[...new Set(speakers)].join(' / ') || 'nobody identifiable'}, not the ${a.confirmed_by === 'landlord' ? 'landlord' : 'provider'}, so ${date} is not confirmed by the party doing the visit.`;
     return undefined;
+  };
+
+  // Words a tool relies on must be in the case: copied text, or an image or scan named in `source`.
+  const quoteProblem = (field: string, quote: string, source: unknown): string | undefined => {
+    if (!evidence) return undefined;
+    const raw = quote.trim();
+    if (tooThinForApproval(raw)) return `${field} "${raw}" is too short to rely on: copy the words from the case.`;
+    if (quoteAppears(raw, evidence) || evidence.includes(raw) || namesAttachment(String(source ?? ''), mediaNames)) return undefined;
+    return `The ${field} "${raw.slice(0, 120)}" is not in the case. Copy the words exactly as written (no paraphrase; date and channel go in source).`;
   };
 
   // Rules enforced in code, not left to the prompt. Each comes from a red flag in the cases.
@@ -587,6 +639,26 @@ export function createOpsToolset(seed: OpsSeed | Ticket[] = []): Toolset {
         if (informed) problems.push(informed);
         return problems.length ? `Cannot close ${t.ref} yet: ${problems.join('; ')}.` : undefined;
       }
+      // New tools and the new priority field: no earlier behaviour to preserve.
+      case 'update_ticket': {
+        const job = a.priority ? ticket(a.ref) : undefined;
+        const now = job && currentPriority(job);
+        if (!now || (rankOf(a.priority) ?? 0) >= now[1]) return undefined;
+        return `Priority on ${job!.ref} is ${now[0]} and can only go up; ${a.priority} would lower it. Leave the priority as it is, and put your reasons in a note or escalate if you think the recorded priority is wrong.`;
+      }
+      case 'verify_identity': {
+        const problem = quoteProblem('evidence_quote', String(a.evidence_quote ?? ''), a.source);
+        return problem && `${problem} Without it, treat ${a.party} as unverified and disclose nothing.`;
+      }
+      case 'share_tenant_contact': {
+        const quote = String(a.consent_quote ?? '').trim();
+        const problem = quoteProblem('consent_quote', quote, a.source);
+        if (problem) return `${problem} Without the tenant's consent, ask the tenant (request_information) or let the contractor arrange access through the agency.`;
+        const speakers = evidence ? quoteSpeakers(quote, evidence) : undefined;
+        if (speakers?.length && speakers.every((s) => /landlord|contractor|provider|engineer|trades/i.test(s) && !/tenant|agency|system|lettings/i.test(s)))
+          return `Those words were written by ${[...new Set(speakers)].join(' / ')}, not the tenant. Only the tenant can consent to sharing their contact details: ask them first.`;
+        return undefined;
+      }
     }
     return undefined;
   };
@@ -614,6 +686,8 @@ export function createOpsToolset(seed: OpsSeed | Ticket[] = []): Toolset {
         if (expected && t.stage !== expected) return { status: 'not_applied', ref: t.ref, evidence: `Ticket ${t.ref} is at stage ${t.stage}, expected ${expected}` };
         if (name === 'assign_contractor' && t.contractor !== args.contractor)
           return { status: 'not_applied', ref: t.ref, evidence: `Ticket ${t.ref} contractor is ${t.contractor ?? 'none'}` };
+        if (name === 'update_ticket' && args.priority && t.priority !== args.priority)
+          return { status: 'not_applied', ref: t.ref, evidence: `Ticket ${t.ref} priority is ${String(t.priority ?? 'unset')}, expected ${String(args.priority)}` };
         return { status: 'verified', ref: t.ref, evidence: `Ticket ${t.ref} read back at stage ${t.stage}` };
       }
       const rid = Object.entries(result ?? {}).find(([k]) => k.endsWith('_id'))?.[1] as string | undefined;
