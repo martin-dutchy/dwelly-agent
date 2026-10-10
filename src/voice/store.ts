@@ -45,6 +45,8 @@ export interface VoiceStore {
   init(): Promise<void>;
   createTester(t: NewTester): Promise<Tester>;
   listTesters(): Promise<Tester[]>;
+  /** Active (not revoked) invites for this phone number. */
+  activeByPhone(phone: string): Promise<Tester[]>;
   testerByToken(token: string): Promise<Tester | undefined>;
   setRevoked(id: string, revoked: boolean): Promise<void>;
   registerCall(c: { conversationId: string; testerId: string | null; scenarioId: string; brain: string }): Promise<void>;
@@ -75,6 +77,7 @@ export function memoryStore(): VoiceStore {
       return t;
     },
     listTesters: async () => [...testers].reverse(),
+    activeByPhone: async (phone) => testers.filter((t) => t.phone === phone && !t.revoked),
     testerByToken: async (token) => testers.find((t) => t.token === token),
     async setRevoked(id, revoked) {
       const t = testers.find((x) => x.id === id);
@@ -155,6 +158,7 @@ export function pgStore(url: string): VoiceStore {
       return row<Tester>(t);
     },
     listTesters: async () => (await sql`select * from voice_testers order by created_at desc`).map((r) => row<Tester>(r)),
+    activeByPhone: async (phone) => (await sql`select * from voice_testers where phone = ${phone} and not revoked`).map((r) => row<Tester>(r)),
     testerByToken: async (token) => {
       const [t] = await sql`select * from voice_testers where token = ${token}`;
       return t ? row<Tester>(t) : undefined;

@@ -227,6 +227,18 @@ describe('tester and admin routes', () => {
     });
   });
 
+  it('keeps one active invite per number: replace for the same person, refuse for someone else', async () => {
+    await withServer(async (base) => {
+      const make = (body: Record<string, unknown>) => fetch(`${base}/admin/api/testers`, { method: 'POST', headers: { ...basic('pw'), 'content-type': 'application/json' }, body: JSON.stringify({ dailyCap: 5, ...body }) });
+      expect((await make({ name: 'Jayna', phone: '+447700900555', scenarioId: 'gas-emergency' })).status).toBe(200);
+      const dup = await make({ name: 'Jayna', phone: '07700 900555', scenarioId: 'routine-repair' });
+      expect(dup.status).toBe(409);
+      expect((await dup.json()).canReplace).toBe(true);
+      expect((await make({ name: 'Narcis', phone: '+447700900555' })).status).toBe(409);
+      expect((await make({ name: 'Jayna', phone: '+447700900555', scenarioId: 'routine-repair', replace: true })).status).toBe(200);
+    });
+  });
+
   it('validates outbound test calls before dialling', async () => {
     await withServer(async (base) => {
       const post = (body: unknown) => fetch(`${base}/admin/api/phone-call`, { method: 'POST', headers: { ...basic('pw'), 'content-type': 'application/json' }, body: JSON.stringify(body) });
