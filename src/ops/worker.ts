@@ -37,6 +37,8 @@ export type WorkerOptions = {
   concurrency?: number;
   model?: string;
   timeoutMs?: number;
+  /** Called with the events a run produced, e.g. to deliver WhatsApp replies through the channel's API. */
+  afterRun?: (caseId: string, events: import('./store.js').OpsEvent[]) => void;
   /** Test seam: replace the real case worker. */
   runner?: (o: { prompt: string; dir: string; caseId: string }) => Promise<RunOutput & { messages?: any[]; cost?: number }>;
 };
@@ -94,10 +96,12 @@ export function createWorker(store: OpsStore, opts: WorkerOptions = {}) {
             const cost = (run.messages as any[]).filter((m) => m.role === 'assistant').reduce((a, m) => a + (m.usage?.cost?.total ?? 0), 0);
             return { ...run, cost };
           })();
-      const latest = c.files ? Object.entries(c.files).filter(([n]) => n.startsWith('inputs/')).slice(-3).map(([n, t]) => `### ${n}\n${t}`).join('\n\n') : undefined;
-      const { events, tasks, status } = recordRun({ caseId, runId, run: out, historyMd: c.history_md, call, latest });
+      const historyMd = c.files?.['history.md'] ?? c.history_md;
+      const latest = c.files && !c.files['history.md'] ? Object.entries(c.files).filter(([n]) => n.startsWith('inputs/')).slice(-3).map(([n, t]) => `### ${n}\n${t}`).join('\n\n') : undefined;
+      const { events, tasks, status } = recordRun({ caseId, runId, run: out, historyMd, call, latest });
       await store.addEvents(events);
       for (const t of tasks) await store.addTask(t);
+      opts.afterRun?.(caseId, events);
       await store.setStatus(caseId, status);
       const usage = { input: 0, output: 0, cost: out.cost ?? 0, turns: 0, durationMs: 0 };
       const answer_md = renderAnswer(loaded, out.decision, out.ledger, out.error);

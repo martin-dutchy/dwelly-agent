@@ -5,7 +5,10 @@ import { join } from 'node:path';
 import { CASE_SETS, gradeBatch, importRun, startBatch } from './batch.js';
 import { batchView } from './batchView.js';
 import { evalRunPage, evalsPage } from './evalPages.js';
+import { DEMO_CASE, DEMO_TENANT, BEN_SCENARIO, contractorQuote, demoCase, isDemoCall, onDemoCall, recordedLandlordCall, resetDemo, tenantWhatsApp } from './demo.js';
+import { demoPage } from './demoPage.js';
 import { decideTask, ingestCall, ingestPracticeCase, ingestPublicCase } from './ingest.js';
+import { bubbles, outgoingWhatsApp, sendWhatsApp } from './whatsapp.js';
 import { casePage, inboxPage, taskPage, textPage } from './pages.js';
 import { needsReason } from './status.js';
 import { type OpsStore, createOpsStore } from './store.js';
@@ -19,11 +22,24 @@ import { type Worker, createWorker } from './worker.js';
  *   /ops/api/...             the same data as JSON
  */
 
-export type Ops = { store: OpsStore; worker: Worker; evalWorker: Worker; onCallFinalized: (call: CallRow, events: EventRow[]) => Promise<void> };
+export type Ops = {
+  store: OpsStore;
+  worker: Worker;
+  evalWorker: Worker;
+  onCallFinalized: (call: CallRow, events: EventRow[]) => Promise<void>;
+  /** Place an outbound voice call (set by the voice server when ElevenLabs telephony is configured). */
+  dial?: (to: string, scenarioId: string) => Promise<string>;
+};
 
 export async function createOps(store: OpsStore = createOpsStore()): Promise<Ops> {
   await store.init();
-  const worker = createWorker(store);
+  // WhatsApp replies the agent sent to the demo tenant also go out through the channel API when one is configured.
+  const worker = createWorker(store, {
+    afterRun: (caseId, events) => {
+      if (caseId !== DEMO_CASE) return;
+      for (const e of outgoingWhatsApp(events)) void sendWhatsApp(DEMO_TENANT.phone, e.detail ?? '').catch((err) => console.error('[ops] whatsapp', err));
+    },
+  });
   // Eval runs get their own pool so a 50-case run never delays live follow-ups after calls.
   const evalWorker = createWorker(store, { concurrency: Number(process.env.OPS_EVAL_CONCURRENCY ?? 6) });
   // Without a database, bring back earlier eval runs from disk so a restart loses nothing.
@@ -40,7 +56,8 @@ export async function createOps(store: OpsStore = createOpsStore()): Promise<Ops
     // Never let a follow-up failure reach the voice server: it is logged and shown on the case instead.
     onCallFinalized: async (call, events) => {
       if (process.env.OPS_AUTO_FOLLOW_UP === '0') return;
-      await ingestCall(store, worker, call, events).catch((e) => console.error('[ops] ingest call', call.conversation_id, e));
+      if (isDemoCall(call)) await onDemoCall(store, worker, call, events).catch((e) => console.error('[ops] demo call', e));
+      else await ingestCall(store, worker, call, events).catch((e) => console.error('[ops] ingest call', call.conversation_id, e));
     },
   };
 }
@@ -117,6 +134,41 @@ export async function opsRoutes(path: string, req: IncomingMessage, res: ServerR
     const r = await store.getRun(runFile[1]);
     const text = runFile[2] === 'answer' ? r?.answer_md : r?.reasoning_md;
     return text ? html(res, textPage(`${runFile[2].toUpperCase()}.md`, text)) : html(res, textPage('Not found', 'No such file yet'), 404);
+  }
+
+  // Demo: the tenant's WhatsApp, the quote, the landlord call and the one human decision, on the real agents.
+  if (path === '/ops/demo') {
+    const c = await demoCase(store);
+    const events = c ? await store.events(c.id) : [];
+    return html(res, demoPage({ c, events, tasks: c ? await store.listTasks({ caseId: c.id }) : [], bubbles: bubbles(events), canDial: !!ops.dial, openTasks: await openTasks() }));
+  }
+  if (req.method === 'POST' && path.startsWith('/ops/demo/')) {
+    const f = await readForm(req);
+    const step = path.slice('/ops/demo/'.length);
+    if (step === 'whatsapp' && String(f.text ?? '').trim()) await tenantWhatsApp(store, worker, String(f.text).trim().slice(0, 1000));
+    if (step === 'quote') await contractorQuote(store, worker);
+    if (step === 'call') {
+      if (f.mode === 'live' && ops.dial && String(f.to ?? '').trim()) {
+        try {
+          await ops.dial(String(f.to).trim(), BEN_SCENARIO.id);
+        } catch (e) {
+          return html(res, textPage('Call not placed', e instanceof Error ? e.message : String(e)), 400);
+        }
+      } else await recordedLandlordCall(store, worker);
+    }
+    if (step === 'reset') {
+      await resetDemo(store);
+      for (const t of await store.listTasks({ caseId: DEMO_CASE, status: 'open' })) await store.resolveTask(t.id, { choice: 'Demo restarted', note: '', by: 'system' });
+    }
+    return redirect(res, '/ops/demo');
+  }
+  // Production WhatsApp inbound (Twilio / WhatsApp Business API webhook): the tenant's message reaches the case worker.
+  if (path === '/ops/whatsapp/webhook' && req.method === 'POST') {
+    const f = await readForm(req);
+    const text = String(f.Body ?? f.text ?? '').trim();
+    if (text) await tenantWhatsApp(store, worker, text.slice(0, 1000));
+    res.writeHead(200, { 'content-type': 'text/xml' }).end('<Response></Response>');
+    return;
   }
 
   // Eval runs

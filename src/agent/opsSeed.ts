@@ -79,7 +79,7 @@ function publicJob(c: LoadedCase, history: string, address?: string): Ticket {
   const resumedAt = last(/Manually updated via Change Mode|return(ed)? (this request )?to auto mode|Resumed auto/);
   const hold = holdAt > resumedAt ? history.slice(holdAt).match(/Reason: ([^.\n]+)\.?(?: Comment: ([^\n]*))?/) : null;
   return {
-    ref: history.match(/Job Id:\s*(\S+)/)?.[1] ?? `NBL-${c.id}`,
+    ref: (history.match(/Job Id:\s*(\S+)/) ?? c.brief.match(/\*\*Job Id:\*\*\s*(\S+)/))?.[1] ?? `NBL-${c.id}`,
     stage,
     property: address,
     description: c.brief.match(/## Initial request\s+([\s\S]*?)(\n## |$)/)?.[1]?.trim(),

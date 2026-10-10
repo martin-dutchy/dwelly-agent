@@ -449,6 +449,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   // After each graded call the portal records it and the case worker runs the follow-ups.
   const ops = await createOps();
   onCallFinalized(ops.onCallFinalized);
+  if (process.env.ELEVENLABS_PHONE_NUMBER_ID) ops.dial = (to, scenarioId) => placePhoneCall(process.env, store, { to: toE164(to) ?? to, scenarioId, testerId: null });
   createVoiceServer(process.env, store, ops).listen(port, () =>
     console.log(`[voice] listening on :${port} (${process.env.DATABASE_URL ? 'postgres' : 'in-memory'} store). Admin: /admin`),
   );

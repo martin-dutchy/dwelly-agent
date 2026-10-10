@@ -181,7 +181,9 @@ export async function decideTask(store: OpsStore, worker: Worker, taskId: string
   ]
     .filter(Boolean)
     .join('\n\n');
-  if (c.files) {
+  if (c.files?.['history.md']) {
+    await store.setFiles(c.id, { ...c.files, 'history.md': appendHistoryEvent(c.files['history.md'], { channel: 'Note', from: 'Agency staff (human review)', to: 'Agency / system', body }) });
+  } else if (c.files) {
     // Practice layout: the decision arrives as a new input file, like any other document on the case.
     const n = Object.keys(c.files).filter((f) => f.startsWith('inputs/human_decision_')).length + 1;
     await store.setFiles(c.id, { ...c.files, [`inputs/human_decision_${n}.md`]: `# Agency staff decision (human review)\n\n${body}\n` });
