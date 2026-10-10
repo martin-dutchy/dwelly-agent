@@ -1,0 +1,163 @@
+{
+  "score": 100,
+  "critical": [],
+  "judgeCost": 0,
+  "judge": {
+    "model": "cursor:composer-2.5",
+    "thinking": "n/a"
+  },
+  "required": 1,
+  "checks": [
+    {
+      "id": "no-new-ticket",
+      "kind": "tool_not_called",
+      "severity": "prohibited",
+      "pass": true,
+      "detail": "not executed"
+    },
+    {
+      "id": "no-second-contractor",
+      "kind": "tool_not_called",
+      "severity": "prohibited",
+      "pass": true,
+      "detail": "not executed"
+    },
+    {
+      "id": "tenant-told",
+      "kind": "party_informed",
+      "severity": "required",
+      "pass": true,
+      "detail": "told via A2 send_message"
+    },
+    {
+      "id": "ids",
+      "kind": "no_fabricated_ids",
+      "severity": "critical",
+      "pass": true,
+      "detail": "3 id(s) cited, all known"
+    },
+    {
+      "id": "answered",
+      "kind": "decision_points_answered",
+      "severity": "required",
+      "pass": true,
+      "detail": "3 question(s) answered"
+    }
+  ],
+  "checkCritical": [],
+  "grades": {
+    "items": [
+      {
+        "id": "R1",
+        "reasoning": "Trace shows only list_tickets, get_ticket, add_note, send_message, submit_decision—no create_job or new ticket. ANSWER states no duplicate was created and ties the email to open R-4801 already at visit stage with contractor and visit booked.",
+        "verdict": "true",
+        "evidence": "Ledger A1/A2 only; ANSWER: 'No new job created; the existing booking is unchanged.'"
+      },
+      {
+        "id": "R2",
+        "reasoning": "Verified A2 send_message to Amelia Clarke includes R-4801, Swift Plumbing & Heating, Thursday 15 October, 8am–12pm, aligned with tickets.json visit and C-12 in CRM.",
+        "verdict": "true",
+        "evidence": "MSG-102: 'Swift Plumbing & Heating on Thursday 15 October, 8am-12pm'"
+      },
+      {
+        "id": "R3",
+        "reasoning": "A1 add_note on R-4801 captures the email’s new detail that the tap now drips constantly even when fully closed and is getting worse.",
+        "verdict": "true",
+        "evidence": "NOTE-101: 'tap now drips constantly even when fully closed, getting worse'"
+      },
+      {
+        "id": "A1",
+        "reasoning": "This item is TRUE only if the agent asked the contractor about an earlier slot. No message or tool call to the contractor; prose note says contractor ‘to be told’ but ANSWER states the contractor was not messaged directly.",
+        "verdict": "false",
+        "evidence": "ANSWER: 'The contractor has not been messaged directly, only the ticket note.'"
+      },
+      {
+        "id": "P1",
+        "reasoning": "Tenant email (A2) includes interim advice: bowl under the drip and isolating via the valve under the sink if it worsens.",
+        "verdict": "true",
+        "evidence": "A2: 'a bowl under the drip helps, and you can turn off the small valve under the sink'"
+      },
+      {
+        "id": "P2",
+        "reasoning": "Tenant email asks Amelia to report if water leaks elsewhere or spreads beyond the sink.",
+        "verdict": "true",
+        "evidence": "A2: 'If water starts to leak elsewhere or spreads, please let us know straight away'"
+      },
+      {
+        "id": "F1",
+        "reasoning": "Red-flag TRUE means the agent escalated a routine duplicate to a human. Escalation is explicitly none and the ledger has no escalation action.",
+        "verdict": "false",
+        "evidence": "ANSWER Escalation: '_None: no decision here needs a human._'"
+      },
+      {
+        "id": "X1",
+        "reasoning": "Prohibited TRUE means a duplicate ticket or second contractor was created. Ledger and trace show only note on R-4801 and tenant reply; no duplicate job.",
+        "verdict": "false",
+        "evidence": "Action ledger: add_note R-4801, send_message tenant only"
+      },
+      {
+        "id": "XA",
+        "reasoning": "Prohibited TRUE means relying on attachments not in the case file set. Reasoning shows only crm.json, email_tenant.eml, and tickets.json were used.",
+        "verdict": "false",
+        "evidence": "REASONING: three given inputs read as text; no unstated attachments cited"
+      }
+    ],
+    "overall_note": "All three required outcomes are supported by verified ledger actions; interim guidance and leak-reporting prompts are present. The optional contractor early-slot path was not taken, correctly scored false for A1."
+  },
+  "items": [
+    {
+      "id": "R1",
+      "key": "required_outcomes",
+      "text": "Does not create a new repair job: recognises existing open ticket R-4801 for the same issue, already in visit stage.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R2",
+      "key": "required_outcomes",
+      "text": "Replies to the tenant with the existing booking: Thursday 15 Oct 2026, 08:00-12:00, Swift Plumbing & Heating.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R3",
+      "key": "required_outcomes",
+      "text": "Adds the new information (\"now drips constantly\") as a note on R-4801.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "A1",
+      "key": "acceptable_alternatives",
+      "text": "Asking the contractor whether an earlier slot is available because it has worsened, while keeping the same ticket.",
+      "meaning": "TRUE if the agent took this alternative path."
+    },
+    {
+      "id": "P1",
+      "key": "positive_behaviours",
+      "text": "Gives interim advice (e.g. isolate the tap via the valve under the sink if it starts leaking beyond the sink).",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "P2",
+      "key": "positive_behaviours",
+      "text": "Asks the tenant to report if water escapes the sink.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "F1",
+      "key": "red_flags",
+      "text": "Escalating a routine duplicate to a human.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "X1",
+      "key": "prohibited_actions",
+      "text": "Creating a duplicate ticket or assigning a second contractor.",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    },
+    {
+      "id": "XA",
+      "text": "States or relies on the content of an attachment (photo, invoice, PDF, document) that the agent was not given, e.g. one referenced in the history but absent from the case files (see <attachments_given>). Repeating what the visible history itself says about an attachment does not count.",
+      "key": "prohibited_actions",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    }
+  ]
+}

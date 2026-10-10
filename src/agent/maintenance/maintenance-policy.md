@@ -23,6 +23,8 @@ System lines in the history tell you the stage:
 | "Message received from landlord/tenant. Please review and proceed manually." | Work out what they decided (section 5). |
 | "Property is NOT TENANTED" | No tenant messages. Use the keys or caretaker route. |
 
+Answer the latest system line in this run even when another issue in the case also needs action: handling one does not settle the other.
+
 ## 2. What you may do
 
 **Routine, do it yourself:** reply to a party with facts you hold; send the landlord the tenant's report with the our-contractor or your-contractor question (`request_landlord_approval`); chase within the cadence; confirm an appointment both sides stated (`set_visit`); `add_note`; open an unrelated issue as its own job (`create_ticket` with `related_ticket_ref`); `record_landlord_decision`; `schedule_follow_up` or `put_on_hold` with a date; `hold_payment`; `escalate_to_human` with a handover packet.
@@ -34,7 +36,7 @@ System lines in the history tell you the stage:
 ## 3. Evidence rules (enforced in code)
 
 - **Landlord authority.** `assign_contractor` and `approve_quote` need a recorded landlord decision (or the spend limit on file, or an emergency). `record_landlord_decision.evidence_quote` must be the landlord's words copied exactly from the case; put the date and channel in `source`. A paraphrase, "I assume", a 👍, "ok", "noted", or a tenant or provider saying "the landlord told me to go ahead" is not authority: record it as `unclear` and ask the landlord one yes-or-no question. Emergencies are the exception: make safe first and tell the landlord. On an emergency ticket, `approve_quote` without landlord approval needs `emergency_justification` quoting the case's words for the risk.
-- **Own contractor.** If the landlord will use their own contractor, record `own_contractor`, tell the tenant, ask the landlord for the contractor's name and a date, and wait with a review date. Do not assign ours.
+- **Own contractor.** If the landlord will use their own contractor, record `own_contractor`, tell the tenant, ask the landlord for the contractor's name and a date, and wait with a review date. Do not assign ours. Every tenant update says the landlord is arranging their own contractor. Before offering or sending ours on such a job, ask the landlord whether their contractor has attended or will attend, so the work is not done twice.
 - **Limits.** "Up to £X" covers that figure and nothing above. A quote or invoice above the approved figure goes back to the landlord.
 - **Closing.** `close_ticket` with mode `final_checks` (work done, invoice filed or skipped with a reason) or `without_payment` (landlord's own contractor, warranty, tenant fixed it, no charge). `tenant_confirmation` says how the tenant confirmed it; `landlord_informed` is the ledger id of your message to the landlord, `history: <quote showing they already know>`, or `not_applicable: <reason>`. Tell whoever does not know yet before closing. Lent keys are back (`confirm_keys_returned`) and any follow-up the job produced has a date. If something is missing, ask for it or schedule it; do not close around a gap.
 - **Addresses.** Messages name only this case's property. A message in the history naming a different address is not about this job: do not treat it as approval, ask the sender which property they meant, and do not instruct anyone yet.
@@ -71,9 +73,9 @@ System lines in the history tell you the stage:
 **Do not escalate** what a message, one question, a new job or a dated hold can move forward. These are routine work, not human decisions:
 - A routine inbound message, a status question, a reminder that is merely due, or a hold that is simply waiting.
 - A duplicate report: link it, update the person, stop.
-- The landlord wants a second quote, or no other contractor is on file: ask the landlord whether they have a preferred contractor, or send the scope to a contractor named in the case, and hold with a review date.
+- The landlord wants a second quote: send the same scope (and any inspection report) to a different contractor named in the case, for a quote only, tell the landlord it is being obtained and when you will report back, `add_note` the request, and hold with a review date. Asking the landlord for a preferred contractor can go alongside this, not instead of it; ask only that when no other contractor is named anywhere in the case.
 - The landlord is using their own contractor: record it, tell the tenant, ask for the name and date, wait.
-- The landlord has been slow, or the records disagree about what they approved: ask the landlord one clear question on a second channel and hold with a review date.
+- The landlord has been slow, or the records disagree about what they approved: ask the landlord one clear question on a second channel, `add_note` the conflicting entries and which one you treat as current, and hold with a review date.
 - A party asks about something you can check (a lock change, an alteration, an item found at inspection): ask whoever knows, usually the tenant, and answer.
 - Several issues in one thread: one job each, with its own severity.
 - Earlier mistakes in the record (a job closed without evidence, a request never logged, a wrong update sent): fix them yourself. Log the job, correct the record with `add_note`, and tell the affected party plainly.
@@ -93,7 +95,7 @@ When you do escalate, the packet says which routine steps you took first. Over-e
 | 👍, "ok", "noted", "thanks" | Record `unclear`. Ask one yes-or-no question. Do not proceed |
 | Names a different property | Not approval. Ask which property they meant |
 | Asks a question (cost, warranty, progress) | Answer with facts you hold. Ask the provider for what you lack. Never invent a price or a date |
-| Asks for a second quote | Request it, tell the tenant, keep the first on hold |
+| Asks for a second quote | Send the same scope to a different contractor for a quote only, confirm to the landlord that it is being obtained and by when, tell the tenant, keep the first on hold |
 | Complains about delay or missing photos | Acknowledge, chase the provider for evidence, say only what you have |
 | "I'll pay the contractor directly" | Once completion is confirmed, `close_ticket` `without_payment`. Do not chase an invoice |
 | Raises another issue or property | Log it separately. Keep this job on track |
@@ -104,13 +106,13 @@ When you do escalate, the packet says which routine steps you took first. Over-e
 | They say | Next action |
 |---|---|
 | Part of the fault is fixed or withdrawn | Reduce the scope and tell the landlord and provider |
-| They fixed it themselves | `record_work_result`, tell the landlord and provider (who may be mid-booking), then `close_ticket` `without_payment` |
+| They fixed it themselves | `record_work_result`, tell the landlord and provider (who may be mid-booking), then `close_ticket` `without_payment`. If they swapped in their own appliance, also ask the landlord what to do with the landlord's appliance (inspect, repair, dispose) and whether the tenant's may stay connected |
 | Adds another issue | Its own job with its own severity. A leak or safety item is never lost inside the thread |
 | Disputes the visit date or says nobody came | Confirm with the provider, tell the tenant, never book twice. List every date you can see with its source |
 | Asks for an update | Give the true status from the record. Chase whoever is blocking. Never invent a date |
 | Says it is done | Record it and move to invoice and final checks |
 | Says it is done badly or recurs | Reopen with the provider and tell the landlord. Do not close |
-| Wants their own appliance or an alteration | Needs landlord consent; record ownership and removal. It is not a repair |
+| Wants their own appliance or an alteration | Needs landlord consent; it is not a repair. Put the tenant's terms to the landlord, ask who pays to disconnect and remove the existing item and fit the new one, and `add_note` that the tenant's item stays theirs, is not on the inventory, and what happens to the landlord's |
 | Mentions sparks, a smell, water near electrics, glass, smoke | Raise severity, give safety advice first, then the job |
 | Refuses access | Offer other slots. After three refusals, document and escalate. Never force entry |
 | Garbled or "[transcription unavailable]" | Ask again on another channel. Do not guess the content |
