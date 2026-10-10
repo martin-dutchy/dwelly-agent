@@ -142,6 +142,30 @@ describe('no block loops', () => {
   });
 });
 
+describe('messages batched with a failed write', () => {
+  it('holds a message sent in the same step as a failed write, and lets it through in the next step', async () => {
+    const faux = fauxProvider();
+    const models = createModels();
+    models.setProvider(faux.provider);
+    const assign = fauxToolCall('assign_contractor', { ticket_ref: 'J-1', contractor: 'Swift Plumbing', visit_window: 'tonight 20:00-23:00' });
+    const tell = fauxToolCall('send_message', { recipient_name: 'Ben', recipient_role: 'landlord', channel: 'email', contact: 'existing thread', body: 'Swift is attending tonight.', ticket_ref: 'J-1' });
+    faux.setResponses([
+      fauxAssistantMessage([assign, tell]),
+      fauxAssistantMessage([fauxToolCall('send_message', { recipient_name: 'Ben', recipient_role: 'landlord', channel: 'email', contact: 'existing thread', body: 'We could not book a plumber yet and are escalating.', ticket_ref: 'J-1' })]),
+      fauxAssistantMessage([fauxToolCall('submit_decision', decision({ actions_claimed: [{ ledger_id: 'A2', description: 'told' }], failed_actions: [{ ledger_id: 'A1', handling: 'escalated' }] }))]),
+    ]);
+    const r = await runCase({
+      caseId: 't', prompt: 'case', systemPrompt: 'test', model: faux.getModel(), streamFn: models.streamSimple.bind(models),
+      toolset: createOpsToolset([{ ref: 'J-1', stage: 'contractor_assignment' }]),
+      failures: { assign_contractor: [{ call: 1, mode: 'error' }] },
+    });
+    const results = r.messages.filter((m: any) => m.role === 'toolResult').map((m: any) => m.content[0].text as string);
+    expect(results[0]).toContain('NOT APPLIED');
+    expect(results[1]).toMatch(/^Not sent: A1 \(assign_contractor\) failed earlier in this same step/);
+    expect(r.ledger.map((e) => [e.tool, e.status])).toEqual([['assign_contractor', 'failed'], ['send_message', 'verified']]);
+  });
+});
+
 describe('closing tells both parties', () => {
   const close = (landlord_informed: string) =>
     fauxToolCall('close_ticket', { ticket_ref: 'J-1', mode: 'without_payment', resolution: 'Tenant fixed it', tenant_confirmation: 'tenant SMS', landlord_informed });

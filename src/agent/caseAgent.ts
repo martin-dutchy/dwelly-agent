@@ -143,6 +143,8 @@ export async function runCase(opts: CaseRunOptions) {
   const policyBlocks = new Map<string, number>(); // tool|ticket -> policy blocks so far
   let preReviewBlocks = 0; // decision-point and packet blocks, capped so they can never stall the case
   let packetBlocks = 0;
+  // A message batched in the same assistant step as a write was written before the write's result was seen.
+  let stepFailure: string | undefined;
   let critic: CriticResult | undefined;
   let revisionMode = false;
   let draft: Partial<Decision> | undefined;
@@ -213,6 +215,11 @@ export async function runCase(opts: CaseRunOptions) {
           return { block: true, reason: `Escalation packet incomplete: ${gaps.join(', ')}. Give what is known, what is missing, at least one option and your recommendation (a sentence each) so a person can decide from the packet alone.` };
         }
       }
+      if ((toolCall.name === 'send_message' || toolCall.name === 'request_information') && stepFailure)
+        return {
+          block: true,
+          reason: `Not sent: ${stepFailure} failed earlier in this same step, so this message was written before you saw that result. Re-read the result, then send it again in a new step, stating only what is verified.`,
+        };
       // Jev message gate: a fast classifier checks outgoing messages before they leave.
       // Blocks at most twice per recipient so a false positive can never stall the case.
       if (toolCall.name === 'send_message' || toolCall.name === 'request_information') {
@@ -297,6 +304,7 @@ export async function runCase(opts: CaseRunOptions) {
       const v = toolset.verify(toolCall.name, a, raw?.ok ? raw : undefined, ctx);
       const apiError = raw?.ok === false ? String(raw.details ?? raw.error) : undefined;
       const entry = ledger.record(toolCall.name, a, apiError, v);
+      if (v.status !== 'verified') stepFailure ??= `${entry.id} (${toolCall.name})`;
       const note =
         v.status === 'verified' && isError
           ? `The API reported an error, but read-back shows the change IS in place (${v.evidence}). Do not retry.`
@@ -312,6 +320,7 @@ export async function runCase(opts: CaseRunOptions) {
     },
   });
   agent.subscribe((e) => {
+    if (e.type === 'message_start' && (e as any).message?.role === 'assistant') stepFailure = undefined;
     if (e.type !== 'message_update') trace.push({ ts: new Date().toISOString(), ...e });
   });
 
