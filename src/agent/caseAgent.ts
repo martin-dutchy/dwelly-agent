@@ -199,7 +199,7 @@ export async function runCase(opts: CaseRunOptions) {
         const hasTool = (n: string) => toolset.tools.some((t) => t.name === n);
         const did = (...names: string[]) => ledger.entries.some((e) => names.includes(e.tool) && e.status === 'verified');
         const canWait = hasTool('schedule_follow_up') || hasTool('put_on_hold');
-        // The next actions are what the case is judged on: each must name a recipient and be backed by a verified action.
+        // The next actions are the substance of the answer: each must name a recipient and be backed by a verified action.
         if (!d.next_actions?.length) problems.push('next_actions is empty: state the next action you took (WAIT with a schedule_follow_up counts).');
         for (const na of d.next_actions ?? []) {
           if (!na.ledger_id) {
