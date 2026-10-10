@@ -247,21 +247,27 @@ Create each as a default plan (not ExecPlan) in a `plans/` folder next to the co
 - [ ] M1 Maintenance policy + state + vocabulary
   - [x] (2026-10-10 11:45 BST) Step 8 text drafted: `src/agent/maintenance/maintenance-policy.md` (job stages, permitted actions, evidence rules, act / ask / wait / escalate, inbound-message tables per party, message style, closing checklist). Not yet wired into the system prompt.
   - [x] (2026-10-10 11:40 BST, Martin, direct to `main`: 6f12bd6, 5776204, d158159) About 60 % of M1's code rows: workflow tools (`record_landlord_decision`, `schedule_follow_up`, `put_on_hold`, `close_ticket` with `final_checks|without_payment|by_supervisor`, `record_quote`, `record_invoice`, `set_visit`, …), guards in `opsTools.ts` `guard()` + `opsChecks.ts` (assign before landlord approval, approve without approval/cap, thin approvals, wrong address in outgoing messages, void property, visit date checks, invoice above quote or other payee, close preconditions), `Decision.case_state` + typed `next_actions[]` backed by verified ledger ids, tickets seeded per case (`opsSeed.ts`).
-  - [ ] (2026-10-10 12:00 BST, lane `marc/m1-gates`) Remaining gaps: AC18 evidence quote must appear in the inputs; AC19 WAIT without a ledger id and `no_action` without a follow-up are accepted today; AC20 no cap on repeated policy blocks; `close_ticket` does not check the landlord was told (adds `landlord_informed`); policy text wired into the prompt.
-  - [ ] (2026-10-10 12:00 BST, lane `marc/m1-state-hints`) Step 9 `stateReconstruct.ts` as a pure module with AC3 tests; prompt wiring deferred until after the gates merge.
+  - [x] (2026-10-10 12:07 BST, PR #16) Remaining gaps closed: AC18 evidence quote must appear in the inputs; AC19 WAIT needs a ledger id and `no_action` a verified follow-up, hold or note; AC20 third policy block returns "stop and submit"; `close_ticket.landlord_informed` contract; `maintenance-policy.md` wired into the system prompt.
+  - [x] (2026-10-10 12:04 BST, PR #13; wired into the prompt by PR #19) Step 9 `stateReconstruct.ts`: `hintsFor()` appends a `<case_state_hints>` block and never throws.
+  - [x] (2026-10-10 12:20 BST, PR #20) Follow-ups: `set_visit` needs `confirmed_by` and, for a provider or landlord, a quote from that party's own event that names the date (the 026 critical); "Do not escalate" list and narrower escalation trigger in `policy.md`; relay contact numbers passed on with their calling instructions.
 - [x] (2026-10-10 11:50 BST) M2 Edge-case corpus: 15 real cuts + 10 mutations in `cases/public-cuts/` with `rubric.json` and `expected.json`, added to the `dev` split; `pnpm verify` green (150 tests; earlier counts of 203 and 275 included duplicate copies of tests from `.claude/worktrees`, now excluded in `vitest.config.ts`). Not yet run through the agent or judge (no API key on Marc's machine). Inventory that drives it: `research/eval-inventory.md`.
-- [ ] M3 Critic pass + validators (A/B decided)
-  - [ ] (2026-10-10 12:00 BST, lane `marc/m3-m5-plans`) Sub-plan being written (`src/agent/plans/critic-pass-implementation-plan.md`); no code until it is approved.
-- [ ] M4 Harness hardening (k=3, checks, baseline, summary.json)
+- [x] M3 Critic pass + validators (A/B decided)
+  - [x] (2026-10-10 12:06 BST, PR #15) Sub-plan `src/agent/plans/critic-pass-implementation-plan.md` approved by Marc.
+  - [x] (2026-10-10 12:35 BST, PR #21) Critic call, `--critic on|off` (default off, `CRITIC` env fallback), deterministic pre-review checks (case questions answered, escalation packet complete) active in every run, "Checks performed" line in REASONING. A/B decided off (Decision log). Also fixed: a case timeout during a retry backoff now stops the run.
+- [x] M4 Harness hardening (k=3, checks, baseline, summary.json)
   - [x] (2026-10-10 11:45 BST) Sub-plan `src/eval/plans/harness-hardening-implementation-plan.md`.
-  - [ ] (2026-10-10 12:00 BST, lane `marc/m4-harness`) Phase A and Phase B together (the schema Phase B waited for is already on `main`).
+  - [x] (2026-10-10 12:09 BST, PRs #17 and #18) `--k`, pass^k and stability, `checks.json`, `summary.json` (escalation precision/recall, recovery, cost), `--rescore`, `--no-judge`, `--baseline`; a partial run compares against the newer of the full and partial baselines.
 - [ ] M5 Reality Test readiness + 15:15 rehearsal
-  - [ ] (2026-10-10 12:00 BST, lane `marc/m3-m5-plans`) Runner and adapter sub-plans being written (`src/plans/reality-runner-implementation-plan.md`, `src/agent/adapters/plans/organiser-api-adapter-plan.md`); runner flags wait on Martin's PR #11, which rewrites `src/run.ts`.
+  - [x] (2026-10-10 12:06 BST, PR #15) Runner and adapter sub-plans approved by Marc; runner built on `main` first, PR #11 rebases on top.
+  - [x] (2026-10-10 12:15 BST, PR #19) Runner: `--deadline`, `--budget-min`, `--resume`, retry stats, clean Ctrl-C, per-case `bounded()` guard and crash fallback; organiser API adapter behind `ORGANISER_API_URL`, mock otherwise; state hints wired.
+  - [x] (2026-10-10 12:38 BST) Baselines re-saved on `main` 4cfac5a: final mean 91.0, quick 83.6, both 48/48 decided and 0 critical.
+  - [ ] 15:15 rehearsal per the runbook.
   - [x] (2026-10-10 11:45 BST, Marc) Runbook half: `.claude/skills/reality-test-run/SKILL.md` has the 5-minute format-triage checklist (organiser / practice / third format / API-MCP), every step a command with a pass signal; `scripts/convert-to-organiser.ts` converts loose files per case to `index.md` + `history.md` + `attachments/` with `--dry-run`, `--check` and a loader `--probe`; 8 Vitest tests next to it. Runner flags and the adapter are Martin's and listed as pending in the skill; rehearsal table left as placeholders.
 - [ ] M6 Voice (gated)
 - [ ] M7 Submission package
   - [x] (2026-10-10 11:45 BST) Sub-plan `docs/plans/submission-package-plan.md`.
-  - [ ] (2026-10-10 12:00 BST, lane `marc/m7-submission`) README sections, `SUBMISSION.md`, LFS attributes, demo storyboard, post drafts. Human steps left: repo public, record video, post URLs, final hash.
+  - [x] (2026-10-10 12:04 BST, PR #12) README sections, `SUBMISSION.md`, LFS attributes, demo storyboard, post drafts. README metrics table still cites the 11:58 baseline; replace after the rehearsal.
+  - [ ] Human steps: repo public, `brew install git-lfs ffmpeg`, record video, team name and Martin's surname in `SUBMISSION.md`, post URLs, final hash.
 - [ ] M8 Reality Test run, freeze, submit
 
 ## Discoveries
@@ -291,6 +297,11 @@ Create each as a default plan (not ExecPlan) in a `plans/` folder next to the co
 - Observation: the one critical failure is general, not case-specific: in 026-date-conflict the agent called `set_visit` on a date only the tenant had stated, then told the tenant "We have now booked the oven visit for Monday 8 September" before the provider confirmed. Candidate code rule for M1: `set_visit` needs the provider's own confirmation of that date in the inputs (same evidence-quote approach as AC18), otherwise ask the provider. Evidence: `runs/loop/dev-final-2026-10-10T10-57-57-975Z/cases-public-cuts/026-date-conflict/grades.json` items R1–R3.
 - Observation: some Progress, Discoveries and Decision log stamps above (11:55, 12:05, 12:20) are later than the commits that carry them (around 11:41). Treat those times as approximate.
 - Observation: Martin's open voice PR #10 builds a tenant phone line; M6 as planned is a landlord approval call. Resolve at the 14:00 voice gate. His PR #11 (run logs, TRANSCRIPT.md, `--thinking`) conflicts with `main` in `src/run.ts` and four other files and must land or be dropped before the M5 runner flags start.
+- Observation: M1 follow-ups (PR #20) on the 48-case dev split, final profile: mean 88.9 vs 86.2, critical 1 → 0 (026-date-conflict 0 → 58), escalation precision 1.00 and recall 1.00; 025-warranty-dates 34 → 97, 047-three-chases 48 → 79. Its first wording of the "provider asks for the tenant's number" row ("our job email already carries it") made the agent resend a code-protected relay number as the tenant's own in public 021 (100 → 65 on two runs); passing the contact on as written with its calling instructions restored 100 on k=2. Evidence: `runs/loop/dev-final-2026-10-10T11-16-10-982Z`, PR #20 comment.
+- Observation: organiser history `From:` lines are almost always a role, not a person: 1,473 of 1,505 read "Agency / system", "Northbridge Lettings", "Contractor", "Maintenance provider", "Landlord" or "Tenant"; only 2 are bare company names. The `set_visit` speaker check can rely on the role word. Evidence: `rg --no-filename -e '^- \*\*From:\*\*' HackatonPublicCases/Property\ Management/*/history.md | sort | uniq -c`.
+- Observation: the critic A/B (dev split, final, k=3, before PR #20) was negative: mean 86.9 off vs 86.2 on, required-met 87.2 % vs 86.5 %, over-escalated cases 2 vs 3, escalation precision 0.50 vs 0.38, stable cases 21 vs 13, cost $0.051 vs $0.105 per case-run, 22 s vs 33 s. Findings were mostly real but low value (ledger labels). Evidence: `src/agent/plans/critic-pass-implementation-plan.md` Decision log; run folders `dev-final-k3-2026-10-10T11-12-22-629Z` (off) and `…11-20-18-058Z` (on).
+- Observation: `withRetries` in `caseAgent.ts` ignored the case timeout when it fired during a retry backoff (the abort had nothing to cancel), so a case could run past its budget; `run.ts` only survived it through `bounded()`. Fixed in PR #21 with a `timedOut` flag that stops the retry and the nudge.
+- Observation: with critic off and the two deterministic pre-review checks on, `main` 4cfac5a scores mean 91.0 final (practice, public examples and public-cuts, 48/48 decided, 0 critical, escalation P/R 1.00/1.00, $2.49 agent, 157 s) and 83.6 quick (Haiku, escalation precision 0.25). Evidence: `evals/baseline-final-dev.json`, `evals/baseline-quick-dev.json`.
 
 ## Decision log
 
@@ -330,6 +341,8 @@ Create each as a default plan (not ExecPlan) in a `plans/` folder next to the co
 
 - Decision: from 12:00 the remaining work runs as parallel lanes, one branch and worktree each, split by file ownership: `marc/m1-gates` (`caseAgent.ts`, `opsTools.ts`, `systemPrompt.ts`, maintenance policy and M1 sub-plan), `marc/m1-state-hints` (new `stateReconstruct.ts` only), `marc/m4-harness` (`src/eval/**`, `checks.json`), `marc/m7-submission` (README, SUBMISSION, `.gitattributes`, `demo/`), `marc/m3-m5-plans` (sub-plans only). This file is edited only by the orchestrating session. Milestones without a sub-plan (M3, M5 runner, M5 adapter) get one, approved by Marc, before code.
   Rationale: about 4.5 hours to 16:30 and five independent pieces of work; file-level ownership keeps merges conflict-free, and `caseAgent.ts` stays single-writer. Date/Author: 2026-10-10 12:00, Claude for Marc.
+- Decision: the critic ships off (`--critic` defaults to `off`); the deterministic pre-review checks stay on in every run, capped at 2 blocks each.
+  Rationale: AC12 rule as written: the k=3 A/B lowered required-met and escalation precision and added an over-escalation, at twice the cost and 1.5× the time. The deterministic checks are free and cannot stall a case. Date/Author: 2026-10-10 12:35, Claude for Marc (PR #21).
 
 ## Final outcome
 
