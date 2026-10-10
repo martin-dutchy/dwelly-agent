@@ -111,6 +111,8 @@ main.wide { max-width:1320px; }
 .callfoot.ok { color:var(--ok-fg); font-weight:600; }
 .skipcall { flex:none; font:inherit; font-size:12px; padding:4px 10px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--fg-muted); cursor:pointer; }
 .skipcall:hover { color:var(--fg); background:var(--bg-hover); }
+.soundgate { flex:none; font:inherit; font-size:14px; font-weight:600; padding:8px 14px; border-radius:8px; border:0; background:var(--accent); color:var(--surface); cursor:pointer; }
+.startgate { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); z-index:50; padding:14px 22px; border-radius:10px; background:rgba(8,10,12,.88); color:#fff; font-size:17px; font-weight:500; pointer-events:none; }
 .controls { position:fixed; right:16px; bottom:16px; display:flex; gap:6px; z-index:11; opacity:.35; transition:opacity .2s; } .controls:hover { opacity:1; }
 .controls button { font:inherit; font-size:12px; padding:4px 10px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--fg); cursor:pointer; }
 @media (max-width: 1100px) { .grid { grid-template-columns:repeat(3, minmax(0,1fr)); } }
@@ -171,8 +173,8 @@ const D = ${JSON.stringify(d).replace(/</g, '\\u003c')};
   const hold = (ms) => (autoplay || (window.DemoCursor && window.DemoCursor.AUTO) ? sleep(ms) : Promise.resolve());
   const scenes = [
     async () => { say('These are open lettings cases. Each one is stuck, waiting for a person.'); head(D.totals.cases + ' open cases, each waiting on a person.'); set('k-open', D.totals.cases); for (const c of D.cards) { card(c).classList.add('in'); await sleep(45); } $('more').classList.add('in'); await hold(1600); },
-    async () => { say('Our agents tag onto the cases you already have and start solving them.'); head('Agents pick up every case.'); for (const c of D.cards) { state(card(c), 'working', 'Agent working'); await sleep(35); } tick(4); if (callCard) { const el = card(callCard); el.classList.add('focus'); el.querySelector('.state').textContent = 'Calling ' + D.call.name + ' (' + D.call.role.toLowerCase() + ')'; } await hold(1400); say('This one needs the landlord’s go-ahead, so the agent phones him.'); await hold(1900); },
-    async () => { say(D.call.real ? 'This is a real person: a stranger who answered our LinkedIn post.' : 'The AI voice agent is on the call now. It explains the quote and asks for a decision.', D.call.real ? 'The AI voice agent is on the call with him now.' : ''); head('Case ' + (callCard?.no ?? '') + ': the landlord must choose a quote.'); await playCall(); },
+    async () => { say('Our agents tag onto the cases you already have and start solving them.'); head('Agents pick up every case.'); for (const c of D.cards) { state(card(c), 'working', 'Agent working'); await sleep(35); } tick(4); if (callCard) { const el = card(callCard); el.classList.add('focus'); el.querySelector('.state').textContent = 'Calling ' + D.call.name + ' (' + D.call.role.toLowerCase() + ')'; } await hold(1400); say('This one needs the ' + D.call.role.toLowerCase() + '’s go-ahead, so the agent phones him.'); await hold(1900); },
+    async () => { say(D.call.real ? 'This is a real person: a stranger who answered our LinkedIn post.' : 'The AI voice agent is on the call now. It explains the quote and asks for a decision.', D.call.real ? 'The AI voice agent is on the call with him now.' : ''); head('Case ' + (callCard?.no ?? '') + ': the agent is calling the ' + D.call.role.toLowerCase() + '.'); await playCall(); },
     async () => { say('His answer is read back and recorded. Every follow-up is confirmed.', 'No staff time spent.'); const el = card(callCard); head('Follow-ups done, each one confirmed.'); const lis = el.querySelectorAll('li'); for (const li of lis) { li.classList.add('on'); await sleep(200); } state(el, 'done', 'Done automatically. No staff time.'); auto++; counters(); tick(12); await hold(1500); },
     async () => { say('This tenant asks about parking. The agent can’t see a policy, so it doesn’t guess.', 'It asks a person instead.'); const el = card(personCard); head('One case needs a person.'); state(el, 'person', 'Needs a person: ' + personCard.person.question); el.insertAdjacentHTML('beforeend', '<a class="go" href="' + personCard.person.href + '">Open in Decisions</a>'); people++; counters(); await hold(1400); },
     async () => fastForward(),
@@ -200,6 +202,22 @@ const D = ${JSON.stringify(d).replace(/</g, '\\u003c')};
       src.connect(analyser); analyser.connect(actx.destination);
       freq = new Uint8Array(analyser.frequencyBinCount);
     } catch { analyser = null; }
+  }
+
+  // Browsers only allow sound after a click on the page. Unlock the audio inside any click or key press, and if
+  // playback is still refused, ask for one click on the call itself instead of playing it silently.
+  const unlockAudio = () => {
+    try { const AC = window.AudioContext || window.webkitAudioContext; if (AC) { actx = actx || new AC(); if (actx.state !== 'running') actx.resume(); } } catch {}
+    if (callAudio && callAudio.paused && !callAudio.dataset.unlocked) { callAudio.muted = true; callAudio.play().then(() => { callAudio.pause(); callAudio.muted = false; callAudio.dataset.unlocked = '1'; }).catch(() => { callAudio.muted = false; }); }
+  };
+  addEventListener('pointerdown', unlockAudio, true); addEventListener('keydown', unlockAudio, true);
+  async function playOrAsk(a, isEnded) {
+    try { a.muted = false; await a.play(); return; } catch {}
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'soundgate'; b.textContent = '▶ Click to play the call audio';
+    $('call').querySelector('.callfootrow').prepend(b);
+    await new Promise((r) => { b.onclick = r; if (endCall) { const e = endCall; endCall = () => { e(); r(); }; } });
+    b.remove(); if (isEnded()) return; unlockAudio();
+    await a.play();
   }
 
   async function playCall() {
@@ -269,7 +287,7 @@ const D = ${JSON.stringify(d).replace(/</g, '\\u003c')};
           a.currentTime = c.from; await Promise.race([seeked, sleep(1500), stop]);
         }
         if (ended) break;
-        await a.play(); // throws if the browser refuses: the caller falls back to paced lines
+        await playOrAsk(a, () => ended); // if the browser blocks sound, ask for one click rather than going silent
         a.playbackRate = 1;
         await new Promise((resolve) => {
           const poll = setInterval(() => {
@@ -332,7 +350,14 @@ const D = ${JSON.stringify(d).replace(/</g, '\\u003c')};
   addEventListener('keydown', (e) => { if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); } });
   // Returning from the decision page: replay the morning instantly, then fast-forward.
   if (location.hash === '#fastforward') { (async () => { for (const c of D.cards) card(c).classList.add('in'); $('more').classList.add('in'); set('k-open', D.totals.cases); if (callCard) { card(callCard).querySelectorAll('li').forEach((li) => li.classList.add('on')); state(card(callCard), 'done', 'Done automatically. No staff time.'); auto++; } if (personCard) { const el = card(personCard); el.querySelectorAll('li').forEach((li) => li.classList.add('on')); state(el, 'done', personCard.person.answeredBy ? 'Answered by ' + personCard.person.answeredBy + ' on WhatsApp' : 'Decided by a person'); people++; } counters(); tick(60); i = scenes.length; if (DC && DC.AUTO) DC.restore(); await sleep(600); await fastForward(); if (DC && DC.AUTO) { await sleep(900); DC.hide(); } })(); }
-  else if (DC && DC.AUTO) setTimeout(startAuto, 800);
+  else if (DC && DC.AUTO) {
+    // Started from a link with no click yet: sound would be blocked, so wait for one click or key press first.
+    if (callAudio && navigator.userActivation && !navigator.userActivation.hasBeenActive) {
+      const g = document.createElement('div'); g.className = 'startgate'; g.textContent = 'Click anywhere to start the demo with sound'; document.body.appendChild(g);
+      const go = () => { removeEventListener('pointerdown', go, true); removeEventListener('keydown', go, true); g.remove(); setTimeout(startAuto, 300); };
+      addEventListener('pointerdown', go, true); addEventListener('keydown', go, true);
+    } else setTimeout(startAuto, 800);
+  }
 })();
 </script>`,
     { openTasks, wide: true, css: CSS + CURSOR_CSS },

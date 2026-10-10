@@ -55,7 +55,8 @@ const CALLS: Record<string, { name: string; context: string; result: string; ask
 /** Builds the show from real data: the latest graded eval run plus the Flat 9 case. */
 
 /** The person's reply in the demo (their words, pre-filled so a 60-second video needn't wait on typing). */
-const DRAFT = 'Hi, thanks for asking. Garage spaces are allocated by the building’s management company, so yes, you do need to register. I’ve asked them to send you the form today.';
+// States only what is known: the parking question goes to block management, and the tenant hears back.
+const DRAFT = 'Hi, thanks for your message. Garage parking isn’t covered in the records we hold for Flat 10, so I’ve asked the block management team whether you need to register and which spaces are available. I’ll update you as soon as I hear back.';
 
 const STEP: Record<string, string> = {
   REQUEST_LANDLORD_APPROVAL: 'asked the landlord to approve',
@@ -141,8 +142,8 @@ export async function showData(store: OpsStore): Promise<ShowData | undefined> {
   // Which real call to feature, best first (OPS_SHOW_CALL overrides): the positive landlord approval, then the VAT one.
   const prefer = [process.env.OPS_SHOW_CALL, ...Object.keys(CALLS)].filter(Boolean) as string[];
   const rank = (ref?: string | null) => { const i = prefer.indexOf(ref ?? ''); return i < 0 ? 99 : i; };
-  // The show features the Flat 9 landlord call (Ben Hartley). Set OPS_SHOW_REAL_CALL=1 to feature a recorded real call instead.
-  const voice = process.env.OPS_SHOW_REAL_CALL === '1' ? (await store.listCases(200)).filter((c) => c.source === 'voice' && c.source_ref?.startsWith('conv_')).sort((a, b) => rank(a.source_ref) - rank(b.source_ref)) : [];
+  // The show features the real recorded call. Set OPS_SHOW_REAL_CALL=0 to feature the Flat 9 landlord call (Ben Hartley, no audio) instead.
+  const voice = process.env.OPS_SHOW_REAL_CALL !== '0' ? (await store.listCases(200)).filter((c) => c.source === 'voice' && c.source_ref?.startsWith('conv_')).sort((a, b) => rank(a.source_ref) - rank(b.source_ref)) : [];
   for (const vc of voice) {
     const ve = await store.events(vc.id);
     const callEv = ve.find((e) => e.kind === 'call');

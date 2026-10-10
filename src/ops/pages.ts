@@ -145,7 +145,14 @@ ul.keyfacts li { padding:6px 0; border-bottom:1px solid var(--border-subtle); }
 ul.keyfacts .src { font-size:12px; color:var(--fg-muted); white-space:nowrap; margin-left:6px; }
 p.unknown { margin-top:var(--s3); padding:var(--s2) var(--s3); background:var(--needs-bg); border:1px solid var(--needs-border); border-radius:6px; }
 p.unknown b { color:var(--needs-fg); }
-p.suggest { margin-top:var(--s2); color:var(--fg-muted); } p.suggest b { color:var(--fg); }
+p.suggest, p.why { margin-top:var(--s2); color:var(--fg-muted); max-width:70ch; } p.suggest b, p.why b { color:var(--fg); }
+.block.tight { margin-top:var(--s5); }
+.quote.asked { margin-top:var(--s4); }
+ol.story { list-style:none; margin:0; padding:0; border-left:2px solid var(--border-subtle); }
+ol.story li { display:grid; grid-template-columns:64px minmax(0,1fr); gap:var(--s3); padding:5px 0 5px var(--s3); position:relative; }
+ol.story li::before { content:''; position:absolute; left:-5px; top:11px; width:8px; height:8px; border-radius:50%; background:var(--border); }
+ol.story li:last-child::before { background:var(--needs-fg); }
+ol.story .when { color:var(--fg-muted); font-size:13px; font-variant-numeric:tabular-nums; }
 details.fullbrief > summary { font-size:14px; }
 .block { margin-top:var(--s6); }
 .block > h2 { font-size:16px; line-height:24px; font-weight:600; margin-bottom:var(--s2); }
@@ -398,6 +405,7 @@ export function taskPage(o: { t: HumanTask; c: OpsCase; openTasks: number; error
             : 'The case worker carries this out and tells the people involved.';
   const show = o.from === 'show';
   const B = o.brief ?? fallbackBrief(t);
+  const said = B.said ?? (trigger?.text && !task ? { text: trigger.text.slice(0, 300), source: [trigger.from, trigger.channel, trigger.head].filter(Boolean).join(', ') } : undefined);
   const simulated = !reallyDelivered(c.id);
   const name = show ? ' value="Iona"' : '';
   // The tenant's side of the thread as the page knows it; the phone's script replaces it with the case's real WhatsApp thread.
@@ -438,15 +446,17 @@ ${show ? `<input id="wa-by" type="hidden" name="by" value="Iona"><p class="small
     `<div class="crumbs"><a href="/ops">Decisions</a> / <a href="/ops/cases/${esc(c.id)}">${esc(c.title)}</a></div>
 <div class="decide-col">
 <h1 class="hero">${esc(B.question)}</h1>
-<p class="sub meta">For ${esc(TEAM[t.team] ?? t.team)}, ${x.deadline ? `decide ${esc(until(x.deadline))}` : esc((PRIORITY[t.priority] ?? t.priority).toLowerCase())}.</p>
+<p class="sub meta">${esc(c.title.replace(/:.*$/, ''))}${c.property ? `, ${esc(c.property)}` : ''}. For ${esc(TEAM[t.team] ?? t.team)}, ${x.deadline ? `decide ${esc(until(x.deadline))}` : esc((PRIORITY[t.priority] ?? t.priority).toLowerCase())}.</p>
+${said ? `<div class="quote asked"><span class="caption">${esc(said.source)}</span>\n${esc(said.text)}</div>` : ''}
+${B.timeline.length ? `<div class="block tight"><h2>The case so far</h2><ol class="story">${B.timeline.map((e) => `<li><span class="when">${esc(e.when)}</span><span>${esc(e.what)}</span></li>`).join('')}</ol></div>` : ''}
+<div class="block tight"><h2>What we know</h2><ul class="keyfacts">${B.facts.map((f) => `<li>${esc(f.text)} <span class="src">${esc(f.source)}</span></li>`).join('')}</ul>
 <p class="unknown"><b>Not known yet:</b> ${esc(B.unknown)}</p>
-<p class="suggest"><b>Agent suggests:</b> ${esc(B.suggest)}</p>
+<p class="why"><b>Why it needs you:</b> ${esc(B.why)}</p>
+<p class="suggest"><b>Agent suggests:</b> ${esc(B.suggest)}</p></div>
 ${t.status === 'open' ? (B.reply || show ? waForm + `<details class="block"><summary>Other decisions</summary>${decideForm}</details>` : decideForm + `<details class="block"><summary>Reply to the tenant on WhatsApp instead</summary>${waForm}</details>`) + decideJs : t.decision?.choice === 'Answered the tenant on WhatsApp'
       ? `<div class="block"><h2>Answered on WhatsApp</h2><p class="muted">${esc(t.decision.by)} replied to the tenant ${esc(t.resolved_at ? ago(t.resolved_at) : '')}. ${c.batch_id ? 'Recorded on the case.' : 'Recorded on the case, and the agent has it again.'}</p>${show ? '<p style="margin-top:var(--s3)"><a class="primary" style="display:inline-block;text-decoration:none;padding:8px 16px;border-radius:6px;background:var(--accent);color:var(--surface);font-weight:600" href="/ops/show#fastforward">Back to the overview</a></p>' : `<p style="margin-top:var(--s3)"><a href="/ops/cases/${esc(c.id)}">See the case</a></p>`}</div>`
       : `<div class="block"><h2>Decided</h2><div class="quote"><span class="caption">${esc(t.decision?.by)}, ${esc(t.resolved_at ? ago(t.resolved_at) : '')}</span>\n${esc(t.decision?.choice)}${t.decision?.note ? `\n\n${esc(t.decision.note)}` : ''}</div><p style="margin-top:var(--s3)"><a href="/ops/cases/${esc(c.id)}">See what the case worker did next</a></p></div>`}
-<details class="block fullbrief"><summary>Full brief</summary>
-${B.said ? `<div class="quote" style="margin-top:var(--s3)"><span class="caption">${esc(B.said.source)}</span>\n${esc(B.said.text)}</div>` : ''}
-<ul class="keyfacts">${B.facts.map((f) => `<li>${esc(f.text)} <span class="src">${esc(f.source)}</span></li>`).join('')}</ul>
+<details class="block fullbrief"><summary>Everything the agent saw</summary>
 <div class="block"><h2>Why this came to you</h2>
 ${x.case_state ? `<p style="max-width:70ch">${esc(x.case_state)}</p>` : ''}
 ${trigger ? `<div class="quote"><span class="caption">${esc([trigger.from, trigger.channel, trigger.head].filter(Boolean).join(', '))}</span>\n${esc(trigger.text.slice(0, 1200))}</div>` : ''}

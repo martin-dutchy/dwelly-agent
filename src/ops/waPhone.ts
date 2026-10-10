@@ -193,8 +193,8 @@ export const WA_PHONE_JS = `${CURSOR_JS}
   const back = '/ops/show?auto=1#fastforward';
   const waitFor = async (fn, ms) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { const v = fn(); if (v) return v; await DC.sleep(100); } return null; };
   (async () => {
-    DC.say('The person gets a five-second brief, with a reply already drafted.');
-    await DC.sleep(2200);
+    DC.say('The person sees the case so far, what is known and what isn’t.', 'Nothing is guessed: the drafted reply says only what is true.');
+    await DC.sleep(4200);
     const form = document.getElementById('wa-form');
     DC.enter();
     if (form) {

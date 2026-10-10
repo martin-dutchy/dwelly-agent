@@ -16,7 +16,7 @@ import { bubbles, outgoingWhatsApp, sendWhatsApp } from './whatsapp.js';
 import { casePage, inboxPage, taskPage, textPage } from './pages.js';
 import { reallyDelivered, threadOf } from './waPhone.js';
 import { needsReason } from './status.js';
-import { briefFor, warmBrief } from './brief.js';
+import { briefFor, caseIntro, warmBrief } from './brief.js';
 import { type OpsStore, createOpsStore } from './store.js';
 import { type Worker, appendHistoryEvent, createWorker } from './worker.js';
 
@@ -67,7 +67,7 @@ export async function createOps(store: OpsStore = createOpsStore()): Promise<Ops
       for (const d of readdirSync(root)) await importRun(store, join(root, d), { id: d }).catch((e) => console.error('[ops] import', d, e));
     } catch {}
   }
-  if (process.env.OPS_WARM_BRIEFS !== '0') setTimeout(() => void store.listTasks({ status: 'open' }).then((ts) => ts.forEach(warmBrief)).catch(() => {}), 4000);
+  if (process.env.OPS_WARM_BRIEFS !== '0') setTimeout(() => void store.listTasks({ status: 'open' }).then((ts) => ts.forEach(async (t) => { const c = await store.getCase(t.case_id).catch(() => undefined); warmBrief(t, c ? caseIntro(c) : undefined); })).catch(() => {}), 4000);
   return {
     store,
     worker,
@@ -131,7 +131,7 @@ export async function opsRoutes(path: string, req: IncomingMessage, res: ServerR
     const c = t && (await store.getCase(t.case_id));
     if (!t || !c) return html(res, textPage('Not found', `No task ${taskId}`), 404);
     // The five-second brief: a fast model condenses the task (cached; falls back to the task's own words).
-    const brief = t.status === 'open' ? await briefFor(t, { timeoutMs: 12_000 }) : undefined;
+    const brief = await briefFor(t, { timeoutMs: 12_000, caseIntro: caseIntro(c) });
     return html(res, taskPage({ t, c, openTasks: await openTasks(), from: new URL(req.url ?? '/', 'http://x').searchParams.get('from') ?? undefined, brief }));
   }
   const decide = path.match(/^\/ops\/tasks\/([\w-]+)\/decide$/)?.[1];
