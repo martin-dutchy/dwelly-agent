@@ -161,8 +161,36 @@ describe('messages batched with a failed write', () => {
     });
     const results = r.messages.filter((m: any) => m.role === 'toolResult').map((m: any) => m.content[0].text as string);
     expect(results[0]).toContain('NOT APPLIED');
-    expect(results[1]).toMatch(/^Not sent: A1 \(assign_contractor\) failed earlier in this same step/);
+    expect(results[1]).toMatch(/^Not sent: A1 \(assign_contractor\) did not go through earlier in this same step/);
     expect(r.ledger.map((e) => [e.tool, e.status])).toEqual([['assign_contractor', 'failed'], ['send_message', 'verified']]);
+  });
+
+  const held = async (first: ReturnType<typeof fauxToolCall>, then: ReturnType<typeof fauxToolCall>, failures = {}) => {
+    const faux = fauxProvider();
+    const models = createModels();
+    models.setProvider(faux.provider);
+    faux.setResponses([fauxAssistantMessage([first, then]), fauxAssistantMessage([fauxToolCall('submit_decision', decision({}))])]);
+    const r = await runCase({
+      caseId: 't', prompt: 'case', systemPrompt: 'test', model: faux.getModel(), streamFn: models.streamSimple.bind(models),
+      toolset: createOpsToolset([{ ref: 'J-1', stage: 'contractor_assignment' }]), failures,
+    });
+    return r.messages.filter((m: any) => m.role === 'toolResult').map((m: any) => m.content[0].text as string)[1];
+  };
+  const tell = (body: string) => fauxToolCall('send_message', { recipient_name: 'Ben', recipient_role: 'landlord', channel: 'email', contact: 'existing thread', body, ticket_ref: 'J-1' });
+
+  it('holds a landlord approval request batched with a failed booking', async () => {
+    const assign = fauxToolCall('assign_contractor', { ticket_ref: 'J-1', contractor: 'Swift Plumbing', visit_window: 'tonight' });
+    const ask = fauxToolCall('request_landlord_approval', { landlord: 'Ben', decision_needed: 'quote', amount_gbp: 900, ticket_ref: 'J-1', options: ['approve'], update: 'Swift booked tonight' });
+    expect(await held(assign, ask, { assign_contractor: [{ call: 1, mode: 'error' }] })).toMatch(/^Not sent: A1 \(assign_contractor\) did not go through/);
+  });
+
+  it('holds a message batched with a write that policy blocked', async () => {
+    const bank = fauxToolCall('update_bank_details', { party: 'Landlord', sort_code: '00-00-00', account_number: '12345678', verification_done: 'email' });
+    expect(await held(bank, tell('Your bank details are updated.'))).toMatch(/^Not sent: update_bank_details \(blocked\)/);
+  });
+
+  it('holds a second message batched with a message that failed', async () => {
+    expect(await held(tell('Swift is attending tonight.'), tell('We have told the tenant.'), { send_message: [{ call: 1, mode: 'error' }] })).toMatch(/^Not sent: A1 \(send_message\) did not go through/);
   });
 });
 
