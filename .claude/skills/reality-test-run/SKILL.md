@@ -122,18 +122,19 @@ If an HTTP tool API URL (and maybe a key) is supplied: set `ORGANISER_API_URL` (
 1. Run everything in one go, with the flags from the decision table:
    ```bash
    mkdir -p ANSWERS
-   pnpm cases --in "$CASES" --out ANSWERS --at 100% --concurrency 6 --deadline 16:50 2>&1 | tee ANSWERS/run.log
+   pnpm cases --in "$CASES" --out ANSWERS --at 100% --concurrency 6 --deadline 16:50 --critic off 2>&1 | tee ANSWERS/run.log
    ```
-   Replace `--at 100%` with the probe's recommendation, and `--concurrency 6` with the rehearsal's recommendation (Rehearsal record below). (`*.log` is git-ignored, so the log stays local; the per-case `trace.jsonl` is the committed evidence.) `--deadline 16:50` makes the run finish by 16:50 whatever happens: per-case timeouts shrink as the deadline approaches (the start line prints the deadline and the case timeout), a case still running at its timeout writes the agent's fallback answer with its verified ledger, and a case that can no longer start gets an honest "not processed within the run's time budget, escalated (system failure)" answer. Nobody needs to press Ctrl-C.
+   Replace `--at 100%` with the probe's recommendation, and `--concurrency 6` with the rehearsal's recommendation (Rehearsal record below). Keep `--critic off` explicit: the M3 A/B shipped the critic off, and the flag overrides a stray `CRITIC=on` left in `.env` (the start line names the critic model only when it is on). (`*.log` is git-ignored, so the log stays local; the per-case `trace.jsonl` is the committed evidence.) `--deadline 16:50` makes the run finish by 16:50 whatever happens: per-case timeouts shrink as the deadline approaches (the start line prints the deadline and the case timeout), a case still running at its timeout writes the agent's fallback answer with its verified ledger, and a case that can no longer start gets an honest "not processed within the run's time budget, escalated (system failure)" answer. Nobody needs to press Ctrl-C.
 2. Watch the log: each finished case prints `✓ <id> <outcome> (<s>s, $<cost>)`. Pass at the end: `decisions N/N · resumed 0 · budget-skipped 0` on the `Done in` line and no `CRASH`, `NO DECISION` or `BUDGET SKIP` row in the table. The next line reads `Rate-limit retries: <total> across <cases> cases (max <m> in one case) at concurrency <c> · next run: <advice>`; use its advice for any re-run.
-3. If some cases crashed, timed out or were budget-skipped and there is time left (before about 16:48), re-run the **same command plus `--resume`**, with the advised `--concurrency` and a new `--deadline` (for example 16:53), appending to the log (`tee -a`). `--resume` keeps every case that already has a decided `result.json` (byte-identical) and re-runs only the rest; the start line says `resuming K of N`. If a case still fails, **leave the failure in ANSWERS**, since an honest failure record is better than a fabricated answer. The runner writes the "escalated (system failure)" pair itself.
+3. If some cases crashed, timed out or were budget-skipped and there is time left (before about 16:48), re-run the **same command plus `--resume`**. Never re-run into `ANSWERS` without `--resume`: every case would start again and, close to the deadline, decided answers get overwritten with `BUDGET SKIP`. Use the same command plus `--resume`, with the advised `--concurrency` and a new `--deadline` (for example 16:53), appending to the log (`tee -a`). `--resume` keeps every case that already has a decided `result.json` (byte-identical) and re-runs only the rest; the start line says `resuming K of N`. If a case still fails, **leave the failure in ANSWERS**, since an honest failure record is better than a fabricated answer. The runner writes the "escalated (system failure)" pair itself.
 4. **16:50 time fallback.** Nothing to do by hand: `--deadline` has already written an answer for every case. If the process was killed (laptop, terminal), `--resume` with a new `--deadline` fills only the gaps. Ctrl-C once also stops cleanly (running cases get the fallback answer, unstarted ones are skipped, exit code 130); twice exits at once. Never write the files by hand.
 5. Verify:
    ```bash
    bash .claude/skills/submission-check/scripts/check.sh
    ls ANSWERS | wc -l; find ANSWERS -name ANSWER.md | wc -l; find ANSWERS -name REASONING.md | wc -l
+   pnpm checks --cases "$CASES" --answers ANSWERS | tail -1
    ```
-   Pass: the three counts are equal to N. Spot-read 2-3 for formatting only, not content edits.
+   Pass: the three counts are equal to N, and the last line reads `Checks: N case(s) evaluated · 0 critical/prohibited failure(s)`. `pnpm checks` is read-only (no `--write`, no API key) and runs the deterministic checks (cited ids exist, case questions answered). If it reports a failure, leave ANSWERS as they are (hand edits are forbidden) and note it for the demo. Spot-read 2-3 for formatting only, not content edits.
 6. **By 16:55**, commit and push:
    ```bash
    git add ANSWERS cases/reality-converted 2>/dev/null; git commit -m "chore: reality test results" && git push
@@ -149,6 +150,8 @@ The implementation and ANSWERS must not change. Only these may be added: the dem
 
 `src/run.ts`: `--in --out --only --at --concurrency --timeout --model --thinking --chaos --seed`, plus:
 
+- `--critic on|off` (needs the value; a bare `--critic` is an error). Defaults to `$CRITIC`, else `off`.
+
 - `--deadline HH:MM` (local time today) and/or `--budget-min M` (minutes from start); the earlier wins. The run exits 1 if the deadline has passed or is more than 3 hours away. Per-case timeout: `min(--timeout, max(90 s, 2 × budget × concurrency / N))`, clamped to the time left minus 20 s; a case is not started with under 60 s left.
 - `--resume`: keep cases whose folder has `ANSWER.md`, `REASONING.md` and a decided `result.json` (not crashed, not skipped); re-run the rest. Off by default.
 - Ctrl-C: once for a clean stop, twice to exit at once.
@@ -161,15 +164,15 @@ Aggregates only: 11 of the 25 cases are the holdout, so never open `runs/rehears
 bash .claude/skills/reality-test-run/scripts/make-rehearsal-set.sh   # pass: "rehearsal set: 25 cases in runs/rehearsal-cases"
 mkdir -p runs/rehearsal
 DEADLINE=$(date -v+15M +%H:%M)                                       # macOS; 15 minutes from now
-time pnpm cases --in runs/rehearsal-cases --out runs/rehearsal --at auto --concurrency 8 --deadline "$DEADLINE" \
+time pnpm cases --in runs/rehearsal-cases --out runs/rehearsal --at auto --concurrency 8 --deadline "$DEADLINE" --critic off \
   2>&1 | tee runs/rehearsal/console.txt | grep -E '^(Running|Done in|Rate-limit retries)'
 pnpm eval --cases runs/rehearsal-cases --answers runs/rehearsal --summary-only
 jq -s 'map(.usage.durationMs // 0) | max' runs/rehearsal/*/result.json   # slowest case, a number only
 # Resume drill: must print "resumed 25" (or resumed <decided> plus re-runs) and finish in under 30 s when nothing is left.
-pnpm cases --in runs/rehearsal-cases --out runs/rehearsal --at auto --resume 2>&1 | grep -E '^(Running|Done in)'
+pnpm cases --in runs/rehearsal-cases --out runs/rehearsal --at auto --resume --critic off 2>&1 | grep -E '^(Running|Done in)'
 ```
 
-Add `--critic` to the run command if the M3 A/B adopted it, so the rehearsal runs the 16:30 configuration.
+The rehearsal uses the 16:30 configuration, including `--critic off`.
 
 ## Rehearsal record (AC13, fill in at 15:15)
 
@@ -185,4 +188,4 @@ Command: the rehearsal block above, on the holdout split plus 14 public cases ne
 | Mean cost per case | _$_ |
 | Slowest case and its time | _ _ |
 
-Aggregate line copied to `runs/scorecard.md`: _pending_.
+Aggregate line copied to `evals/rehearsal-2026-10-10.md` (committed; `runs/` is git-ignored): _pending_.
