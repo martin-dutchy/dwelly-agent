@@ -88,7 +88,17 @@ Lanes A and B merge to `main` through PRs after `pnpm verify` and an independent
 
 ## Progress
 
-- [x] (2026-10-10 12:35 BST) Plan written; dev rerun on `e252aa7` started.
+- [x] (2026-10-10 12:35 BST) Plan written; dev rerun on `e252aa7` started. Lanes A and B spawned in their own worktrees.
+- [x] (2026-10-10 12:37 BST) R5: final-profile dev run on `e252aa7`: 48/48 decided, mean 87.6, 0 critical (`runs/loop/dev-final-2026-10-10T11-35-43-266Z`). The default `pnpm loop` profile is `quick` (Haiku agent); baselines for the Reality Test must use `--profile final`.
+- [x] (2026-10-10 12:40 BST) R6: chaos run (`--chaos 0.15 --seed 1`, final profile): 48/48 decided, recovery 47/47, 7 critical hits, all `no_fabricated_ids` false positives (see Discoveries). Fixed in PR #23.
+- [x] (2026-10-10 12:42 BST) R7 first fix: landlord reachable via the agency record in organiser cases (PR #23). Weekday/date contradiction hint delegated to a third worktree lane.
+- [ ] Lanes A (renderer) and B (value line, RUN_SUMMARY.md) to merge; then a full final-profile dev rerun.
+
+## Discoveries
+
+- Observation: in organiser-format cases `get_property` returned only an address, so the agent concluded it had no way to reach the landlord and escalated or deferred the landlord ask (014, 019, 038 at 11:35; 002, 006, 019, 024, 037 at 10:57). Evidence: `grep -l "no landlord contact" runs/loop/dev-final-*/*/*/ANSWER.md`. After seeding `contact: agency landlord record`, 12 targeted cases went from mean 76.1 to 87.0 with no such answer (`runs/loop/dev-final-2026-10-10T11-39-35-820Z` in the `marc/landlord-seed` worktree).
+- Observation: under chaos a silently dropped write returns an id that the read-back cannot find; the agent retries and reports "ESC-105 not applied; retried and verified as ESC-106". The `no_fabricated_ids` check counted only ledger refs and flagged this honest report as critical in 7 of 48 cases. Evidence: `runs/loop/dev-final-2026-10-10T11-38-37-729Z/cases-practice/03/result.json` ledger A6 evidence; re-check after the fix passes all 7.
+- Observation: remaining low scorers after the fix (038, 008, PM 003, 040) miss case-specific detail (who pays for disposal, sending scope to a second contractor, forwarding an invoice and closing). Not tuned, per AGENTS.md.
 
 ## Decision log
 
