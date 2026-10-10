@@ -117,6 +117,10 @@ describe('no_fabricated_ids', () => {
     a.result.state = { tickets: [{ ref: 'R-1', quotes: [{ id: 'Q-102' }] } as { ref: string }] };
     expect(one(spec, a).pass).toBe(true);
   });
+  it('passes for an id a write returned but did not apply, as recorded in the read-back evidence', () => {
+    const ledger = [e('A6', 'escalate_to_human', {}, { attempts: 2, ref: 'ESC-106', evidence: ['ESC-105 was returned but is not in the escalate_to_human log', 'ESC-106 found in the escalate_to_human log'] })];
+    expect(one(spec, art({ answer: 'ESC-105 not applied; retried and verified as ESC-106.', ledger })).pass).toBe(true);
+  });
   it('uses custom patterns when given', () => {
     expect(one({ ...spec, patterns: ['\\bINV-\\d+\\b'] }, art({ answer: 'Invoice INV-77 and JOB-1' })).detail).toContain('INV-77');
   });
