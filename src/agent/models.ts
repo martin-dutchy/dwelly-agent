@@ -12,6 +12,21 @@ export function claude(id: string): Model<Api> {
   return model;
 }
 
+/** Sampling temperature for every model call, so reruns of a case differ as little as the provider allows. */
+export const TEMPERATURE = 0;
+export type Temperature = number | 'provider default';
+
+/**
+ * The temperature a request to `model` actually carries. Anthropic drops it when thinking is on, when the model
+ * takes mid-conversation effort, or when the model rejects it (`compat.supportsTemperature: false`, e.g. the 5.5 models).
+ */
+export function temperatureFor(model: Model<Api>, thinking?: string): Temperature {
+  const compat = model.compat as { supportsTemperature?: boolean; supportsMidConvoEffort?: boolean } | undefined;
+  if (compat?.supportsTemperature === false) return 'provider default';
+  if (model.api === 'anthropic-messages' && ((thinking && thinking !== 'off') || compat?.supportsMidConvoEffort === true)) return 'provider default';
+  return TEMPERATURE;
+}
+
 /**
  * pi only sends ANTHROPIC_WORKSPACE_ID for federated auth; keys that aren't scoped to a
  * workspace need the anthropic-workspace-id header on every request.
@@ -38,7 +53,8 @@ export const streamFn: StreamFn = async (model, context, options) => {
   await acquire(model.id);
   try {
     const onPayload = async (payload: unknown, m: Model<Api>) => pdfBlocksToDocuments((await options?.onPayload?.(payload, m)) ?? payload);
-    const stream = models.streamSimple(model, context, { ...options, headers, onPayload });
+    const temperature = options?.temperature ?? temperatureFor(model, options?.reasoning);
+    const stream = models.streamSimple(model, context, { ...options, ...(typeof temperature === 'number' && { temperature }), headers, onPayload });
     void stream.result().finally(() => release(model.id));
     return stream;
   } catch (e) {

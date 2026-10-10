@@ -11,29 +11,20 @@
 import 'dotenv/config';
 import { execFileSync } from 'node:child_process';
 import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
-import { chaosPlan } from './core/failures.js';
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
-import { toolsetLine, toolsetStartLine, withOrganiserApi, withToolsetLine } from './agent/adapters/organiserApi.js';
+import { toolsetStartLine } from './agent/adapters/organiserApi.js';
 import { readOrganiserEnv } from './agent/adapters/toolMap.js';
-import { runCase } from './agent/caseAgent.js';
-import { type LoadedCase, casePrompt, listCases, loadCase } from './agent/cases.js';
-import { compileBrief, renderBrief } from './agent/brief/index.js';
-import type { CaseBrief, Skill } from './agent/harness/contracts.js';
+import { listCases } from './agent/cases.js';
 import { flagsLine, parseHarnessFlags } from './agent/harness/flags.js';
-import { fromLoadedCase, ingest, toLoadedCase } from './agent/ingest/index.js';
-import { hintsFor } from './agent/maintenance/stateReconstruct.js';
-import { classify, renderSkills, selectSkills } from './agent/skills/index.js';
-import { claude, streamFn } from './agent/models.js';
-import { jevEnabled, prescreen, screenNote } from './agent/jev.js';
-import { seedFromCase } from './agent/opsSeed.js';
+import { claude, streamFn, temperatureFor } from './agent/models.js';
+import { jevEnabled } from './agent/jev.js';
 import { createOpsToolset } from './agent/opsTools.js';
-import { type Usage, renderAnswer, renderReasoning, renderTranscript } from './agent/report.js';
 import { operationalValue, runSummaryMarkdown, valueLine } from './agent/runValue.js';
-import { CASE_SYSTEM_PROMPT } from './agent/systemPrompt.js';
 import { baseTimeoutMs, caseTimeoutMs, hhmm, parseDeadline } from './runner/budget.js';
-import { budgetSkipFiles, crashFiles, writeFallback } from './runner/fallback.js';
+import { budgetSkipFiles, writeFallback } from './runner/fallback.js';
+import { processCase as runOneCase } from './runner/processCase.js';
 import { isComplete, resumedRow } from './runner/resume.js';
 import { retryLine, retryStats } from './runner/retries.js';
 import { NO_DECISION, type Row } from './runner/types.js';
@@ -77,6 +68,8 @@ if (!THINKING.includes(values.thinking as Thinking)) {
   process.exit(1);
 }
 const thinking = values.thinking as Thinking;
+/** For run.json only; must match the thinking level critic/critic.ts runs the critic at. */
+const CRITIC_THINKING = 'low';
 const criticModel = values.critic === 'on' ? claude(process.env.CRITIC_MODEL || 'claude-opus-5-5') : undefined;
 
 const t0 = Date.now();
@@ -130,130 +123,28 @@ process.on('SIGINT', () => {
   interrupt.abort();
 });
 
-/** Extra time a case gets after its own timeout before the runner stops waiting for it. Must stay below
- *  WRITE_MARGIN_MS in budget.ts, so a guarded case still ends before the deadline. */
+/** Extra time a case gets after its own timeout before the runner stops it. Must stay below
+ *  WRITE_MARGIN_MS in budget.ts, so a stopped case still ends before the deadline. */
 const GUARD_GRACE_MS = 15_000;
 let abandoned = 0;
-/** Resolve with `p`, or reject when it overruns `ms` or the operator interrupts. The loser keeps running unobserved. */
-function bounded<T>(p: Promise<T>, ms: number): Promise<T> {
-  let timer: NodeJS.Timeout | undefined;
-  let onAbort: (() => void) | undefined;
-  const stop = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => (abandoned++, reject(new Error(`the agent did not return within ${Math.round(ms / 1000)}s; stopped waiting for it`))), ms);
-    onAbort = () => (abandoned++, reject(new Error('the run was stopped by the operator (Ctrl-C) while this case was running')));
-    if (interrupt.signal.aborted) onAbort();
-    else interrupt.signal.addEventListener('abort', onAbort, { once: true });
+const processCase = (dir: string, timeoutMs: number) =>
+  runOneCase(dir, timeoutMs, {
+    outDir: outDirOf(dir),
+    modelId: values.model!,
+    model,
+    streamFn,
+    thinking,
+    criticModel,
+    flags,
+    at: values.at,
+    chaos: Number(values.chaos),
+    seed: values.seed!,
+    organiser,
+    interrupt: interrupt.signal,
+    graceMs: GUARD_GRACE_MS,
+    log,
+    onStopped: () => abandoned++,
   });
-  return Promise.race([p, stop]).finally(() => {
-    clearTimeout(timer);
-    interrupt.signal.removeEventListener('abort', onAbort!);
-  });
-}
-
-async function processCase(dir: string, timeoutMs: number): Promise<Row> {
-  const started = Date.now();
-  let c: LoadedCase | undefined;
-  const outDir = outDirOf(dir);
-  mkdirSync(outDir, { recursive: true });
-  try {
-    // Everything that can hang runs inside the guard; files are written only after it, so a case the runner
-    // gave up on can never overwrite its fallback later.
-    const work = async () => {
-      const bundle = flags.ingestV2 ? ingest(dir, { at: values.at }) : fromLoadedCase(loadCase(dir, values.at));
-      c = toLoadedCase(bundle);
-      const harnessErrors: string[] = [];
-      let brief: CaseBrief | undefined;
-      let hints: { text: string; hintsError?: string } = { text: '' };
-      if (flags.brief) {
-        try {
-          brief = compileBrief(bundle);
-          hints = { text: renderBrief(brief) };
-        } catch (e) {
-          hints = { text: '', hintsError: e instanceof Error ? e.message : String(e) };
-        }
-      } else hints = hintsFor(c);
-      let skills: Skill[] = [];
-      if (flags.skills) {
-        try {
-          const tags = classify(bundle, brief);
-          if (brief) brief.tags = tags;
-          skills = selectSkills(tags);
-        } catch (e) {
-          harnessErrors.push(`skills: ${e instanceof Error ? e.message : String(e)}`);
-        }
-      }
-      const skillText = renderSkills(skills);
-      const prompt = casePrompt(c) + (hints.text ? `\n\n${hints.text}` : '') + (skillText ? `\n\n${skillText}` : '');
-      const screen = await prescreen(prompt);
-      const adapter = withOrganiserApi(createOpsToolset(seedFromCase(c)), organiser, c.id);
-      const toolset = adapter.toolset;
-      const writeTools = toolset.tools.filter((t) => t.kind === 'write').map((t) => t.name);
-      const failures = chaosPlan(writeTools, Number(values.chaos), `${values.seed}:${c.id}`, c.failures);
-      const chaos = Object.fromEntries(Object.entries(failures).filter(([k]) => !(k in c!.failures)));
-      const run = await runCase({
-        caseId: c.id,
-        prompt: prompt + screenNote(screen),
-        systemPrompt: CASE_SYSTEM_PROMPT,
-        model,
-        streamFn,
-        failures,
-        media: c.media,
-        toolset,
-        thinkingLevel: thinking,
-        timeoutMs,
-        critic: criticModel && { model: criticModel, streamFn, attachments: c.inputs.map((i) => i.name) },
-        harness: { flags, bundle, brief, skills, briefText: hints.text },
-      });
-      const harness = { flags: flagsLine(flags), tags: brief?.tags ?? [], skills: skills.map((s) => s.id), errors: harnessErrors, log: run.harnessLog };
-      return { c, hints, screen, chaos, run, harness, toolsetReport: adapter.report() };
-    };
-    const { c: lc, hints, screen, chaos, run, harness, toolsetReport } = await bounded(work(), timeoutMs + GUARD_GRACE_MS);
-    const assistants = run.messages.filter((m: any) => m.role === 'assistant') as any[];
-    const usage: Usage = {
-      input: assistants.reduce((a, m) => a + (m.usage?.input ?? 0), 0),
-      output: assistants.reduce((a, m) => a + (m.usage?.output ?? 0), 0),
-      cost: assistants.reduce((a, m) => a + (m.usage?.cost?.total ?? 0), 0) + (run.critic?.cost ?? 0),
-      turns: assistants.length,
-      durationMs: Date.now() - started,
-    };
-    const retries = run.trace.filter((e: any) => e.type === 'retry').length;
-    const thinkingTokens = assistants.reduce((a, m) => a + (m.usage?.reasoning ?? 0), 0);
-    writeFileSync(join(outDir, 'ANSWER.md'), renderAnswer(lc, run.decision, run.ledger, run.error));
-    const reasoning = renderReasoning(lc, run.decision, run.ledger, run.messages, usage, run.error, { screen, gateLog: run.gateLog, policyLog: run.policyLog, chaos, critic: run.critic });
-    writeFileSync(join(outDir, 'REASONING.md'), withToolsetLine(reasoning, toolsetLine(toolsetReport)));
-    // Debug artefacts: a failure here must not replace a good answer with the crash fallback.
-    try {
-      writeFileSync(join(outDir, 'TRANSCRIPT.md'), renderTranscript(lc, { model: values.model!, thinking, systemPrompt: CASE_SYSTEM_PROMPT, messages: run.messages, trace: run.trace, error: run.error }));
-    } catch (e) {
-      log(`  ! ${lc.id} TRANSCRIPT.md not written: ${e instanceof Error ? e.message : e}`);
-    }
-    try {
-      writeFileSync(join(outDir, 'trace.jsonl'), run.trace.map((e) => JSON.stringify(e)).join('\n') + '\n');
-    } catch (e) {
-      log(`  ! ${lc.id} trace.jsonl not written: ${e instanceof Error ? e.message : e}`);
-    }
-    writeFileSync(
-      join(outDir, 'result.json'),
-      JSON.stringify({ id: lc.id, model: values.model, thinking, cutoff: lc.cutoff, totalEvents: lc.totalEvents, inputs: lc.inputs.map((i) => ({ name: i.name, ...i.parse })), withheld: lc.withheld, timeoutMs, toolset: toolsetReport, chaos, screen, hintsError: hints.hintsError, harness, gateLog: run.gateLog, policyLog: run.policyLog, decision: run.decision, ledger: run.ledger, state: run.state, usage: { ...usage, retries, thinkingTokens }, error: run.error, critic: run.critic }, null, 2),
-    );
-    return {
-      id: lc.id,
-      outcome: run.decision?.outcome ?? 'NO DECISION',
-      actions: run.ledger.length,
-      failed: run.ledger.filter((e) => e.status !== 'verified').length,
-      cost: usage.cost,
-      secs: usage.durationMs / 1000,
-      retries,
-      error: run.error,
-    };
-  } catch (e) {
-    // A crash must never cost us the case: write an honest fallback and move on.
-    const msg = e instanceof Error ? e.message : String(e);
-    const id = c?.id ?? basename(dir);
-    writeFallback(outDir, crashFiles(id, msg, { model: values.model, cutoff: c?.cutoff, timeoutMs }));
-    return { id, outcome: 'CRASH', actions: 0, failed: 0, cost: 0, secs: (Date.now() - started) / 1000, retries: 0, error: msg };
-  }
-}
 
 function skipCase(dir: string): Row {
   const id = basename(dir);
@@ -295,7 +186,12 @@ const manifest = {
   args: values,
   model: values.model,
   thinking,
+  temperature: temperatureFor(model, thinking),
   critic: criticModel?.id ?? 'off',
+  models: {
+    agent: { id: model.id, thinking, temperature: temperatureFor(model, thinking) },
+    ...(criticModel && { critic: { id: criticModel.id, thinking: CRITIC_THINKING, temperature: temperatureFor(criticModel, CRITIC_THINKING) } }),
+  },
   harness: flags,
   jev: jevEnabled(),
   commit: git('rev-parse', 'HEAD'),
