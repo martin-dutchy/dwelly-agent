@@ -1,6 +1,6 @@
 # M3: critic pass and deterministic pre-submit validators
 
-Status: approved by Marc 12:06 BST (see Decision log) · Shape: default plan · Owner: Marc · Written 2026-10-10 12:10 BST by Claude for Marc · Window: 12:45 to 14:00 BST (A/B decision by 15:00 at the latest).
+Status: done, A/B decided off at 12:32 BST; approved by Marc 12:06 BST (see Decision log) · Shape: default plan · Owner: Marc · Written 2026-10-10 12:10 BST by Claude for Marc · Window: 12:45 to 14:00 BST (A/B decision by 15:00 at the latest).
 
 Parent: [docs/plans/dwelly-case-worker-master-plan.md](../../../docs/plans/dwelly-case-worker-master-plan.md) (M3 row, AC12, section 6 "Critic gate" and the 15:00 scope-ladder row). Design source: [research/evaluation.md](../../../research/evaluation.md) section 4. Architecture: [docs/plans/master-plan-review-2026-10-10.md](../../../docs/plans/master-plan-review-2026-10-10.md) section 1 ("the critic is a call, not an agent") and section 3 (tool tiers T0 to T3). Sibling plans it depends on: [M1](../maintenance/plans/maintenance-policy-and-state-implementation-plan.md) (validators, `quoteAppears`) and [M4](../../eval/plans/harness-hardening-implementation-plan.md) (`--k`, `summary.json`). Conventions: `AGENTS.md`, `docs/plans/README.md`.
 
@@ -219,16 +219,16 @@ Prerequisites: steps 1 to 6 on `main`; M4's `summary.json` metrics (`escalation`
 
 ## Acceptance criteria
 
-- [ ] **AC-M3-1 (R1).** Given a brief with three decision-point questions and a draft answering two, when the agent calls `submit_decision`, then it is blocked naming the third question, and no critic call is made. Named tests: `decisionPoints.test.ts`, `criticHook.test.ts › validators run before the critic`.
-- [ ] **AC-M3-2 (R1).** Given a verified `escalate_to_human` with `options: []`, then `submit_decision` is blocked with "escalation packet incomplete: options". Named test: `validators.test.ts › packet completeness`.
-- [ ] **AC-M3-3 (R3).** Given a critic response with one `no` quoting text present in the case and one `no` quoting invented text, then `kept` has one finding and `dropped` has one, and only the kept one is in the revision note. Named test: `critic.test.ts › evidence or drop`.
-- [ ] **AC-M3-4 (R4).** Given a kept finding, then the first `submit_decision` is blocked with a reason starting "Pre-submit review", the second is accepted after validators pass, and the critic model is called exactly once per case. Named test: `criticHook.test.ts › one revision only`.
-- [ ] **AC-M3-5 (R4, Q4).** In revision mode, `approve_quote`, `assign_contractor`, `close_ticket` and `cancel_ticket` are blocked and logged in `policyLog`; `send_message`, `schedule_follow_up` and `escalate_to_human` run. Named test: `criticHook.test.ts › revision tiers`.
-- [ ] **AC-M3-6 (R5).** Given the critic model throws, times out or returns no `submit_review`, then the draft decision is accepted, `result.critic.status === 'error'` with the reason, and the case outcome equals what it would be with the critic off. Named tests: `critic.test.ts › error paths`, `criticHook.test.ts › critic error never blocks`.
-- [ ] **AC-M3-7 (R6, AC15).** For any status, `ANSWER.md` contains none of "critic", "review", "score", "checklist"; `REASONING.md` contains exactly one "Checks performed" section; `grep -riE "judge|grader|score this|give this" src/agent/critic src/agent/decisionPoints.ts` returns nothing. Named test: `report.test.ts`; command in Verification.
-- [ ] **AC-M3-8 (R7).** `--critic off` (and no flag) makes no critic call: on `pnpm cases --in cases/practice --only 01 --out runs/m3-off`, `result.json` has no `critic` key and `trace.jsonl` has no `"type":"critic"` line. `--critic maybe` exits 1 with `--critic must be on or off`.
-- [ ] **AC-M3-9 (master plan AC12).** The A/B was run on the `dev` split with both arms on the same commit apart from the flag; the master plan's Decision log has an entry with both `summary.json` paths, the comparison table and the chosen default; if the rule says off, `run.ts` defaults to off and the runbook does not pass `--critic on`.
-- [ ] **AC-M3-10 (R8).** In the on arm, mean `perCase.secs` minus the off arm's is at most 45 s, and no case shows `critic.ms` above 45 000.
+- [x] **AC-M3-1 (R1).** Given a brief with three decision-point questions and a draft answering two, when the agent calls `submit_decision`, then it is blocked naming the third question, and no critic call is made. Named tests: `decisionPoints.test.ts`, `criticHook.test.ts › validators run before the critic`.
+- [x] **AC-M3-2 (R1).** Given a verified `escalate_to_human` with `options: []`, then `submit_decision` is blocked with "escalation packet incomplete: options". Named test: `validators.test.ts › packet completeness`.
+- [x] **AC-M3-3 (R3).** Given a critic response with one `no` quoting text present in the case and one `no` quoting invented text, then `kept` has one finding and `dropped` has one, and only the kept one is in the revision note. Named test: `critic.test.ts › evidence or drop`.
+- [x] **AC-M3-4 (R4).** Given a kept finding, then the first `submit_decision` is blocked with a reason starting "Pre-submit review", the second is accepted after validators pass, and the critic model is called exactly once per case. Named test: `criticHook.test.ts › one revision only`.
+- [x] **AC-M3-5 (R4, Q4).** In revision mode, `approve_quote`, `assign_contractor`, `close_ticket` and `cancel_ticket` are blocked and logged in `policyLog`; `send_message`, `schedule_follow_up` and `escalate_to_human` run. Named test: `criticHook.test.ts › revision tiers`.
+- [x] **AC-M3-6 (R5).** Given the critic model throws, times out or returns no `submit_review`, then the draft decision is accepted, `result.critic.status === 'error'` with the reason, and the case outcome equals what it would be with the critic off. Named tests: `critic.test.ts › error paths`, `criticHook.test.ts › critic error never blocks`.
+- [x] **AC-M3-7 (R6, AC15).** For any status, `ANSWER.md` contains none of "critic", "review", "score", "checklist"; `REASONING.md` contains exactly one "Checks performed" section; `grep -riE "judge|grader|score this|give this" src/agent/critic src/agent/decisionPoints.ts` returns nothing. Named test: `report.test.ts`; command in Verification.
+- [x] **AC-M3-8 (R7).** `--critic off` (and no flag) makes no critic call: on `pnpm cases --in cases/practice --only 01 --out runs/m3-off`, `result.json` has no `critic` key and `trace.jsonl` has no `"type":"critic"` line. `--critic maybe` exits 1 with `--critic must be on or off`.
+- [x] **AC-M3-9 (master plan AC12).** The A/B was run on the `dev` split with both arms on the same commit apart from the flag; the master plan's Decision log has an entry with both `summary.json` paths, the comparison table and the chosen default; if the rule says off, `run.ts` defaults to off and the runbook does not pass `--critic on`. (Done here; the master plan's copy of the entry is the orchestrator's.)
+- [x] **AC-M3-10 (R8).** In the on arm, mean `perCase.secs` minus the off arm's is at most 45 s, and no case shows `critic.ms` above 45 000.
 
 ## Verification
 
@@ -276,12 +276,15 @@ Run from the repo root and show the output.
 - [x] Step 4 (13:00): `report.ts` `criticLine` and the "Checks performed" section via the `checks` bag (`report.test.ts`, 3 tests); `run.ts` `--critic on|off` (default `off`, `CRITIC` env fallback, anything else exits 1 with `--critic must be on or off`), `CRITIC_MODEL` (default `claude-opus-5-5`), `result.json.critic`, critic cost added to `usage.cost`; `.env.example` and README list `CRITIC` and `CRITIC_MODEL`. Smoke: `pnpm cases --in cases/public-cuts --only 002-quote-approval,040-tenant-resolved --out runs/m3-on --critic on` gave `status: ok` on both (11 s, $0.06 each; 002 no findings; 040 two kept findings, decision revised), one `"type":"critic"` trace line each, the REASONING line present, and no "critic|checklist|score" in either ANSWER.md. `pnpm cases --in cases/practice --only 01 --out runs/m3-off` gave 0 critic trace lines and no `critic` key (AC-M3-8).
 - [x] Step 5: AC15 grep over `src/agent/critic src/agent/decisionPoints.ts` is empty; `pnpm verify` green (301 tests after rebasing on #18); self-review of the `caseAgent.ts` and `run.ts` diff done (notes in Decision log).
 - [x] Step 6, done differently: no `loop.ts` change. `loop.ts` spawns `run.ts` as a child process that inherits the environment, so `CRITIC=on pnpm loop ...` switches the arm. The two arms are told apart by their run folders (timestamped) and neither saves a baseline. M4 may later record `process.env.CRITIC` in `summary.json.config`.
+- [x] Step 7 (12:12 to 12:32): A/B at k = 3 on the whole dev split, both arms on `b4a8a83`. Result: off (see Decision log). `run.ts` already defaults to `off`; nothing to flip. The master plan's Decision log entry is left to the orchestrator (this lane does not edit the master plan).
 
 ## Discoveries
 
 - M4's branch (`marc/m4-harness`, PR #17) already has `parseQuestions` and `overlap` in `src/eval/checks.ts`. `src/agent/decisionPoints.ts` takes that code as is (Q9) plus `unansweredQuestions`, which ignores answers whose text is empty. `src/eval/**` is not edited here; once both PRs are on `main`, `checks.ts` should import from `../agent/decisionPoints.js` and drop its copy.
 - A verified `escalate_to_human` cannot be edited, so a thin packet can only be fixed by escalating again. `preCriticProblems` therefore accepts a thin packet when a later complete packet went to the same team.
 - pi validates tool arguments against the schema before `execute`, so a malformed `submit_review` goes back to the critic model as a tool error and it retries. The 45 s timeout bounds that loop; the result is `unparsable` only if no valid review arrives.
+- A/B reading (step 7.6, dev cases only): the kept findings are mostly real but low leverage. The most common item is 3 (the draft labels a ledger entry as a reply to the tenant when it went to the landlord, or claims an API timeout the ledger does not show). Some catch genuine misses: landlord preferences ignored (practice 02 preferred boiler firm, practice 05 "call before any spend over £300"), a third-party disclosure (practice 15), an ambiguous "Monday 20th" passed on (public-cut 030). The critic never failed to quote correctly: 0 of 54 "no" verdicts were dropped, so evidence-or-drop filtered nothing. The extra over-escalation (008-second-quote) happened in a run where the critic kept nothing, so it looks like agent variance rather than critic drift, but the rule is applied as written.
+- If the critic is revisited after the Reality Test: point it at behaviour (preferences, disclosure, ambiguous dates) rather than draft-to-ledger labelling, which the deterministic validators could check directly.
 - The evidence corpus is built from the string values of the ledger, draft and policy log, not their JSON: JSON escapes (`\n`, `\"`) would otherwise break quotes that span a line break in a message body.
 
 ## Decision log
@@ -302,4 +305,22 @@ Run from the repo root and show the output.
   Rationale: `run.ts` and `loop.ts` are being edited by other lanes (M5, M4); an env fallback read in `run.ts` keeps this lane's `run.ts` change to one small hunk set and needs no `loop.ts` edit. Date/Author: 2026-10-10 13:00, Claude for Marc.
 - Decision (self-review): accepted as is: (a) in revision mode a repeatedly blocked T2/T3 call is not capped like M1's third-block rule; the block text tells the agent to submit and the case timeout bounds it; (b) the critic's `usage.cost` is folded into the case cost so the A/B's per-case cost comparison includes it.
   Date/Author: 2026-10-10 13:00, Claude for Marc.
-- Decision (A/B outcome): _to be filled at step 7 with both `summary.json` paths and the table._
+- Decision (A/B outcome, AC12): **`--critic off` stays the default.** The on arm fails two "must not" rows (over-escalations up, required-met down) and meets no "clearly positive" row.
+  Both arms ran on commit `b4a8a83` (this branch rebased on `main` b865b7f, M1 #16 and M4 #17 merged), `--profile final --split dev --k 3`, one after the other, differing only in `CRITIC=off|on`; no baseline saved. Off: `runs/loop/dev-final-k3-2026-10-10T11-12-22-629Z/summary.json` (started 12:12 BST). On: `runs/loop/dev-final-k3-2026-10-10T11-20-18-058Z/summary.json` (started 12:20 BST). Required-met and the critic counts are computed from each run's `grades.json` and `result.json` (144 case runs per arm).
+
+  | Metric | Off | On | Rule | Holds? |
+  |---|---|---|---|---|
+  | `criticalCases` / `checks.criticalFailed` | 2 / 0 | 2 / 0 | not higher | yes |
+  | `escalation.over` (cases) | 2 (020, 024-bundled) | 3 (+008-second-quote) | not higher | **no** |
+  | `escalation.precision` | 0.50 | 0.38 | not lower | **no** |
+  | `escalation.missed` / recall | 0 / 1.00 | 0 / 1.00 | missed not higher | yes |
+  | mean required-met | 87.2 % | 86.5 % | not lower | **no** |
+  | decided / NO DECISION runs | 48/48 / 0 | 48/48 / 0 | coverage not lower | yes |
+  | `mean` | 86.9 | 86.2 | +2 at k = 3 is positive | no (−0.7) |
+  | `passK` (pass^3) | 0.563 (27 cases) | 0.521 (25 cases) | +1 case is positive | no (−2) |
+  | pass@1 | 0.639 | 0.611 | report | |
+  | `perCase.secs` | 21.7 s | 33.3 s | ≤ +45 s | yes (+11.6 s) |
+  | `perCase.cost` (agent + critic) | $0.051 | $0.105 | ≤ +$0.08 | yes (+$0.054) |
+  | critic | | 144 ok, 0 error, 0 skipped; mean 8.9 s, max 22.1 s; 42 runs with kept findings (54 findings), 0 dropped; 24 runs left a finding unchanged; $6.84 | `critic.ms` ≤ 45 000 | yes |
+
+  Rationale: the decision rule in the A/B protocol (Q1, Q3). Wall time 471 s off versus 618 s on; agent spend $7.33 versus $15.05, judge $12.38 versus $12.71. Date/Author: 2026-10-10 12:32 BST, Claude for Marc.
