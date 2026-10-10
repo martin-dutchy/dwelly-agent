@@ -487,7 +487,8 @@ Run from the repo root (or from the workstream's worktree in Wave 1). Show the o
   - self-review of the hot-file diff found that `ingestV2` gated nothing. Fixed: with it off, `run.ts` uses `loadCase` directly.
 - [x] (15:33) WS G merged into `h2/base` (`f3816fb`; `pnpm verify` 598 tests green). Brief and skill text no longer count as critic evidence. Red flags become checklist items S1..S12 in the critic's system prompt. With context absent or empty, the critic is byte-identical to before (hash test).
 - [x] (15:34) WS R merged into `h2/base` (`pnpm verify` 607 tests green). New ANSWER.md sections: Escalations joined to the ledger, Follow-ups, Unknowns. Anything without a verified ledger id renders "not done (why)". REASONING.md gets harness sections only when there is data. With no new fields, output is byte-identical to before (snapshots committed first). The integrator now derives the fixed critic ids from `CHECKLIST` instead of a copy.
-- [ ] Wave 1: A · B · C · D · E · F · T
+- [x] (15:35) WS F merged into `h2/base` (`pnpm vitest` 34 files and 633 tests green). Five completion checks are registered and the cap per check is tested end to end. Replayed over 408 earlier dev and expansion decisions, the over-claim check bounced none and the safety check bounced 2, each fixable with one assumption line. Smoke run with `completionV2`: 3/3 decided on the first submit.
+- [ ] Wave 1: A · B · C · D · E · T
 - [ ] Wave 2
 - [ ] Wave 3
 - [ ] Wave 4
@@ -507,6 +508,9 @@ Run from the repo root (or from the workstream's worktree in Wave 1). Show the o
   - write `brief` (conflicts, tags) into `result.json` for WS T's taxonomy;
   - make sure WS E names the ledger field `failureClass` (R reads it through a loose type);
   - optionally change the "Performed" column of the next-actions table to the "not done (why)" wording, which needs R4's byte-identical rule relaxed for that column.
+- Observation (WS F): situation tags only reach guards and completion checks when both `brief` and `skills` are on, so `completionV2` alone makes the safety check fall back to severity. Wave 2 to-do: when any of `brief`, `guardsV2` or `completionV2` is on, `run.ts` always compiles the brief and runs `classify`. Only the `brief` and `skills` flags control what goes into the prompt.
+- Observation (WS F): with today's checks, a verified `escalate_to_human` with an empty `decision.escalations` (case 06 in the smoke run) is never checked for packet completeness. Requiring a packet for each verified escalation is a candidate extra check, to be decided on Wave 3 data. Not added yet.
+- Observation (15:35): the main checkout's `.env` changed twice after the worktrees were created, so worktrees had different, stale copies. WS F got 404 "workspace not found" until it blanked `ANTHROPIC_WORKSPACE_ID`. All worktrees were re-synced from the current `dwelly-agent/.env` at 15:36. Before Wave 3, re-copy it again.
 
 ## Decision log
 
