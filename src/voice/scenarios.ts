@@ -624,7 +624,11 @@ export function callBrief(s: Scenario, viaPhone = false) {
     ...s.facts.map((f) => `- ${f}`),
     ...(s.source ? [`Today's date for this case: ${s.source.today}. Talk about dates relative to it.`] : []),
     `Goal of this call: ${s.goal}`,
-    s.role === 'tenant' ? 'Tenants must pass verify_identity before you discuss their account or log anything (except emergencies).' : 'Landlords and contractors are identified by name against the case record; do not ask for a date of birth.',
+    s.role === 'tenant' && s.direction === 'inbound'
+      ? 'Tenants must pass verify_identity before you discuss their account or log anything (except emergencies).'
+      : s.role === 'tenant'
+        ? "You rang this tenant on the number we hold: confirm them by name, no date-of-birth check needed. Don't read out their address; ask them to confirm it."
+        : 'Landlords and contractors are identified by name against the case record; do not ask for a date of birth.',
   ].join('\n');
 }
 
