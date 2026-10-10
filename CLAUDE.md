@@ -21,7 +21,7 @@ Real-World Agents Hackathon, 10 Oct 2026, Property Management track. Rules: `Rea
 `pnpm verify` (done-gate), `pnpm loop [--split dev|holdout] [--chaos 0.15]`, `pnpm cases --in <dir> --out <dir>`, `pnpm eval --cases <dir> --answers <dir>`.
 
 ## Claude Code specifics
-- Skills under `.agents/skills/` are edited there; `.claude/skills/` holds the symlinks plus Martin's hackathon skills.
+- Skills under `.agents/skills/` are edited there; `.claude/skills/` holds the symlinks plus the hackathon skills.
 - Use plan mode for changes to `src/agent/caseAgent.ts`, `src/run.ts` or the `Decision` schema.
 - Run `/code-review` on your own diff before opening or updating a PR when a change meets the same threshold (AGENTS.md non-negotiable 8).
 - When executing a milestone from the master plan, update its Progress, Discoveries and Decision log in the same commit as the code.

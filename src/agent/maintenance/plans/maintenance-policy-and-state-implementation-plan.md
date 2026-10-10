@@ -1,6 +1,6 @@
 # M1: landlord-authority gates, follow-up and closure tools, maintenance policy, case-state hints
 
-Status: ready to implement · Shape: default plan · Owner: Martin (code), Marc may draft `maintenance-policy.md` in parallel · Written 2026-10-10 11:35 BST by Claude for Marc · Window: now to the 13:00 schema freeze.
+Status: ready to implement · Shape: default plan · Owner: Marc (code and policy text). Draft `maintenance-policy.md` in parallel · Written 2026-10-10 11:35 BST by Claude for Marc · Window: now to the 13:00 schema freeze.
 
 Parent: [docs/plans/dwelly-case-worker-master-plan.md](../../../../docs/plans/dwelly-case-worker-master-plan.md) (M1, AC3, AC4, AC18–AC20). Spec for the rules: [docs/plans/master-plan-review-2026-10-10.md](../../../../docs/plans/master-plan-review-2026-10-10.md) §2 (invariants I1, I4, I6, I9, I14) and §3 (tiers T0–T3, act / ask / wait / escalate). Conventions: `AGENTS.md`, `docs/plans/README.md`.
 
@@ -49,7 +49,7 @@ On any organiser-format case, `REASONING.md` shows (a) every landlord-authority 
 - Every new write tool has a read-back in `verify()`.
 - No text aimed at an evaluator in `maintenance-policy.md` or any message template (AC15).
 - Holdout cases (practice 04, 09, 14, 19, 22; public 031, 036, 041, 045, 048, 050) are not opened for the tests. AC3 uses 002, 025, 047.
-- File ownership per the master plan §5: all files below are Martin's. Marc may draft `maintenance-policy.md` text and hand it over; Martin wires it.
+- File ownership per the master plan §5: Marc owns every file below.
 
 ## Proposed approach
 
@@ -173,16 +173,16 @@ Sections, in this order, each short:
 
 | # | Step | Owner | Est. | Prove by |
 |---|---|---|---|---|
-| 1 | `quoteAppears` + `record_landlord_decision` tool and gate | Martin | 20 min | `gates.test.ts`: quote present ⇒ verified; quote absent ⇒ blocked and in `policyLog` |
-| 2 | Landlord-authority gate on `approve_quote` / `assign_contractor` | Martin | 20 min | `gates.test.ts`: four cases: no decision ⇒ blocked; `approved_quote` within cap ⇒ allowed; `approved_own_contractor` ⇒ assign blocked; `emergency_justification` ⇒ allowed and logged (AC18) |
-| 3 | `schedule_follow_up` + `no_action` validator | Martin | 15 min | `gates.test.ts`: `no_action` with nothing ⇒ rejected; with verified follow-up ⇒ accepted (AC19) |
-| 4 | Block cap | Martin | 10 min | `gates.test.ts`: third `update_bank_details` ⇒ "stop and submit"; decision then accepted (AC20) |
-| 5 | Closure semantics | Martin | 20 min | `gates.test.ts`: `completed` without `payment` ⇒ blocked; with both parties via ledger ids ⇒ verified with `payment` read back |
-| 6 | Address check | Martin | 15 min | `gates.test.ts`: foreign postcode ⇒ held once; `address_check` ⇒ sent and logged; no case postcode ⇒ check off |
-| 7 | `Decision` extension + `next_actions` validator + `report.ts` render | Martin | 15 min | `caseAgent.test.ts`: `WAIT` without `schedule_follow_up` id ⇒ rejected; existing tests unchanged |
-| 8 | `maintenance-policy.md` + prompt wiring | Marc drafts, Martin wires | 20 min | `pnpm typecheck`; AC15 grep empty; one dev-split case shows the policy in `trace.jsonl` system prompt |
-| 9 | `stateReconstruct.ts` + `renderHints` + `run.ts` wiring | Martin | 30 min | `stateReconstruct.test.ts` on 047 cut 10, 025 cut 30, 002 cuts 18 and 19 (AC3); a practice case renders `''`; a malformed history renders `''` with `hintsError` |
-| 10 | Regression | Martin | 10 min | `pnpm verify` green; `pnpm loop --profile quick` mean ≥ M0 baseline, critical 0; then `--profile final` on `--only 003,008,026` |
+| 1 | `quoteAppears` + `record_landlord_decision` tool and gate | Marc | 20 min | `gates.test.ts`: quote present ⇒ verified; quote absent ⇒ blocked and in `policyLog` |
+| 2 | Landlord-authority gate on `approve_quote` / `assign_contractor` | Marc | 20 min | `gates.test.ts`: four cases: no decision ⇒ blocked; `approved_quote` within cap ⇒ allowed; `approved_own_contractor` ⇒ assign blocked; `emergency_justification` ⇒ allowed and logged (AC18) |
+| 3 | `schedule_follow_up` + `no_action` validator | Marc | 15 min | `gates.test.ts`: `no_action` with nothing ⇒ rejected; with verified follow-up ⇒ accepted (AC19) |
+| 4 | Block cap | Marc | 10 min | `gates.test.ts`: third `update_bank_details` ⇒ "stop and submit"; decision then accepted (AC20) |
+| 5 | Closure semantics | Marc | 20 min | `gates.test.ts`: `completed` without `payment` ⇒ blocked; with both parties via ledger ids ⇒ verified with `payment` read back |
+| 6 | Address check | Marc | 15 min | `gates.test.ts`: foreign postcode ⇒ held once; `address_check` ⇒ sent and logged; no case postcode ⇒ check off |
+| 7 | `Decision` extension + `next_actions` validator + `report.ts` render | Marc | 15 min | `caseAgent.test.ts`: `WAIT` without `schedule_follow_up` id ⇒ rejected; existing tests unchanged |
+| 8 | `maintenance-policy.md` + prompt wiring | Marc | 20 min | `pnpm typecheck`; AC15 grep empty; one dev-split case shows the policy in `trace.jsonl` system prompt |
+| 9 | `stateReconstruct.ts` + `renderHints` + `run.ts` wiring | Marc | 30 min | `stateReconstruct.test.ts` on 047 cut 10, 025 cut 30, 002 cuts 18 and 19 (AC3); a practice case renders `''`; a malformed history renders `''` with `hintsError` |
+| 10 | Regression | Marc | 10 min | `pnpm verify` green; `pnpm loop --profile quick` mean ≥ M0 baseline, critical 0; then `--profile final` on `--only 003,008,026` |
 
 Order is the priority order. At 12:40, whatever of steps 8–9 is not done is cut (master plan §6 scope ladder); steps 1–7 are the milestone.
 
