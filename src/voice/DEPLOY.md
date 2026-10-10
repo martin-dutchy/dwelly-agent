@@ -11,6 +11,7 @@ One Node process (`src/voice/server.ts`) on Fly.io, London region. It serves:
 | `/voice/tools/<name>` | ElevenLabs (Bearer `VOICE_TOOL_SECRET`) | webhook tools, native brain |
 | `/v1/chat/completions` | ElevenLabs (Bearer `VOICE_TOOL_SECRET`) | Custom LLM, pi brain |
 | `/voice/webhooks/elevenlabs` | ElevenLabs (HMAC) | optional post-call webhook; grading also runs without it |
+| `/voice/webhooks/initiation` | ElevenLabs (Bearer `VOICE_TOOL_SECRET`) | dynamic variables for inbound WhatsApp and direct calls; set on the agent by `pnpm voice:sync` |
 
 Data: Neon Postgres (`DATABASE_URL`) holds invites, calls, the tool event log, transcripts and grades. Tables are created on boot. Audio stays in ElevenLabs and is streamed through `/admin/calls/<id>`.
 
@@ -55,3 +56,13 @@ Open `https://<app-name>.fly.dev/admin`, create an invite per person and send th
 - Keep exactly one machine (`--ha=false`, `min_machines_running = 1`): per-call state lives in memory, so a second machine would split calls. A redeploy drops calls in progress.
 - Costs: each invite has a daily cap, and `VOICE_DAILY_CALL_CAP` (default 200) caps everyone together. The agent has `enable_auth`, so only tokens minted by this server can start a conversation.
 - Optional post-call webhook: in ElevenLabs workspace settings, add `https://<app-name>.fly.dev/voice/webhooks/elevenlabs` and set `ELEVENLABS_WEBHOOK_SECRET`. Without it, grading starts when the tester hangs up, or from "Regrade" in the admin.
+
+## WhatsApp (optional)
+
+ElevenLabs Agents answer WhatsApp natively (text, voice notes, calls); our only code is the initiation webhook above, which `pnpm voice:sync` points the agent at. One-off setup, no code:
+
+1. A Meta business portfolio (business.facebook.com, free) and a number that is not on WhatsApp yet. Our Twilio number works: it can receive the verification code by SMS or voice.
+2. ElevenLabs, Agents > WhatsApp > Import account: pick or create the WhatsApp business account, add the number, verify it.
+3. On the account page, assign the agent ("Dwelly tenant line (prod)"). Message the number to test.
+
+Inbound chats are free on Meta's side; outbound templates and calls need a payment method in WhatsApp Manager. Each chat counts toward `VOICE_DAILY_CALL_CAP`.

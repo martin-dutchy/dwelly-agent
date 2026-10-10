@@ -8,6 +8,7 @@ import { type IncomingMessage, type ServerResponse, createServer } from 'node:ht
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { claude, streamFn } from '../agent/models.js';
 import { onAudit } from '../core/audit.js';
+import { initiationResponse } from './elevenlabs/initiation.js';
 import { verifySignature } from './elevenlabs/postCall.js';
 import { fetchAudio, finalizeCall, onCallFinalized } from './finalize.js';
 import { type Ops, createOps, opsRoutes } from '../ops/routes.js';
@@ -416,6 +417,13 @@ export function createVoiceServer(env: Env = process.env, store: VoiceStore = cr
       if (req.method === 'POST' && tool) {
         if (!env.VOICE_TOOL_SECRET || !sameSecret(req.headers.authorization ?? '', `Bearer ${env.VOICE_TOOL_SECRET}`)) return send(res, 401, { ok: false });
         return send(res, 200, await handleVoiceToolCall(tool, await readJson(req)));
+      }
+
+      if (req.method === 'POST' && path === '/voice/webhooks/initiation') {
+        if (!env.VOICE_TOOL_SECRET || !sameSecret(req.headers.authorization ?? '', `Bearer ${env.VOICE_TOOL_SECRET}`)) return send(res, 401, { ok: false });
+        // Anyone can message or ring the public number: the shared daily cap stops a flood (refused = no reply).
+        if (!mint('all', Number(env.VOICE_DAILY_CALL_CAP ?? 200))) return send(res, 429, { ok: false });
+        return send(res, 200, initiationResponse(await readJson(req)));
       }
 
       if (req.method === 'POST' && path === '/voice/webhooks/elevenlabs') {
