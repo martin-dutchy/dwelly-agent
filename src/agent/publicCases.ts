@@ -80,6 +80,23 @@ export function agencyAction(e: HistoryEvent): boolean {
   return /^(email|sms|call)$/i.test(channel) && /agency|lettings/i.test(from) && /tenant|landlord|contractor|provider/i.test(to);
 }
 
+const decode = (s: string) => {
+  try {
+    return decodeURIComponent(s);
+  } catch {
+    return s;
+  }
+};
+
+/** Attachment names the events link to (`](attachments/x.pdf)`) or name in prose (`attachment-04-document`). */
+export function referencedAttachments(events: HistoryEvent[]): string[] {
+  const names = new Set<string>();
+  for (const e of events) {
+    for (const m of e.body.matchAll(/\(attachments\/([^)\s]+)\)|\b(attachment-\d+(?:-[A-Za-z0-9]+)*(?:\.[A-Za-z0-9]+)?)/g)) names.add(m[1] ? decode(m[1]) : m[2]);
+  }
+  return [...names];
+}
+
 /** Head clip for attachments and practice-case files, whose important part is at the start. */
 export const clip = (s: string) => (s.length > MAX_FILE_CHARS ? `${s.slice(0, MAX_FILE_CHARS)}\n…[truncated ${s.length - MAX_FILE_CHARS} chars]` : s);
 
@@ -250,6 +267,8 @@ export function loadPublicCase(dir: string, at: string = defaultAt(dir)) {
     attachments.push({ name, content: clip(a.content) });
     if (a.media) media.push({ name, media: a.media });
   }
+  // A prose name such as "attachment-04-document" may stand for "attachment-04-document.pdf".
+  const missingAttachments = referencedAttachments(visible).filter((r) => !allAtt.some((f) => f === r || f.startsWith(`${r}.`)));
 
   const decisionPoint = asIs ? `the end of the recorded history (${cutoff} event${cutoff === 1 ? '' : 's'})` : `after event ${String(cutoff).padStart(3, '0')} of the history`;
   const brief = `${title}
@@ -292,5 +311,6 @@ ${parts.filter((p) => ['Overview', 'Next action at escalation', 'Outcome', 'Boun
     reference,
     cutoff,
     totalEvents: events.length,
+    missingAttachments,
   };
 }

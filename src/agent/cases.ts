@@ -21,6 +21,8 @@ export type LoadedCase = {
   reference?: string;
   cutoff?: number;
   totalEvents?: number;
+  /** Public-format cases only: attachments the visible history names that are not in attachments/. */
+  missingAttachments?: string[];
 };
 
 // Never shown to the agent.

@@ -124,6 +124,25 @@ export function criticLine(r: CriticResult) {
   return `- Pre-submit critic (${r.model}, ${Math.round(r.ms / 1000)} s): ${r.items.length} items checked, ${kept} finding${kept === 1 ? '' : 's'} with evidence${revision}, ${r.dropped.length} dropped without evidence.${(r.unaddressed ?? []).map((u) => `\n  - Not changed after revision: ${u}`).join('')}`;
 }
 
+/** Everything the agent was given, from the loaded case only. */
+function received(c: LoadedCase) {
+  const publicFormat = c.totalEvents !== undefined;
+  const lines = [
+    publicFormat
+      ? `- Case details from \`index.md\`, with the task and questions (${c.brief.length} chars)`
+      : c.brief === '(no case brief provided)'
+        ? '- Case brief: none provided'
+        : `- Case brief (${c.brief.length} chars)`,
+  ];
+  if (c.cutoff !== undefined && c.totalEvents !== undefined) {
+    const withheld = c.cutoff < c.totalEvents ? ` (events ${c.cutoff + 1}–${c.totalEvents} withheld)` : ' (the full history)';
+    lines.push(`- Cut point: history events 1–${c.cutoff} of ${c.totalEvents}${withheld}`);
+  }
+  lines.push(...c.inputs.map((i) => `- \`${i.name}\` (${c.media?.some((m) => m.name === i.name) ? 'sent to the model natively' : `${i.content.length} chars`})`));
+  if (c.missingAttachments) lines.push(`- Referenced in the history but not provided: ${c.missingAttachments.map((a) => `\`${a}\``).join(', ') || 'none'}`);
+  return lines.join('\n');
+}
+
 export function renderReasoning(
   c: LoadedCase,
   d: Decision | undefined,
@@ -133,23 +152,31 @@ export function renderReasoning(
   error?: string,
   checks?: { screen?: Screen; gateLog?: (GateResult & { tool: string; attempt: number })[]; policyLog?: { tool: string; reason: string }[]; chaos?: Record<string, unknown>; critic?: CriticResult },
 ) {
+  // Parallel calls return in completion order, so results are placed by toolCallId, not by arrival.
+  const callIds = new Set(messages.filter((m) => m.role === 'assistant').flatMap((m) => (m.content ?? []).filter((b: any) => b.type === 'toolCall').map((b: any) => b.id)));
+  const resultLine = (m: any, orphan = false) => {
+    const t = (m.content ?? []).map((b: any) => b.text ?? '').join(' ');
+    return `   - ${m.isError ? '⚠️ ' : ''}\`${m.toolName ?? 'tool'}\` result${orphan ? ' (no matching call in the trace)' : ''}: ${short(t, 400)}`;
+  };
   const steps: string[] = [];
   let n = 0;
   for (const m of messages) {
     if (m.role === 'assistant') {
       for (const b of m.content ?? []) {
         if (b.type === 'text' && b.text.trim()) steps.push(`${++n}. **Agent:** ${b.text.trim()}`);
-        if (b.type === 'toolCall') steps.push(`${++n}. **Tool call** \`${b.name}\` ${short(b.arguments, 400)}`);
+        if (b.type === 'toolCall') {
+          steps.push(`${++n}. **Tool call** \`${b.name}\` ${short(b.arguments, 400)}`);
+          steps.push(...messages.filter((r) => r.role === 'toolResult' && r.toolCallId === b.id).map((r) => resultLine(r)));
+        }
       }
-    } else if (m.role === 'toolResult') {
-      const t = (m.content ?? []).map((b: any) => b.text ?? '').join(' ');
-      steps.push(`   - ${m.isError ? '⚠️ ' : ''}Result: ${short(t, 400)}`);
+    } else if (m.role === 'toolResult' && !callIds.has(m.toolCallId)) {
+      steps.push(resultLine(m, true));
     }
   }
   return `# Case ${c.id}: REASONING
 
 ## What the system received
-${c.inputs.map((i) => `- \`${i.name}\` (${c.media?.some((m) => m.name === i.name) ? 'sent to the model natively' : `${i.content.length} chars`})`).join('\n')}
+${received(c)}
 
 ${
   checks?.screen
