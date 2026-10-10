@@ -64,7 +64,7 @@ export function waPhone(o: { taskId: string; initial: PhoneMsg[]; simulated: boo
 }
 
 export const WA_PHONE_CSS = `
-@media (min-width:1100px){ main{ max-width:1320px; padding-right:calc(var(--s6) + 360px); } }
+@media (min-width:860px){ main{ max-width:1180px; padding-right:calc(var(--s6) + 340px); } }
 .wa-device{position:fixed;right:40px;bottom:32px;z-index:20;width:300px;height:min(620px,calc(100vh - 64px));padding:11px;border-radius:52px;
   background:linear-gradient(145deg,#3a3d40,#16181a 40%,#2b2e31);box-shadow:0 0 0 1.5px #55595d inset,0 0 0 4px #0c0d0e inset,0 40px 80px -20px rgba(8,12,10,.55),0 18px 36px -18px rgba(8,12,10,.5);
   transform:perspective(1400px) rotateY(-9deg) rotateX(3deg) rotateZ(.6deg);transform-origin:right bottom;transition:transform .5s cubic-bezier(.2,.8,.2,1);animation:wa-enter .9s cubic-bezier(.16,1,.3,1) both;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
@@ -111,7 +111,7 @@ export const WA_PHONE_CSS = `
 .wa-chip:hover{background:var(--bg-hover)}
 @media (prefers-reduced-motion:reduce){.wa-device,.wa-b.new,.wa-typing i{animation:none}.wa-device,.wa-device:hover{transform:none;transition:none}}
 @media (max-width:640px){.wa-device{position:static;transform:none;width:300px;height:600px;margin:var(--s6) auto 0;animation:none}main{padding-right:var(--s4)}}
-@media (max-width:1099px) and (min-width:641px){.wa-device{position:static;transform:none;margin:var(--s6) auto 0;animation:none}}
+@media (max-width:859px) and (min-width:641px){.wa-device{position:static;transform:none;margin:var(--s6) auto 0;animation:none}}
 `;
 
 /**

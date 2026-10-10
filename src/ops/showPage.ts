@@ -119,7 +119,7 @@ main.wide { max-width:1320px; }
 export function showPage(d: ShowData, openTasks: number) {
   return layout(
     'Dwelly operations: live',
-    `<div class="stagebar"><div class="clock" id="clock">Mon 09:00<small>Dwelly operations</small></div>
+    `<div class="stagebar"><div class="clock" id="clock">&nbsp;<small>Dwelly operations</small></div>
 <div class="counters"><div class="counter"><b id="k-open">0</b><span>open cases</span></div><div class="counter ok"><b id="k-auto">0</b><span>handled, no staff time</span></div><div class="counter needs"><b id="k-people">0</b><span>needed a person</span></div><div class="counter"><b id="k-hours">0 h</b><span>staff time saved (estimate)</span></div></div></div>
 <div class="headline" id="headline" aria-live="polite"></div>
 <div class="grid" id="grid">${d.cards
@@ -149,9 +149,13 @@ const D = ${JSON.stringify(d).replace(/</g, '\\u003c')};
   const card = (c) => $('c-' + c.id);
   const head = (t) => { $('headline').textContent = t; };
   const set = (id, v) => { $(id).textContent = v; };
-  let minutes = 9 * 60, day = 0;
-  const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
-  const tick = (m) => { minutes += m; while (minutes >= 18 * 60) { minutes -= 9 * 60; day = Math.min(day + 1, 4); } set('clock', ''); $('clock').innerHTML = DAYS[day] + ' ' + String(Math.floor(minutes / 60)).padStart(2, '0') + ':' + String(minutes % 60).padStart(2, '0') + '<small>Dwelly operations</small>'; };
+  // The clock starts at the real time in London; the fast-forward runs on from there (working hours 9 to 6).
+  const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const nowLondon = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/London' }));
+  let minutes = nowLondon.getHours() * 60 + nowLondon.getMinutes(), day = nowLondon.getDay();
+  const draw = () => { $('clock').innerHTML = DAYS[day] + ' ' + String(Math.floor(minutes / 60)).padStart(2, '0') + ':' + String(minutes % 60).padStart(2, '0') + '<small>Dwelly operations</small>'; };
+  const tick = (m) => { minutes += m; while (minutes >= 18 * 60) { minutes = minutes - 18 * 60 + 9 * 60; day = (day + 1) % 7; } draw(); };
+  draw();
   let auto = 0, people = 0;
   const STAFF_MIN = 6; // estimate: one staff touch per case (read, decide, reply)
   const counters = () => { set('k-auto', auto); set('k-people', people); set('k-hours', (Math.round((auto * STAFF_MIN) / 6) / 10) + ' h'); };

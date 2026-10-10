@@ -1,5 +1,6 @@
 import { PROVENANCE, STOP, type StopReason, lastRun, needsReason, provenanceOf, stopReason } from './status.js';
 import type { HumanTask, OpsCase, OpsEvent, OpsRun } from './store.js';
+import { type Brief, fallbackBrief } from './brief.js';
 import { type PhoneMsg, WA_PHONE_CSS, WA_PHONE_JS, reallyDelivered, waPhone } from './waPhone.js';
 
 /**
@@ -138,6 +139,14 @@ table.log td, table.log th { text-align:left; vertical-align:top; padding:6px va
 table.log th { color:var(--fg-muted); font-family:var(--sans); font-weight:600; font-size:12px; }
 
 /* Decision page */
+.decide-col { max-width:640px; }
+ul.keyfacts { list-style:none; margin:var(--s4) 0 0; padding:0; }
+ul.keyfacts li { padding:6px 0; border-bottom:1px solid var(--border-subtle); }
+ul.keyfacts .src { font-size:12px; color:var(--fg-muted); white-space:nowrap; margin-left:6px; }
+p.unknown { margin-top:var(--s3); padding:var(--s2) var(--s3); background:var(--needs-bg); border:1px solid var(--needs-border); border-radius:6px; }
+p.unknown b { color:var(--needs-fg); }
+p.suggest { margin-top:var(--s2); color:var(--fg-muted); } p.suggest b { color:var(--fg); }
+details.fullbrief > summary { font-size:14px; }
 .block { margin-top:var(--s6); }
 .block > h2 { font-size:16px; line-height:24px; font-weight:600; margin-bottom:var(--s2); }
 ul.list { margin:0; padding-left:20px; max-width:70ch; } ul.list li { margin:2px 0; }
@@ -356,7 +365,7 @@ function triggers(recent?: string) {
     });
 }
 
-export function taskPage(o: { t: HumanTask; c: OpsCase; openTasks: number; error?: string; from?: string }) {
+export function taskPage(o: { t: HumanTask; c: OpsCase; openTasks: number; error?: string; from?: string; brief?: Brief }) {
   const { t, c } = o;
   const x = t.context;
   const reco = t.recommendation?.trim();
@@ -388,6 +397,7 @@ export function taskPage(o: { t: HumanTask; c: OpsCase; openTasks: number; error
             ? 'May move money, change records or affect someone’s tenancy. Hard to undo: give a reason.'
             : 'The case worker carries this out and tells the people involved.';
   const show = o.from === 'show';
+  const B = o.brief ?? fallbackBrief(t);
   const simulated = !reallyDelivered(c.id);
   const name = show ? ' value="Iona"' : '';
   // The tenant's side of the thread as the page knows it; the phone's script replaces it with the case's real WhatsApp thread.
@@ -405,9 +415,9 @@ ${options
 <div id="reason-wrap"><label class="field" for="note">Reason, and anything the agent should know</label><textarea id="note" name="note" placeholder="For example: approved up to £250; ask for photos when done."></textarea><p class="reason-hint">This option is hard to undo. Write at least a sentence on why.</p></div>
 <label class="field" for="by">Your name</label><input id="by" type="text" name="by" required autocomplete="name"${name} style="max-width:320px">
 <div class="actions-row"><button class="primary" type="submit" id="send" disabled>Choose an option</button><span class="small muted">The case worker carries it out, tells the people involved and records it on the case.</span></div></form>`;
-  const waForm = `<form class="block" id="wa-form" method="post" action="/ops/tasks/${esc(t.id)}/whatsapp${o.from ? `?from=${esc(encodeURIComponent(o.from))}` : ''}"><h2>${show ? 'Answer the tenant yourself on WhatsApp' : 'Or answer the tenant yourself on WhatsApp'}</h2>
-<p class="small muted" style="max-width:70ch">For a quick answer only you can give. ${simulated ? 'In this demo the phone on the right shows what the tenant would see; delivery is simulated and the reply is recorded on the case.' : 'It goes to the tenant in the same WhatsApp thread and is recorded on the case.'}${c.batch_id ? '' : ' The agent then picks the case back up.'}</p>
-<label class="field" for="wa">Message</label><textarea id="wa" name="text" required placeholder="Hi, …"></textarea>
+  const waForm = `<form class="block" id="wa-form" method="post" action="/ops/tasks/${esc(t.id)}/whatsapp${o.from ? `?from=${esc(encodeURIComponent(o.from))}` : ''}"><h2>Reply to the tenant on WhatsApp</h2>
+<p class="small muted" style="max-width:62ch">${B.reply ? 'Drafted by the agent from the case. Edit before sending. ' : ''}${simulated ? 'Delivery is simulated in this demo; the reply is recorded on the case.' : 'Goes to the tenant on WhatsApp and is recorded on the case.'}</p>
+<label class="field" for="wa">Message</label><textarea id="wa" name="text" required placeholder="Hi, …">${esc(B.reply ?? '')}</textarea>
 <label class="field" for="wa-by">Your name</label><input id="wa-by" type="text" name="by" required autocomplete="name"${name} style="max-width:320px">
 <div class="actions-row"><button class="secondary" type="submit">Send on WhatsApp</button></div></form>`;
   const decideJs = `<script>
@@ -427,9 +437,18 @@ ${options
   return layout(
     `Decide: ${t.question}`,
     `<div class="crumbs"><a href="/ops">Decisions</a> / <a href="/ops/cases/${esc(c.id)}">${esc(c.title)}</a></div>
-<h1 class="hero">${esc(t.question)}</h1>
-<p class="sub meta">${x.deadline ? `Decide ${esc(until(x.deadline))} (${esc(humanDate(x.deadline))}). ` : `${esc(PRIORITY[t.priority] ?? t.priority)}. `}If nobody decides, the case stays on hold. For ${esc(TEAM[t.team] ?? t.team)}, raised ${esc(ago(t.created_at))} by the ${t.run_id?.startsWith('call:') ? 'AI voice agent during a call' : 'AI case worker'}.</p>
-
+<div class="decide-col">
+<h1 class="hero">${esc(B.question)}</h1>
+<p class="sub meta">${esc(TEAM[t.team] ?? t.team)}, ${x.deadline ? `decide ${esc(until(x.deadline))}` : esc((PRIORITY[t.priority] ?? t.priority).toLowerCase())}. Until then the case stays on hold.</p>
+${B.said ? `<div class="quote" style="margin-top:var(--s4)"><span class="caption">${esc(B.said.source)}</span>
+${esc(B.said.text)}</div>` : ''}
+<ul class="keyfacts">${B.facts.map((f) => `<li>${esc(f.text)} <span class="src">${esc(f.source)}</span></li>`).join('')}</ul>
+<p class="unknown"><b>Not known yet:</b> ${esc(B.unknown)}</p>
+<p class="suggest"><b>Agent suggests:</b> ${esc(B.suggest)}</p>
+${t.status === 'open' ? (B.reply || show ? waForm + `<details class="block"><summary>Other decisions</summary>${decideForm}</details>` : decideForm + `<details class="block"><summary>Reply to the tenant on WhatsApp instead</summary>${waForm}</details>`) + decideJs : t.decision?.choice === 'Answered the tenant on WhatsApp'
+      ? `<div class="block"><h2>Answered on WhatsApp</h2><p class="muted">${esc(t.decision.by)} replied to the tenant ${esc(t.resolved_at ? ago(t.resolved_at) : '')}. ${c.batch_id ? 'Recorded on the case.' : 'Recorded on the case, and the agent has it again.'}</p>${show ? '<p style="margin-top:var(--s3)"><a class="primary" style="display:inline-block;text-decoration:none;padding:8px 16px;border-radius:6px;background:var(--accent);color:var(--surface);font-weight:600" href="/ops/show#fastforward">Back to the overview</a></p>' : `<p style="margin-top:var(--s3)"><a href="/ops/cases/${esc(c.id)}">See the case</a></p>`}</div>`
+      : `<div class="block"><h2>Decided</h2><div class="quote"><span class="caption">${esc(t.decision?.by)}, ${esc(t.resolved_at ? ago(t.resolved_at) : '')}</span>\n${esc(t.decision?.choice)}${t.decision?.note ? `\n\n${esc(t.decision.note)}` : ''}</div><p style="margin-top:var(--s3)"><a href="/ops/cases/${esc(c.id)}">See what the case worker did next</a></p></div>`}
+<details class="block fullbrief"><summary>Full brief: evidence, what was done, the case history</summary>
 <div class="block"><h2>Why this came to you</h2>
 ${x.case_state ? `<p style="max-width:70ch">${esc(x.case_state)}</p>` : ''}
 ${trigger ? `<div class="quote"><span class="caption">${esc([trigger.from, trigger.channel, trigger.head].filter(Boolean).join(', '))}</span>\n${esc(trigger.text.slice(0, 1200))}</div>` : ''}
@@ -450,9 +469,8 @@ ${cannot.length ? `<div><h3>Could not check: your knowledge needed</h3><ul class
 
 ${reco ? `<div class="reco"><div class="caption">Agent recommends</div><p style="margin-top:var(--s1)">${esc(reco)}</p><p class="small muted" style="margin-top:var(--s2)">The agent can be wrong. Check it against the evidence above before you choose.</p></div>` : `<div class="reco"><div class="caption">Needs your judgement</div><p class="small muted" style="margin-top:var(--s1)">The agent did not have enough to recommend an option.</p></div>`}
 
-${t.status === 'open' ? (show ? waForm + `<details class="block"><summary>Or make a different decision</summary>${decideForm}</details>` : decideForm + waForm) + decideJs : t.decision?.choice === 'Answered the tenant on WhatsApp'
-      ? `<div class="block"><h2>Answered on WhatsApp</h2><p class="muted">${esc(t.decision.by)} replied to the tenant ${esc(t.resolved_at ? ago(t.resolved_at) : '')}. ${c.batch_id ? 'Recorded on the case.' : 'Recorded on the case, and the agent has it again.'}</p>${show ? '<p style="margin-top:var(--s3)"><a class="primary" style="display:inline-block;text-decoration:none;padding:8px 16px;border-radius:6px;background:var(--accent);color:var(--surface);font-weight:600" href="/ops/show#fastforward">Back to the overview</a></p>' : `<p style="margin-top:var(--s3)"><a href="/ops/cases/${esc(c.id)}">See the case</a></p>`}</div>`
-      : `<div class="block"><h2>Decided</h2><div class="quote"><span class="caption">${esc(t.decision?.by)}, ${esc(t.resolved_at ? ago(t.resolved_at) : '')}</span>\n${esc(t.decision?.choice)}${t.decision?.note ? `\n\n${esc(t.decision.note)}` : ''}</div><p style="margin-top:var(--s3)"><a href="/ops/cases/${esc(c.id)}">See what the case worker did next</a></p></div>`}
+</details>
+</div>
 ${waPhone({ taskId: t.id, initial: phoneInitial, simulated })}
 <script>${WA_PHONE_JS}</script>`,
     { openTasks: o.openTasks, current: 'decisions', css: WA_PHONE_CSS },
