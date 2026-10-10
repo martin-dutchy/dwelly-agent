@@ -1,0 +1,312 @@
+{
+  "id": "002-quote-approval",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "cutoff": 17,
+  "totalEvents": 49,
+  "inputs": [
+    {
+      "name": "history.md",
+      "method": "derived",
+      "bytes": 5965,
+      "chars": 5931,
+      "note": "events 1–17 of 49 from history.md"
+    }
+  ],
+  "withheld": [
+    {
+      "name": "history.md",
+      "reason": "events 18–49 come after the decision point"
+    },
+    {
+      "name": "index.md",
+      "reason": "sections that reveal the ending: Overview, Outcome, Next action at escalation, History, Attachments"
+    },
+    {
+      "name": "checks.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    },
+    {
+      "name": "rubric.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    }
+  ],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Stage: result (needs_quote). Provider visited and sent a quote; agency asked landlord to approve at event 017 (no reply yet). Ticket on hold, review 2026-08-14. Quote figure and photos unseen.",
+    "next_actions": [
+      {
+        "type": "WAIT",
+        "action": "Hold for landlord approval of the quote; chase on a second channel on 2026-08-14 if no reply",
+        "recipient": "Quinn, landlord",
+        "channel": "internal",
+        "ledger_id": "A5"
+      },
+      {
+        "type": "REQUEST_INFORMATION",
+        "action": "Ask Riverside Works to resend quote (amount, VAT, scope), photos and report in readable form, and not to start before approval",
+        "recipient": "Riverside Works, contractor",
+        "channel": "email",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Update tenant: quote with landlord, no work until agreed, next update by 14 Aug",
+        "recipient": "Noah Turner, tenant",
+        "channel": "email",
+        "ledger_id": "A3"
+      }
+    ],
+    "boundaries": [
+      "Nothing here approves the quote or any spend.",
+      "Quote amount, scope and photos have not been seen, so none is recorded.",
+      "No repair date is booked."
+    ],
+    "remaining_work": [
+      "Landlord decision on quote (owner: landlord; agency chases 14 Aug)",
+      "Provider to resend readable quote; then record_quote",
+      "After approval, approve_quote, arrange the works visit, invoice and close"
+    ],
+    "missing_info": [
+      "Quote amount, VAT status and scope (attachments unavailable)",
+      "Visit photos and report"
+    ],
+    "outcome": "action_taken",
+    "severity": "urgent",
+    "summary": "Riverside Works attended and reported the toilet needs replacing, with a quote. The quote went to the landlord at event 017 but its attachments were unavailable to us. I recorded the result, asked the provider to resend the quote, updated the tenant, and set a hold and follow-up for 14 Aug.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "The visit has happened and the result is that a quote is needed. The quote is with the landlord for approval with no reply yet. Outstanding: the landlord's decision, a readable quote and photos from the provider, and the works themselves."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Wait for landlord approval, with a chase on 14 Aug. Email Riverside Works for a readable quote. Email the tenant an update."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "No. The landlord's approval is pending and routine chasing covers it. Escalate only if the landlord stays silent after the chase on a second channel."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Recorded needs_quote work result"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Asked provider for readable quote, photos and report"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Updated tenant"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Put on hold, review 2026-08-14"
+      },
+      {
+        "ledger_id": "A5",
+        "description": "Scheduled landlord chase 2026-08-14"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Visit date: event 009 says the next day (09/08), while events 010–013 say 08/08 and call it 'tomorrow'. The provider confirmed attendance at the scheduled appointment, so the date no longer matters."
+    ],
+    "assumptions": [
+      "Tenant email is on file, though not shown in the case.",
+      "The landlord was already told of the quote at event 017, so I did not resend it."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "record_work_result",
+      "args": {
+        "ticket_ref": "NBL-002-quote-approval",
+        "outcome": "needs_quote",
+        "evidence": "Riverside Works email (event 016, 2026-08-12): engineer attended; toilet needs repiping, risk of damage on removal due to rusted screws; quote for new toilet and cistern and images referenced but not seen (attachments unavailable)."
+      },
+      "key": "record_work_result:{evidence:\"Riverside Works email (event 016, 2026-08-12): engineer attended; toilet needs repiping, risk of damage on removal due to rusted screws; quote for new toilet and cistern and images referenced but not seen (attachments unavailable).\",outcome:\"needs_quote\",ticket_ref:\"NBL-002-quote-approval\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-002-quote-approval",
+      "evidence": [
+        "Ticket NBL-002-quote-approval read back after record_work_result"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "request_information",
+      "args": {
+        "recipient_name": "Riverside Works",
+        "recipient_role": "contractor",
+        "channel": "email",
+        "contact": "existing thread (event 016 email)",
+        "questions": [
+          "Please resend the quote as a PDF or plain text, stating the amount, whether VAT is included, and the scope (new toilet, cistern, repiping).",
+          "Please resend the photos and report from the visit, as the attachments did not reach us.",
+          "Please give an estimated completion time once approved."
+        ],
+        "why": "The quote, photos and report attachments were unavailable to us, so we cannot record the figure. Please do not start work until we confirm approval."
+      },
+      "key": "request_information:{channel:\"email\",contact:\"existing thread (event 016 email)\",questions:[\"Please resend the quote as a PDF or plain text, stating the amount, whether VAT is included, and the scope (new toilet, cistern, repiping).\",\"Please resend the photos and report from the visit, as the attachments did not reach us.\",\"Please give an estimated completion time once approved.\"],recipient_name:\"Riverside Works\",recipient_role:\"contractor\",why:\"The quote, photos and report attachments were unavailable to us, so we cannot record the figure. Please do not start work until we confirm approval.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "REQ-101",
+      "evidence": [
+        "REQ-101 found in the request_information log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Noah Turner",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "tenant email on file",
+        "ticket_ref": "NBL-002-quote-approval",
+        "body": "Dear Noah, thank you for your patience. Riverside Works have visited and say the toilet needs replacing, so they have sent a quote. We have passed it to your landlord for approval and will not start work until it is agreed. We will update you by 14 August at the latest. If the toilet is your only one and you have any difficulty, please let us know."
+      },
+      "key": "send_message:{body:\"Dear Noah, thank you for your patience. Riverside Works have visited and say the toilet needs replacing, so they have sent a quote. We have passed it to your landlord for approval and will not start work until it is agreed. We will update you by 14 August at the latest. If the toilet is your only one and you have any difficulty, please let us know.\",channel:\"email\",contact:\"tenant email on file\",recipient_name:\"Noah Turner\",recipient_role:\"tenant\",ticket_ref:\"NBL-002-quote-approval\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-102",
+      "evidence": [
+        "MSG-102 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "put_on_hold",
+      "args": {
+        "ticket_ref": "NBL-002-quote-approval",
+        "reason": "Waiting for Landlord",
+        "comment": "Quote sent to landlord event 017; awaiting approval. Also awaiting readable quote figure from Riverside Works.",
+        "review_on": "2026-08-14"
+      },
+      "key": "put_on_hold:{comment:\"Quote sent to landlord event 017; awaiting approval. Also awaiting readable quote figure from Riverside Works.\",reason:\"Waiting for Landlord\",review_on:\"2026-08-14\",ticket_ref:\"NBL-002-quote-approval\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-002-quote-approval",
+      "evidence": [
+        "Ticket NBL-002-quote-approval read back after put_on_hold"
+      ]
+    },
+    {
+      "id": "A5",
+      "tool": "schedule_follow_up",
+      "args": {
+        "ticket_ref": "NBL-002-quote-approval",
+        "due_on": "2026-08-14",
+        "party": "Landlord (Quinn)",
+        "purpose": "Chase landlord approval of quote on second channel (SMS/phone) if no reply; confirm quote figure received from provider."
+      },
+      "key": "schedule_follow_up:{due_on:\"2026-08-14\",party:\"Landlord (Quinn)\",purpose:\"Chase landlord approval of quote on second channel (SMS/phone) if no reply; confirm quote figure received from provider.\",ticket_ref:\"NBL-002-quote-approval\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "FUP-103",
+      "evidence": [
+        "FUP-103 found in the schedule_follow_up log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-002-quote-approval",
+        "stage": "result",
+        "property": "Flat 3, 15 Willowmere Road, Alderwick, ZZ3 2ZZ",
+        "description": "Toilet need to be removed to clear blockage. Run block lodged by pan connector.",
+        "landlord_approval": "confirmed",
+        "work_result": {
+          "outcome": "needs_quote",
+          "evidence": "Riverside Works email (event 016, 2026-08-12): engineer attended; toilet needs repiping, risk of damage on removal due to rusted screws; quote for new toilet and cistern and images referenced but not seen (attachments unavailable)."
+        },
+        "hold": {
+          "reason": "Waiting for Landlord",
+          "comment": "Quote sent to landlord event 017; awaiting approval. Also awaiting readable quote figure from Riverside Works.",
+          "review_on": "2026-08-14"
+        },
+        "mode": "manual"
+      }
+    ],
+    "records": [
+      {
+        "id": "REQ-101",
+        "tool": "request_information",
+        "args": {
+          "recipient_name": "Riverside Works",
+          "recipient_role": "contractor",
+          "channel": "email",
+          "contact": "existing thread (event 016 email)",
+          "questions": [
+            "Please resend the quote as a PDF or plain text, stating the amount, whether VAT is included, and the scope (new toilet, cistern, repiping).",
+            "Please resend the photos and report from the visit, as the attachments did not reach us.",
+            "Please give an estimated completion time once approved."
+          ],
+          "why": "The quote, photos and report attachments were unavailable to us, so we cannot record the figure. Please do not start work until we confirm approval."
+        },
+        "at": 1791638602178
+      },
+      {
+        "id": "MSG-102",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Noah Turner",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "tenant email on file",
+          "body": "Dear Noah, thank you for your patience. Riverside Works have visited and say the toilet needs replacing, so they have sent a quote. We have passed it to your landlord for approval and will not start work until it is agreed. We will update you by 14 August at the latest. If the toilet is your only one and you have any difficulty, please let us know.",
+          "ticket_ref": "NBL-002-quote-approval"
+        },
+        "at": 1791638602179
+      },
+      {
+        "id": "FUP-103",
+        "tool": "schedule_follow_up",
+        "args": {
+          "ticket_ref": "NBL-002-quote-approval",
+          "due_on": "2026-08-14",
+          "party": "Landlord (Quinn)",
+          "purpose": "Chase landlord approval of quote on second channel (SMS/phone) if no reply; confirm quote figure received from provider."
+        },
+        "at": 1791638602179
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 3, 15 Willowmere Road, Alderwick, ZZ3 2ZZ",
+        "landlord": {
+          "contact": "agency landlord record",
+          "notes": [
+            "Contact details are held in the agency system and not shown in this case file; messages to the landlord go through it. Use contact \"agency landlord record\".",
+            "Landlord messages visible in this case: event 017 (email, to landlord)."
+          ]
+        }
+      }
+    ]
+  },
+  "usage": {
+    "input": 10,
+    "output": 2819,
+    "cost": 0.0519178,
+    "turns": 4,
+    "durationMs": 21875,
+    "retries": 0,
+    "thinkingTokens": 111
+  }
+}

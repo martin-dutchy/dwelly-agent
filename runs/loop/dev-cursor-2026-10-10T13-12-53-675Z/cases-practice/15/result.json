@@ -1,0 +1,233 @@
+{
+  "id": "15",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "inputs": [
+    {
+      "name": "inputs/call_transcript.txt",
+      "method": "text",
+      "bytes": 390,
+      "chars": 390
+    },
+    {
+      "name": "inputs/caller_metadata.json",
+      "method": "text",
+      "bytes": 35,
+      "chars": 35
+    },
+    {
+      "name": "inputs/crm.json",
+      "method": "text",
+      "bytes": 762,
+      "chars": 762
+    },
+    {
+      "name": "inputs/fixflo_export.csv",
+      "method": "text",
+      "bytes": 174,
+      "chars": 174
+    }
+  ],
+  "withheld": [
+    {
+      "name": "checks.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    },
+    {
+      "name": "rubric.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    },
+    {
+      "name": "tool_failures.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    }
+  ],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Call handled. Caller verified against CRM. Tenancy and deposit details sent to the CRM email. Legacy conflict noted. Nothing outstanding with the tenant. She may send written notice if she decides to move.",
+    "next_actions": [
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Emailed tenancy basics and deposit details to the email on file, not to the caller's work phone",
+        "recipient": "Priya Shah, tenant",
+        "channel": "email",
+        "ledger_id": "A3"
+      },
+      {
+        "type": "OTHER",
+        "action": "Noted the legacy Fixflo conflict on P-203 for data cleanup",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A2"
+      }
+    ],
+    "boundaries": [
+      "Nothing here ends the tenancy; she has not served notice.",
+      "Verification relied on name plus DOB only; the caller ID does not match any number on file.",
+      "The CRM phone was not updated and the legacy row was not deleted."
+    ],
+    "remaining_work": [
+      "Data team to retire or archive the legacy Fixflo Flat 9 row (P. Shah-Mehta, ended 2025-11-30).",
+      "Ask Priya whether to add the work number to her record, if she wants that."
+    ],
+    "missing_info": [],
+    "outcome": "action_taken",
+    "severity": "n/a",
+    "summary": "Priya Shah called asking when her tenancy ends and what deposit we hold. Name and DOB match the current CRM, so she is verified. The legacy Fixflo row is a previous occupant. I logged the call, noted the conflict, and emailed her the details at the address on file.",
+    "answers": [
+      {
+        "question": "Which record do you treat as authoritative and why?",
+        "answer": "The current CRM (T-1003). It is the highest in the source priority and is current, with a 2026-01-10 start that fits the legacy tenant leaving on 2025-11-30. The Fixflo export is an unmaintained legacy import."
+      },
+      {
+        "question": "Is the caller verified? What can you tell her?",
+        "answer": "Yes. Her name and DOB (21 July 1998) match the CRM. The caller ID differs, but she said she was on her work phone, and caller ID is only a hint. I told her the tenancy is periodic with no fixed end date, that she needs 2 months' written notice to leave, and that the deposit is £1,903 with the DPS. I sent this to the email on file, not to the work phone."
+      },
+      {
+        "question": "What do you do about the conflicting records?",
+        "answer": "I added a note on P-203 saying the legacy Flat 9 row (P. Shah-Mehta, ended) is the previous occupant and that the CRM prevails. I did not change the CRM or the phone number on file. The row is flagged for cleanup. No escalation was needed."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Logged inbound call"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Added note on the record conflict"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Emailed tenancy and deposit info to tenant at email on file"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Fixflo export: Flat 9 tenant is P. Shah-Mehta, ended 2025-11-30. CRM: Priya Shah, active since 2026-01-10. Trusted the CRM.",
+      "Caller ID +447700900177 matches neither the CRM phone (+447700900103) nor the legacy phone (+447700900166). Explained by the work-phone remark and not treated as a mismatch."
+    ],
+    "assumptions": [
+      "The agent's DOB question, with a matching answer, counts as verification under the policy. The verify_identity and find_tenant tools were not available in this run.",
+      "The tenancy is assured periodic under the Renters' Rights Act."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "log_call",
+      "args": {
+        "party_name": "Priya Shah",
+        "party_role": "tenant",
+        "direction": "inbound",
+        "outcome": "connected",
+        "summary": "Caller gave name Priya Shah, Flat 9, 3 Amhurst Road, and DOB 21 July 1998, matching CRM T-1003. Caller ID +447700900177 matches neither CRM phone nor legacy phone; she said she was on her work phone. Asked when tenancy ends and deposit held; thinking of moving. Legacy Fixflo shows a different, ended tenant (P. Shah-Mehta) for the same flat; CRM treated as authoritative."
+      },
+      "key": "log_call:{direction:\"inbound\",outcome:\"connected\",party_name:\"Priya Shah\",party_role:\"tenant\",summary:\"Caller gave name Priya Shah, Flat 9, 3 Amhurst Road, and DOB 21 July 1998, matching CRM T-1003. Caller ID +447700900177 matches neither CRM phone nor legacy phone; she said she was on her work phone. Asked when tenancy ends and deposit held; thinking of moving. Legacy Fixflo shows a different, ended tenant (P. Shah-Mehta) for the same flat; CRM treated as authoritative.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "CALL-101",
+      "evidence": [
+        "CALL-101 found in the log_call log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "add_note",
+      "args": {
+        "entity": "P-203",
+        "note": "Record conflict: legacy Fixflo export (Amhurst Lettings import, unmaintained) lists Flat 9 tenant as P. Shah-Mehta, +447700900166, ended 2025-11-30. Current CRM has Priya Shah (T-1003), active, tenancy start 2026-01-10. Treating CRM as authoritative (source priority: CRM, signed docs, legacy). Legacy row appears to be the previous occupant; to be cleaned up. Caller of 2026-10-10 verified by name+DOB against CRM; CRM phone not changed (caller used work phone +447700900177)."
+      },
+      "key": "add_note:{entity:\"P-203\",note:\"Record conflict: legacy Fixflo export (Amhurst Lettings import, unmaintained) lists Flat 9 tenant as P. Shah-Mehta, +447700900166, ended 2025-11-30. Current CRM has Priya Shah (T-1003), active, tenancy start 2026-01-10. Treating CRM as authoritative (source priority: CRM, signed docs, legacy). Legacy row appears to be the previous occupant; to be cleaned up. Caller of 2026-10-10 verified by name+DOB against CRM; CRM phone not changed (caller used work phone +447700900177).\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NOTE-102",
+      "evidence": [
+        "NOTE-102 found in the add_note log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Priya Shah",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "priya.shah@mailbox.example",
+        "body": "Hi Priya, thanks for calling today. As promised, here is what we hold: your tenancy at Flat 9, 3 Amhurst Road has no fixed end date (it rolls on month to month). If you decide to move, you give us 2 months' written notice; a shorter period only applies if your landlord agrees in writing. Your deposit on record is £1,903, protected with the DPS. Please send any notice in writing and we'll confirm receipt. If you didn't make this call, please let us know."
+      },
+      "key": "send_message:{body:\"Hi Priya, thanks for calling today. As promised, here is what we hold: your tenancy at Flat 9, 3 Amhurst Road has no fixed end date (it rolls on month to month). If you decide to move, you give us 2 months' written notice; a shorter period only applies if your landlord agrees in writing. Your deposit on record is £1,903, protected with the DPS. Please send any notice in writing and we'll confirm receipt. If you didn't make this call, please let us know.\",channel:\"email\",contact:\"priya.shah@mailbox.example\",recipient_name:\"Priya Shah\",recipient_role:\"tenant\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-103",
+      "evidence": [
+        "MSG-103 found in the send_message log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [],
+    "records": [
+      {
+        "id": "CALL-101",
+        "tool": "log_call",
+        "args": {
+          "party_name": "Priya Shah",
+          "party_role": "tenant",
+          "direction": "inbound",
+          "outcome": "connected",
+          "summary": "Caller gave name Priya Shah, Flat 9, 3 Amhurst Road, and DOB 21 July 1998, matching CRM T-1003. Caller ID +447700900177 matches neither CRM phone nor legacy phone; she said she was on her work phone. Asked when tenancy ends and deposit held; thinking of moving. Legacy Fixflo shows a different, ended tenant (P. Shah-Mehta) for the same flat; CRM treated as authoritative."
+        },
+        "at": 1791638011641
+      },
+      {
+        "id": "NOTE-102",
+        "tool": "add_note",
+        "args": {
+          "entity": "P-203",
+          "note": "Record conflict: legacy Fixflo export (Amhurst Lettings import, unmaintained) lists Flat 9 tenant as P. Shah-Mehta, +447700900166, ended 2025-11-30. Current CRM has Priya Shah (T-1003), active, tenancy start 2026-01-10. Treating CRM as authoritative (source priority: CRM, signed docs, legacy). Legacy row appears to be the previous occupant; to be cleaned up. Caller of 2026-10-10 verified by name+DOB against CRM; CRM phone not changed (caller used work phone +447700900177)."
+        },
+        "at": 1791638011642
+      },
+      {
+        "id": "MSG-103",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Priya Shah",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "priya.shah@mailbox.example",
+          "body": "Hi Priya, thanks for calling today. As promised, here is what we hold: your tenancy at Flat 9, 3 Amhurst Road has no fixed end date (it rolls on month to month). If you decide to move, you give us 2 months' written notice; a shorter period only applies if your landlord agrees in writing. Your deposit on record is £1,903, protected with the DPS. Please send any notice in writing and we'll confirm receipt. If you didn't make this call, please let us know."
+        },
+        "at": 1791638011643
+      }
+    ],
+    "properties": [
+      {
+        "id": "P-203",
+        "address": "Flat 9, 3 Amhurst Road, London E8 2AU",
+        "tenanted": true
+      }
+    ]
+  },
+  "usage": {
+    "input": 6,
+    "output": 2904,
+    "cost": 0.0439005,
+    "turns": 2,
+    "durationMs": 20795,
+    "retries": 0,
+    "thinkingTokens": 547
+  }
+}

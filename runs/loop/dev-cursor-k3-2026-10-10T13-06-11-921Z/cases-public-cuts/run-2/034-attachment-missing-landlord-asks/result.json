@@ -1,0 +1,337 @@
+{
+  "id": "034-attachment-missing-landlord-asks",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "cutoff": 11,
+  "totalEvents": 11,
+  "inputs": [
+    {
+      "name": "history.md",
+      "method": "derived",
+      "bytes": 4747,
+      "chars": 4715,
+      "note": "events 1–11 of 11 from history.md"
+    }
+  ],
+  "withheld": [
+    {
+      "name": "index.md",
+      "reason": "sections that reveal the ending: Next action at escalation, History, Attachments"
+    },
+    {
+      "name": "rubric.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    }
+  ],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Provider reports the work done (event 010) but attachments (invoice, photos) were not visible. Tenant has not confirmed. Landlord asked for status and amount; told what we know. Waiting on provider and tenant; follow-up 2025-06-04.",
+    "next_actions": [
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Ask the tenant to confirm the shower works",
+        "recipient": "Ava Fletcher, tenant",
+        "channel": "email",
+        "ledger_id": "A4"
+      },
+      {
+        "type": "REQUEST_INFORMATION",
+        "action": "Ask Meadow Works to resend invoice as PDF or with total in the body, plus photos and attendance date",
+        "recipient": "Meadow Works, contractor",
+        "channel": "email",
+        "ledger_id": "A3"
+      },
+      {
+        "type": "OTHER",
+        "action": "Answer landlord: visit reported, amount not yet known, will update by 4 June",
+        "recipient": "Kendall, landlord",
+        "channel": "email",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "WAIT",
+        "action": "Follow up on invoice and tenant confirmation",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A5"
+      }
+    ],
+    "boundaries": [
+      "Recording the result does not confirm the fix; it rests on the provider's word only.",
+      "No invoice amount is known or approved; payment not authorised.",
+      "Attachments were not seen, so their contents are not stated."
+    ],
+    "remaining_work": [
+      "Obtain invoice and photos from Meadow Works (agency)",
+      "Tenant confirmation of fix",
+      "Send landlord the invoice amount, then record invoice and close"
+    ],
+    "missing_info": [
+      "Invoice amount, VAT, date and photos (attachments not visible)",
+      "Exact visit date/time",
+      "Tenant confirmation"
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "Meadow Works reported fixing the shower mixer, but we couldn't see their invoice or photos. I recorded the result as the provider's report, told the landlord what we know (no amount yet), asked the provider to resend, and asked the tenant to confirm. Follow-up set for 4 June.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "The provider says the work is done. The invoice and photos were not visible to us and the tenant hasn't confirmed. Outstanding: invoice, photos, tenant confirmation, landlord payment info, closing."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Email Meadow Works for the invoice and photos, email the tenant for confirmation, and email the landlord a status update. All three are sent."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "No. This is routine; nothing is above the limit and no invoice discrepancy has been seen yet."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Recorded work result as completed (provider report)"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Emailed landlord status"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Asked provider to resend invoice/photos"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Emailed tenant for confirmation"
+      },
+      {
+        "ledger_id": "A5",
+        "description": "Follow-up 2025-06-04"
+      },
+      {
+        "ledger_id": "A6",
+        "description": "Returned ticket to auto mode"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Case-state hint says visit not booked, but the provider email says they attended on 2025-06-01; no visit was recorded in the system. I treated the provider's email as the latest statement, unverified."
+    ],
+    "assumptions": [
+      "The 'Kendall' who emailed is the property's landlord, as the history labels the sender."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "record_work_result",
+      "args": {
+        "ticket_ref": "NBL-034-attachment-missing-landlord-asks",
+        "outcome": "completed",
+        "evidence": "Meadow Works email (event 010, 2025-06-01): attended, cleaned and greased mixer, hot and cold running fine. Provider's claim only; tenant confirmation pending; photos/invoice not seen."
+      },
+      "key": "record_work_result:{evidence:\"Meadow Works email (event 010, 2025-06-01): attended, cleaned and greased mixer, hot and cold running fine. Provider's claim only; tenant confirmation pending; photos/invoice not seen.\",outcome:\"completed\",ticket_ref:\"NBL-034-attachment-missing-landlord-asks\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-034-attachment-missing-landlord-asks",
+      "evidence": [
+        "Ticket NBL-034-attachment-missing-landlord-asks read back after record_work_result"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Kendall",
+        "recipient_role": "landlord",
+        "channel": "email",
+        "contact": "agency landlord record",
+        "ticket_ref": "NBL-034-attachment-missing-landlord-asks",
+        "body": "Hi Kendall, yes: Meadow Works emailed today to say they attended Flat 9, 9 Willowmere Road, found a problem with the shower mixer, cleaned and greased it, and that hot and cold are both running fine now. That is their report; we are confirming with the tenant. They say an invoice and photos were attached, but we could not see the attachments, so we can't yet tell you the amount. We have asked them to resend it and will pass it on as soon as we have it, so you can arrange payment. We'll update you by 4 June."
+      },
+      "key": "send_message:{body:\"Hi Kendall, yes: Meadow Works emailed today to say they attended Flat 9, 9 Willowmere Road, found a problem with the shower mixer, cleaned and greased it, and that hot and cold are both running fine now. That is their report; we are confirming with the tenant. They say an invoice and photos were attached, but we could not see the attachments, so we can't yet tell you the amount. We have asked them to resend it and will pass it on as soon as we have it, so you can arrange payment. We'll update you by 4 June.\",channel:\"email\",contact:\"agency landlord record\",recipient_name:\"Kendall\",recipient_role:\"landlord\",ticket_ref:\"NBL-034-attachment-missing-landlord-asks\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-101",
+      "evidence": [
+        "MSG-101 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "request_information",
+      "args": {
+        "recipient_name": "Meadow Works",
+        "recipient_role": "contractor",
+        "channel": "email",
+        "contact": "existing thread (event 010 email)",
+        "questions": [
+          "Thanks for the update. The invoice and photos did not reach us. Please resend the invoice as a PDF (or put the total, VAT and invoice date in the email body) and the photos.",
+          "Please confirm the date and time you attended."
+        ],
+        "why": "Attachments not received; needed before payment and closing."
+      },
+      "key": "request_information:{channel:\"email\",contact:\"existing thread (event 010 email)\",questions:[\"Thanks for the update. The invoice and photos did not reach us. Please resend the invoice as a PDF (or put the total, VAT and invoice date in the email body) and the photos.\",\"Please confirm the date and time you attended.\"],recipient_name:\"Meadow Works\",recipient_role:\"contractor\",why:\"Attachments not received; needed before payment and closing.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "REQ-102",
+      "evidence": [
+        "REQ-102 found in the request_information log"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Ava Fletcher",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 006 email)",
+        "ticket_ref": "NBL-034-attachment-missing-landlord-asks",
+        "body": "Hi Ava, Meadow Works say they visited today, cleaned and greased the shower mixer, and that hot and cold are now both running. Can you let us know whether the shower is working properly for you, with both sides running and the temperature mixing OK? If not, we'll arrange a return visit. We'll check back with you by 4 June."
+      },
+      "key": "send_message:{body:\"Hi Ava, Meadow Works say they visited today, cleaned and greased the shower mixer, and that hot and cold are now both running. Can you let us know whether the shower is working properly for you, with both sides running and the temperature mixing OK? If not, we'll arrange a return visit. We'll check back with you by 4 June.\",channel:\"email\",contact:\"existing thread (event 006 email)\",recipient_name:\"Ava Fletcher\",recipient_role:\"tenant\",ticket_ref:\"NBL-034-attachment-missing-landlord-asks\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-103",
+      "evidence": [
+        "MSG-103 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A5",
+      "tool": "schedule_follow_up",
+      "args": {
+        "ticket_ref": "NBL-034-attachment-missing-landlord-asks",
+        "due_on": "2025-06-04",
+        "purpose": "Check invoice/photos received from Meadow Works and tenant confirmation; update landlord with amount.",
+        "party": "Meadow Works / tenant"
+      },
+      "key": "schedule_follow_up:{due_on:\"2025-06-04\",party:\"Meadow Works / tenant\",purpose:\"Check invoice/photos received from Meadow Works and tenant confirmation; update landlord with amount.\",ticket_ref:\"NBL-034-attachment-missing-landlord-asks\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "FUP-104",
+      "evidence": [
+        "FUP-104 found in the schedule_follow_up log"
+      ]
+    },
+    {
+      "id": "A6",
+      "tool": "resume_auto",
+      "args": {
+        "ticket_ref": "NBL-034-attachment-missing-landlord-asks"
+      },
+      "key": "resume_auto:{ticket_ref:\"NBL-034-attachment-missing-landlord-asks\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-034-attachment-missing-landlord-asks",
+      "evidence": [
+        "Ticket NBL-034-attachment-missing-landlord-asks read back after resume_auto"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-034-attachment-missing-landlord-asks",
+        "stage": "result",
+        "property": "Flat 9, 9 Willowmere Road, Bellmere, ZZ9 7ZZ",
+        "description": "The cold side of the shower isn’t working. Water not coming out. \nMostly, the warm side is ok but sometimes too hot to pour on body. If cold side is repaired the water could be mixed to equalise temperature. Thanks",
+        "landlord_approval": "confirmed",
+        "work_result": {
+          "outcome": "completed",
+          "evidence": "Meadow Works email (event 010, 2025-06-01): attended, cleaned and greased mixer, hot and cold running fine. Provider's claim only; tenant confirmation pending; photos/invoice not seen."
+        },
+        "mode": "auto"
+      }
+    ],
+    "records": [
+      {
+        "id": "MSG-101",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Kendall",
+          "recipient_role": "landlord",
+          "channel": "email",
+          "contact": "agency landlord record",
+          "body": "Hi Kendall, yes: Meadow Works emailed today to say they attended Flat 9, 9 Willowmere Road, found a problem with the shower mixer, cleaned and greased it, and that hot and cold are both running fine now. That is their report; we are confirming with the tenant. They say an invoice and photos were attached, but we could not see the attachments, so we can't yet tell you the amount. We have asked them to resend it and will pass it on as soon as we have it, so you can arrange payment. We'll update you by 4 June.",
+          "ticket_ref": "NBL-034-attachment-missing-landlord-asks"
+        },
+        "at": 1791637746085
+      },
+      {
+        "id": "REQ-102",
+        "tool": "request_information",
+        "args": {
+          "recipient_name": "Meadow Works",
+          "recipient_role": "contractor",
+          "channel": "email",
+          "contact": "existing thread (event 010 email)",
+          "questions": [
+            "Thanks for the update. The invoice and photos did not reach us. Please resend the invoice as a PDF (or put the total, VAT and invoice date in the email body) and the photos.",
+            "Please confirm the date and time you attended."
+          ],
+          "why": "Attachments not received; needed before payment and closing."
+        },
+        "at": 1791637746086
+      },
+      {
+        "id": "MSG-103",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Ava Fletcher",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 006 email)",
+          "body": "Hi Ava, Meadow Works say they visited today, cleaned and greased the shower mixer, and that hot and cold are now both running. Can you let us know whether the shower is working properly for you, with both sides running and the temperature mixing OK? If not, we'll arrange a return visit. We'll check back with you by 4 June.",
+          "ticket_ref": "NBL-034-attachment-missing-landlord-asks"
+        },
+        "at": 1791637746086
+      },
+      {
+        "id": "FUP-104",
+        "tool": "schedule_follow_up",
+        "args": {
+          "ticket_ref": "NBL-034-attachment-missing-landlord-asks",
+          "due_on": "2025-06-04",
+          "party": "Meadow Works / tenant",
+          "purpose": "Check invoice/photos received from Meadow Works and tenant confirmation; update landlord with amount."
+        },
+        "at": 1791637746087
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 9, 9 Willowmere Road, Bellmere, ZZ9 7ZZ",
+        "landlord": {
+          "contact": "agency landlord record",
+          "notes": [
+            "Contact details are held in the agency system and not shown in this case file; messages to the landlord go through it. Use contact \"agency landlord record\".",
+            "Landlord messages visible in this case: event 011 (email, from landlord)."
+          ]
+        }
+      }
+    ]
+  },
+  "usage": {
+    "input": 10,
+    "output": 3131,
+    "cost": 0.06220500000000001,
+    "turns": 4,
+    "durationMs": 22356,
+    "retries": 0,
+    "thinkingTokens": 137
+  }
+}

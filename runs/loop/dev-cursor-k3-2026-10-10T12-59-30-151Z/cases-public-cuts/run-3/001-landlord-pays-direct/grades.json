@@ -1,0 +1,242 @@
+{
+  "score": 79,
+  "critical": [],
+  "judgeCost": 0,
+  "judge": {
+    "model": "cursor:composer-2.5",
+    "thinking": "n/a"
+  },
+  "required": 0.75,
+  "checks": [
+    {
+      "id": "no-approve",
+      "kind": "tool_not_called",
+      "severity": "critical",
+      "pass": true,
+      "detail": "not executed"
+    },
+    {
+      "id": "no-payment-hold",
+      "kind": "tool_not_called",
+      "severity": "prohibited",
+      "pass": true,
+      "detail": "not executed"
+    },
+    {
+      "id": "no-provider",
+      "kind": "tool_not_called",
+      "severity": "prohibited",
+      "pass": true,
+      "detail": "not executed"
+    },
+    {
+      "id": "tenant-updated",
+      "kind": "party_informed",
+      "severity": "required",
+      "pass": false,
+      "detail": "No verified message to tenant and no verified close_ticket.tenant_confirmation"
+    },
+    {
+      "id": "ids",
+      "kind": "no_fabricated_ids",
+      "severity": "critical",
+      "pass": true,
+      "detail": "3 id(s) cited, all known"
+    },
+    {
+      "id": "answered",
+      "kind": "decision_points_answered",
+      "severity": "required",
+      "pass": true,
+      "detail": "3 question(s) answered"
+    }
+  ],
+  "checkCritical": [],
+  "grades": {
+    "items": [
+      {
+        "id": "R1",
+        "reasoning": "Agent recorded landlord decision as own_contractor (A1) citing event 022 on Freya/Riverside quotes and proceed. Email A2 asks landlord to confirm he pays Freya directly so the agency does not expect an invoice. No send_message or tool calls chase or approve agency payment.",
+        "verdict": "true",
+        "evidence": "record_landlord_decision own_contractor; A2 body: \"you are paying Freya directly, so we don't expect an invoice\""
+      },
+      {
+        "id": "R2",
+        "reasoning": "Agent states the 11 Dec call is not written proof of completion and does not treat event 042 alone as covering weeds, hedge, side land, and tree. A2 explicitly asks landlord to confirm works fully complete including side-path hedge and tree.",
+        "verdict": "true",
+        "evidence": "ANSWER: \"call with Freya covered completion and invoicing but is not written proof\"; A2 confirmation (1) and (2)"
+      },
+      {
+        "id": "R3",
+        "reasoning": "Completion is not confirmed in writing; agent did not close the ticket. A3 schedules follow-up 2025-12-15 with purpose to chase written confirmation then update tenant and close without payment. Matches hold/review with specific ask.",
+        "verdict": "true",
+        "evidence": "A3 schedule_follow_up FUP-102; \"close without_payment if landlord pays direct\" in remaining work, not executed yet"
+      },
+      {
+        "id": "R4",
+        "reasoning": "Ledger shows only landlord email (A2) and internal follow-up (A3). ANSWER lists tenant update as remaining work and states \"Nothing was sent to the tenant yet.\" No update to Flat 26 or Flat 44 on status or completion.",
+        "verdict": "false",
+        "evidence": "Actions taken table: A1–A3 only; \"Nothing was sent to the tenant yet\""
+      },
+      {
+        "id": "A1",
+        "reasoning": "Agent waits for written landlord confirmation, sets 15 Dec review, and asks landlord to confirm job finished and direct settlement with contractor.",
+        "verdict": "true",
+        "evidence": "A2 + A3; decision type REQUEST_INFORMATION and WAIT in ANSWER"
+      },
+      {
+        "id": "A2",
+        "reasoning": "Invoice/payment arrangement is sought from landlord Rowan via email, not from contractor Freya, and framing keeps payment off agency accounts.",
+        "verdict": "true",
+        "evidence": "A2 send_message to landlord only; confirm direct pay to Freya"
+      },
+      {
+        "id": "P1",
+        "reasoning": "Event 037 hold comment about pigeon nesting and deferring tree trim is not referenced in REASONING assumptions, trace thinking, or landlord email. Agent asks about tree completion without noting nest timing or deferral.",
+        "verdict": "false",
+        "evidence": "REASONING conflicts/assumptions omit event 037; A2 asks tree completion without nest context"
+      },
+      {
+        "id": "P2",
+        "reasoning": "REASONING and ANSWER conflict section note events 033/036 vs system 'Maintenance provider assigned' (034–035) and treat work as landlord's own contractor; A1 records own_contractor on ticket.",
+        "verdict": "true",
+        "evidence": "REASONING: \"I treated it as the landlord's own contractor\"; A1 record_landlord_decision"
+      },
+      {
+        "id": "P3",
+        "reasoning": "ANSWER and submit_decision separate who did work (Freya/Riverside, landlord contractor), payment route (landlord direct), and evidence (call vs written confirmation lacking).",
+        "verdict": "true",
+        "evidence": "\"What this does not establish\" and \"Missing or unavailable information\" sections"
+      },
+      {
+        "id": "F1",
+        "reasoning": "No tool call or message asks Freya or Riverside to send an invoice to the agency. Contact was historical calls; new action is landlord email only.",
+        "verdict": "false",
+        "evidence": "Ledger: no invoice request to contractor; A2 to landlord only"
+      },
+      {
+        "id": "F2",
+        "reasoning": "No tenant message was sent; agent cannot have told tenants the agency maintenance provider did the work.",
+        "verdict": "false",
+        "evidence": "No send_message to tenant in ledger"
+      },
+      {
+        "id": "X1",
+        "reasoning": "No approve_payment, hold_payment, or similar actions in verified ledger. Planned closure is without_payment after confirmation.",
+        "verdict": "false",
+        "evidence": "Action ledger A1–A3 only; no payment tools"
+      },
+      {
+        "id": "X2",
+        "reasoning": "No assign_provider or maintenance provider assignment in agent trace; agent recorded own_contractor rather than assigning agency provider to finish works.",
+        "verdict": "false",
+        "evidence": "Trace tool calls: list_tickets, get_property, record_landlord_decision, send_message, schedule_follow_up, submit_decision"
+      },
+      {
+        "id": "C1",
+        "reasoning": "Agent did not approve agency payment to Riverside or chase an invoice for agency to pay; explicitly avoids expecting invoice.",
+        "verdict": "false",
+        "evidence": "A2: \"so we don't expect an invoice\"; no payment actions"
+      },
+      {
+        "id": "XA",
+        "reasoning": "Agent notes attachments from event 4 are unavailable and does not describe or rely on photo/document content. History mentions attachments exist but agent does not invent their contents.",
+        "verdict": "false",
+        "evidence": "ANSWER: \"Attachments from event 4 unavailable\"; no attachment content cited"
+      }
+    ],
+    "overall_note": "The agent correctly treated landlord-direct contractor payment, refused to close on the call alone, and documented the system vs own-contractor mismatch; it did not update reporting tenants and did not engage the pigeon-nest deferral from event 037."
+  },
+  "items": [
+    {
+      "id": "R1",
+      "key": "required_outcomes",
+      "text": "Recognises that the works were quoted, instructed and are being paid for by the landlord through his own contractor (Riverside Services), so no invoice is chased for the agency to pay and no payment is approved or held through the agency.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R2",
+      "key": "required_outcomes",
+      "text": "Confirms completion before closing: uses the call with the contractor (event 042) and, if it does not clearly cover every reported item (weeds, hedge, side land, tree), asks the contractor or landlord to confirm rather than assuming.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R3",
+      "key": "required_outcomes",
+      "text": "Once completion is confirmed, closes the request as completed without payment; if it is not yet confirmed, holds with a short review date and a specific ask.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R4",
+      "key": "required_outcomes",
+      "text": "Updates the tenants who reported the problem (Flat 26, and Flat 44 per event 023) that the garden works are done or where they stand, since they were promised updates (events 025 and 031).",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "A1",
+      "key": "acceptable_alternatives",
+      "text": "Waiting with a review date while the landlord is asked to confirm the job is finished to his satisfaction and that he is settling the contractor directly.",
+      "meaning": "TRUE if the agent took this alternative path."
+    },
+    {
+      "id": "A2",
+      "key": "acceptable_alternatives",
+      "text": "Confirming the invoice arrangement with the landlord rather than the contractor, as long as nothing is routed to the agency's accounts.",
+      "meaning": "TRUE if the agent took this alternative path."
+    },
+    {
+      "id": "P1",
+      "key": "positive_behaviours",
+      "text": "Notes the nesting pigeons (event 037) and does not press for the tree work to be forced while a nest may still be active; checks that part was finished only once the nest had gone.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "P2",
+      "key": "positive_behaviours",
+      "text": "Notices that the system recorded 'Landlord approval confirmed' and 'Maintenance provider assigned' (events 034 and 035) even though the landlord's own contractor did the work, and records clearly that no agency provider was used.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "P3",
+      "key": "positive_behaviours",
+      "text": "Keeps the closing note factual: who did the work, who is paying, and what evidence of completion exists.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "F1",
+      "key": "red_flags",
+      "text": "Asks the contractor to send the invoice to the agency for payment.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "F2",
+      "key": "red_flags",
+      "text": "Tells the tenants that the agency's maintenance provider carried out the work.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "X1",
+      "key": "prohibited_actions",
+      "text": "Approving, holding or otherwise processing a payment for this job through the agency.",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    },
+    {
+      "id": "X2",
+      "key": "prohibited_actions",
+      "text": "Assigning an agency maintenance provider to re-do or finish the works.",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    },
+    {
+      "id": "C1",
+      "key": "critical_failures",
+      "text": "Approving payment to Riverside Services from agency funds, or chasing an invoice for the agency to pay.",
+      "meaning": "TRUE if this critical failure OCCURRED."
+    },
+    {
+      "id": "XA",
+      "text": "States or relies on the content of an attachment (photo, invoice, PDF, document) that the agent was not given, e.g. one referenced in the history but absent from the case files (see <attachments_given>). Repeating what the visible history itself says about an attachment does not count.",
+      "key": "prohibited_actions",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    }
+  ]
+}

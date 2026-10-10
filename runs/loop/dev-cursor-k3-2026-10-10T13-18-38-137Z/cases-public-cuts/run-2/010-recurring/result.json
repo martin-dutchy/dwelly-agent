@@ -1,0 +1,225 @@
+{
+  "id": "010-recurring",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "cutoff": 15,
+  "totalEvents": 15,
+  "inputs": [
+    {
+      "name": "history.md",
+      "method": "derived",
+      "bytes": 2843,
+      "chars": 2813,
+      "note": "events 1–15 of 15 from history.md"
+    },
+    {
+      "name": "attachments/attachment-01-photograph-of-a-solar-photovoltaic-generation-me.pdf",
+      "method": "pdftotext",
+      "bytes": 73851,
+      "chars": 987
+    }
+  ],
+  "withheld": [
+    {
+      "name": "index.md",
+      "reason": "sections that reveal the ending: Overview, Outcome, Next action at escalation, History, Attachments"
+    },
+    {
+      "name": "rubric.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    }
+  ],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Current reading photo sent to landlord and acknowledged; landlord says next reading due 15 September. Job waiting on a dated follow-up.",
+    "next_actions": [
+      {
+        "type": "WAIT",
+        "action": "Follow-up set for 2025-09-08 to request next reading photo from the tenant ahead of 15 September",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Thanked tenant, said the next photo will be requested in early September",
+        "recipient": "Miles Fletcher, tenant",
+        "channel": "email",
+        "ledger_id": "A2"
+      }
+    ],
+    "boundaries": [
+      "Does not confirm the reading value beyond what the photo appears to show (16845)",
+      "Does not confirm any recurring cadence after 15 September"
+    ],
+    "remaining_work": [
+      "Request next photo in early September and send to landlord; confirm cadence with landlord then"
+    ],
+    "missing_info": [],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "The tenant's reading photo was sent to the landlord, who thanked us and said the next one is needed on 15 September. I thanked the tenant, logged a note and set a follow-up for 8 September.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "This reading cycle is complete: photo supplied and sent to the landlord, who replied. Outstanding is the next reading, due 15 September per the landlord."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Tenant (Miles Fletcher) was thanked by email and told we will ask again in early September; internal follow-up FUP-101 set for 2025-09-08."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "No. It is routine. The only discrepancy is the cadence (original every 3 months, mid June versus the landlord's 15 September), and the latest landlord statement is being used."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Scheduled follow-up 2025-09-08"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Emailed tenant thanks and next-date info"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Added note on property record"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Original instruction: every 3 months, next mid June; landlord's latest email says next 15 September. Trusted the landlord's latest statement.",
+      "Tenant email event 012 contained only a signature, yet a photo was sent to the landlord; the attachment on file is attachment-01."
+    ],
+    "assumptions": [
+      "The attachment sent to the landlord is attachment-01, which was on file."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "schedule_follow_up",
+      "args": {
+        "due_on": "2025-09-08",
+        "purpose": "Ask tenant (Flat 10, 180 Alder Lane) for a clear photo of solar panel readings; landlord Ava needs it by 15 September 2025. Then confirm cadence with landlord.",
+        "party": "Tenant / Landlord"
+      },
+      "key": "schedule_follow_up:{due_on:\"2025-09-08\",party:\"Tenant / Landlord\",purpose:\"Ask tenant (Flat 10, 180 Alder Lane) for a clear photo of solar panel readings; landlord Ava needs it by 15 September 2025. Then confirm cadence with landlord.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "FUP-101",
+      "evidence": [
+        "FUP-101 found in the schedule_follow_up log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Miles Fletcher",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 012 email)",
+        "body": "Hello Miles, thank you for the solar panel reading photo. We have passed it to the landlord. They will next need a reading around 15 September, so we will be in touch in early September to ask for a new photo. Nothing is needed from you until then."
+      },
+      "key": "send_message:{body:\"Hello Miles, thank you for the solar panel reading photo. We have passed it to the landlord. They will next need a reading around 15 September, so we will be in touch in early September to ask for a new photo. Nothing is needed from you until then.\",channel:\"email\",contact:\"existing thread (event 012 email)\",recipient_name:\"Miles Fletcher\",recipient_role:\"tenant\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-102",
+      "evidence": [
+        "MSG-102 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "add_note",
+      "args": {
+        "entity": "Flat 10, 180 Alder Lane",
+        "note": "Reading photo (display 16845) sent to landlord 17 Jan 2025. Landlord's latest reply says next reading needed 15 September, which differs from the original 'every 3 months, mid June' instruction; treating landlord's latest statement as current. Tenant email event 012 held only a signature; the photo on file is attachment-01. Follow-up set 2025-09-08."
+      },
+      "key": "add_note:{entity:\"Flat 10, 180 Alder Lane\",note:\"Reading photo (display 16845) sent to landlord 17 Jan 2025. Landlord's latest reply says next reading needed 15 September, which differs from the original 'every 3 months, mid June' instruction; treating landlord's latest statement as current. Tenant email event 012 held only a signature; the photo on file is attachment-01. Follow-up set 2025-09-08.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NOTE-103",
+      "evidence": [
+        "NOTE-103 found in the add_note log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-010-recurring",
+        "stage": "init",
+        "property": "Flat 10, 180 Alder Lane, Cedarford, ZZ3 4ZZ",
+        "description": "Solar panel readings every 3 months w photo needed from Ts for LL. Next due Mid June."
+      }
+    ],
+    "records": [
+      {
+        "id": "FUP-101",
+        "tool": "schedule_follow_up",
+        "args": {
+          "due_on": "2025-09-08",
+          "party": "Tenant / Landlord",
+          "purpose": "Ask tenant (Flat 10, 180 Alder Lane) for a clear photo of solar panel readings; landlord Ava needs it by 15 September 2025. Then confirm cadence with landlord."
+        },
+        "at": 1791638451982
+      },
+      {
+        "id": "MSG-102",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Miles Fletcher",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 012 email)",
+          "body": "Hello Miles, thank you for the solar panel reading photo. We have passed it to the landlord. They will next need a reading around 15 September, so we will be in touch in early September to ask for a new photo. Nothing is needed from you until then."
+        },
+        "at": 1791638451983
+      },
+      {
+        "id": "NOTE-103",
+        "tool": "add_note",
+        "args": {
+          "entity": "Flat 10, 180 Alder Lane",
+          "note": "Reading photo (display 16845) sent to landlord 17 Jan 2025. Landlord's latest reply says next reading needed 15 September, which differs from the original 'every 3 months, mid June' instruction; treating landlord's latest statement as current. Tenant email event 012 held only a signature; the photo on file is attachment-01. Follow-up set 2025-09-08."
+        },
+        "at": 1791638451983
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 10, 180 Alder Lane, Cedarford, ZZ3 4ZZ",
+        "landlord": {
+          "contact": "agency landlord record",
+          "notes": [
+            "Contact details are held in the agency system and not shown in this case file; messages to the landlord go through it. Use contact \"agency landlord record\".",
+            "Landlord messages visible in this case: event 013 (email, to landlord); event 015 (email, from landlord)."
+          ]
+        }
+      }
+    ]
+  },
+  "usage": {
+    "input": 6,
+    "output": 2141,
+    "cost": 0.033125800000000004,
+    "turns": 2,
+    "durationMs": 15764,
+    "retries": 0,
+    "thinkingTokens": 409
+  }
+}

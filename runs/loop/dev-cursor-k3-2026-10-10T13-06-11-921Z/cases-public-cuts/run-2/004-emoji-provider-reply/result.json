@@ -1,0 +1,273 @@
+{
+  "id": "004-emoji-provider-reply",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "cutoff": 9,
+  "totalEvents": 9,
+  "inputs": [
+    {
+      "name": "history.md",
+      "method": "derived",
+      "bytes": 2220,
+      "chars": 2198,
+      "note": "events 1–9 of 9 from history.md"
+    },
+    {
+      "name": "attachments/attachment-01-checkout-inspection-report.pdf",
+      "method": "pdftotext",
+      "bytes": 110783,
+      "chars": 14048
+    }
+  ],
+  "withheld": [
+    {
+      "name": "index.md",
+      "reason": "sections that reveal the ending: Next action at escalation, History, Attachments"
+    },
+    {
+      "name": "rubric.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    }
+  ],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Landlord approval confirmed, provider assigned, flat is void. We asked the provider for a quote and they replied only with a 👍. No quote has been received. Ticket on hold waiting for the provider, review 2025-10-28.",
+    "next_actions": [
+      {
+        "type": "REQUEST_INFORMATION",
+        "action": "Ask the provider whether the 👍 means they accept, and whether a quote has been sent; ask for it as a PDF or plain text",
+        "recipient": "Contractor, provider",
+        "channel": "email",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "WAIT",
+        "action": "Hold waiting for the provider, review and chase on 2025-10-28",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A3"
+      }
+    ],
+    "boundaries": [
+      "The 👍 is not a quote, an acceptance or a booking",
+      "No spend has been approved or committed",
+      "No visit is booked",
+      "No tenant has been contacted because the property is void"
+    ],
+    "remaining_work": [
+      "Provider to clarify and send a quote",
+      "Then record the quote and send it to the landlord if approval does not already cover the amount; arrange access by keys or caretaker",
+      "The ticket was left in the paused/mp_time stage; the void-property pause was not cleared"
+    ],
+    "missing_info": [
+      "Provider's quote and acceptance",
+      "The extra attachment on event 006 was unavailable and has not been seen"
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "The provider's only reply to our quote request was a 👍, which cannot be read as a quote or acceptance. I asked them plainly by email to clarify and send the quote, noted the record, and put the job on hold with a review date of 28 Oct.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "Landlord has approved and a provider is assigned. The property is void and the job is paused. The provider replied with a 👍 only. The quote is outstanding."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Plain clarifying email to the contractor on the existing thread, already sent (A1). Then wait, with a chase on 2025-10-28 (A3, A4)."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "No. This is routine provider clarification. Nothing needs a human yet."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Clarifying request sent to provider"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Note on emoji reply and dates"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Put on hold, review 2025-10-28"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Follow-up scheduled 2025-10-28"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "The checkout report says the appointment was 23 June 2026 but the signature is dated 24 Oct 2025, which is inconsistent. The scope still matches the request."
+    ],
+    "assumptions": [
+      "The 👍 is not a quote",
+      "The void flat needs keys or caretaker access, to be arranged once a quote is in"
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "request_information",
+      "args": {
+        "recipient_name": "Contractor",
+        "recipient_role": "contractor",
+        "channel": "email",
+        "contact": "existing thread (event 009 email)",
+        "questions": [
+          "Thanks for your reply (we received a 👍). Can you confirm whether that means you can do the cleaning at Flat 2, 172 Alder Lane (living space vacuum and light clean, en-suite limescale removal)?",
+          "Have you already sent a quote? If so, please resend it as a PDF or plain-text reply with the price and whether VAT is included. If not, please send it when ready.",
+          "Our earlier email's extra attachment did not come through; the checkout report is attached to the main email. Please tell us if you cannot see it."
+        ],
+        "why": "The provider's reply was an emoji only, so we cannot tell if they accepted or have quoted. No quote has been received."
+      },
+      "key": "request_information:{channel:\"email\",contact:\"existing thread (event 009 email)\",questions:[\"Thanks for your reply (we received a 👍). Can you confirm whether that means you can do the cleaning at Flat 2, 172 Alder Lane (living space vacuum and light clean, en-suite limescale removal)?\",\"Have you already sent a quote? If so, please resend it as a PDF or plain-text reply with the price and whether VAT is included. If not, please send it when ready.\",\"Our earlier email's extra attachment did not come through; the checkout report is attached to the main email. Please tell us if you cannot see it.\"],recipient_name:\"Contractor\",recipient_role:\"contractor\",why:\"The provider's reply was an emoji only, so we cannot tell if they accepted or have quoted. No quote has been received.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "REQ-101",
+      "evidence": [
+        "REQ-101 found in the request_information log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "add_note",
+      "args": {
+        "entity": "NBL-004-emoji-provider-reply",
+        "note": "Event 009 provider reply was a raw \"👍\" only. Not treated as a quote or confirmed acceptance. Asked provider plainly whether they accept and whether a quote was sent. Property is void: no tenant messages. Landlord approval already confirmed (event 002). Checkout report is dated 23 June 2026 and signed 24 Oct 2025, which is inconsistent; the scope matches the request, so the dates are noted only."
+      },
+      "key": "add_note:{entity:\"NBL-004-emoji-provider-reply\",note:\"Event 009 provider reply was a raw \\\"👍\\\" only. Not treated as a quote or confirmed acceptance. Asked provider plainly whether they accept and whether a quote was sent. Property is void: no tenant messages. Landlord approval already confirmed (event 002). Checkout report is dated 23 June 2026 and signed 24 Oct 2025, which is inconsistent; the scope matches the request, so the dates are noted only.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NOTE-102",
+      "evidence": [
+        "NOTE-102 found in the add_note log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "put_on_hold",
+      "args": {
+        "ticket_ref": "NBL-004-emoji-provider-reply",
+        "reason": "Waiting for Provider",
+        "comment": "Waiting for the provider to clarify the 👍 reply and send a quote for the checkout clean.",
+        "review_on": "2025-10-28"
+      },
+      "key": "put_on_hold:{comment:\"Waiting for the provider to clarify the 👍 reply and send a quote for the checkout clean.\",reason:\"Waiting for Provider\",review_on:\"2025-10-28\",ticket_ref:\"NBL-004-emoji-provider-reply\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-004-emoji-provider-reply",
+      "evidence": [
+        "Ticket NBL-004-emoji-provider-reply read back after put_on_hold"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "schedule_follow_up",
+      "args": {
+        "ticket_ref": "NBL-004-emoji-provider-reply",
+        "due_on": "2025-10-28",
+        "purpose": "Chase provider for the quote if none has arrived",
+        "party": "Contractor"
+      },
+      "key": "schedule_follow_up:{due_on:\"2025-10-28\",party:\"Contractor\",purpose:\"Chase provider for the quote if none has arrived\",ticket_ref:\"NBL-004-emoji-provider-reply\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "FUP-103",
+      "evidence": [
+        "FUP-103 found in the schedule_follow_up log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-004-emoji-provider-reply",
+        "stage": "mp_time",
+        "property": "Flat 2, 172 Alder Lane, Bellmere, ZZ3 1ZZ",
+        "description": "Quote for:\n\nLiving space:\n1. Vacuum\n2. Light clean\n\nEn-Suite:\n1. Limescale removal",
+        "landlord_approval": "confirmed",
+        "hold": {
+          "reason": "Waiting for Provider",
+          "comment": "Waiting for the provider to clarify the 👍 reply and send a quote for the checkout clean.",
+          "review_on": "2025-10-28"
+        },
+        "mode": "manual"
+      }
+    ],
+    "records": [
+      {
+        "id": "REQ-101",
+        "tool": "request_information",
+        "args": {
+          "recipient_name": "Contractor",
+          "recipient_role": "contractor",
+          "channel": "email",
+          "contact": "existing thread (event 009 email)",
+          "questions": [
+            "Thanks for your reply (we received a 👍). Can you confirm whether that means you can do the cleaning at Flat 2, 172 Alder Lane (living space vacuum and light clean, en-suite limescale removal)?",
+            "Have you already sent a quote? If so, please resend it as a PDF or plain-text reply with the price and whether VAT is included. If not, please send it when ready.",
+            "Our earlier email's extra attachment did not come through; the checkout report is attached to the main email. Please tell us if you cannot see it."
+          ],
+          "why": "The provider's reply was an emoji only, so we cannot tell if they accepted or have quoted. No quote has been received."
+        },
+        "at": 1791637706193
+      },
+      {
+        "id": "NOTE-102",
+        "tool": "add_note",
+        "args": {
+          "entity": "NBL-004-emoji-provider-reply",
+          "note": "Event 009 provider reply was a raw \"👍\" only. Not treated as a quote or confirmed acceptance. Asked provider plainly whether they accept and whether a quote was sent. Property is void: no tenant messages. Landlord approval already confirmed (event 002). Checkout report is dated 23 June 2026 and signed 24 Oct 2025, which is inconsistent; the scope matches the request, so the dates are noted only."
+        },
+        "at": 1791637706193
+      },
+      {
+        "id": "FUP-103",
+        "tool": "schedule_follow_up",
+        "args": {
+          "ticket_ref": "NBL-004-emoji-provider-reply",
+          "due_on": "2025-10-28",
+          "party": "Contractor",
+          "purpose": "Chase provider for the quote if none has arrived"
+        },
+        "at": 1791637706194
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 2, 172 Alder Lane, Bellmere, ZZ3 1ZZ",
+        "tenanted": false,
+        "landlord": {
+          "contact": "agency landlord record",
+          "notes": [
+            "Contact details are held in the agency system and not shown in this case file; messages to the landlord go through it. Use contact \"agency landlord record\".",
+            "No landlord message is visible in this case yet."
+          ]
+        }
+      }
+    ]
+  },
+  "usage": {
+    "input": 8,
+    "output": 2299,
+    "cost": 0.0787455,
+    "turns": 3,
+    "durationMs": 17982,
+    "retries": 0,
+    "thinkingTokens": 88
+  }
+}

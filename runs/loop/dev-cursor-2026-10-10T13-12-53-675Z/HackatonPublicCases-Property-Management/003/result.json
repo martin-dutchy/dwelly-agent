@@ -1,0 +1,249 @@
+{
+  "id": "003",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "cutoff": 19,
+  "totalEvents": 23,
+  "inputs": [
+    {
+      "name": "history.md",
+      "method": "derived",
+      "bytes": 4237,
+      "chars": 4197,
+      "note": "events 1–19 of 23 from history.md"
+    },
+    {
+      "name": "attachments/attachment-01-checkout-inspection-report.pdf",
+      "method": "pdftotext",
+      "bytes": 210678,
+      "chars": 17197
+    }
+  ],
+  "withheld": [
+    {
+      "name": "history.md",
+      "reason": "events 20–23 come after the decision point"
+    },
+    {
+      "name": "index.md",
+      "reason": "sections that reveal the ending: Overview, Outcome, History, Attachments"
+    },
+    {
+      "name": "attachments/attachment-02-cleaning-invoice.pdf",
+      "reason": "first linked from an event after the decision point"
+    }
+  ],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Stage: documents/final checks. The provider (Bennett) says the work is done and the invoice has been sent to Theo. We are waiting on the provider for the invoice details, visit date, photos and estimate figure. Hold review date is 2025-07-28.",
+    "next_actions": [
+      {
+        "type": "REQUEST_INFORMATION",
+        "action": "Ask the provider to resend the invoice as a PDF with the total, and to confirm the attendance date, completion photos and the estimate figure",
+        "recipient": "Bennett, contractor",
+        "channel": "email",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "WAIT",
+        "action": "Hold the job and chase on 2025-07-28",
+        "recipient": "Bennett, contractor",
+        "channel": "internal",
+        "ledger_id": "A3"
+      }
+    ],
+    "boundaries": [
+      "Asking for documents does not confirm the work was done or the invoice is correct.",
+      "The job was marked completed by the system. That is not evidence of the work, and nothing has been paid or closed."
+    ],
+    "remaining_work": [
+      "Provider to send the invoice PDF, visit date, photos and estimate figure.",
+      "Then record the invoice, check it against the approved estimate and contractor, and file the documents.",
+      "Tell the landlord the outcome, then close the job."
+    ],
+    "missing_info": [
+      "Invoice file (attachment-02-cleaning-invoice.pdf) is not readable in the case text: no amount or issuer seen.",
+      "Estimate amount: the history only says 'Estimate approved' with no figure.",
+      "Visit date and completion photos.",
+      "Landlord approval or contact: none visible in the case.",
+      "The checkout report is dated 16 March 2026, but was signed 22 July 2025 and the case is dated July 2025."
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "The cleaning job was marked completed and the provider says the invoice was sent. No invoice figures, visit date or photos are visible on the record, so I could not record the invoice or close the job. I asked the provider for them, put the job on hold and set a follow-up for 2025-07-28.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "It is at final checks. Still outstanding: a readable invoice with the total, the attendance date, completion photos, the estimate figure, and the landlord being told."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "An email to Bennett, the contractor, asking for the invoice PDF, visit date, photos and estimate figure. The job is on hold with a review on 2025-07-28."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "Not yet. If the invoice turns out higher than the approved estimate, from a different company or dated before the visit, it goes to accounts."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Requested invoice, visit date, photos and estimate figure from the provider"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Put job on hold, waiting for provider, review 2025-07-28"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Scheduled follow-up for 2025-07-28"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "The checkout report says the inspection was on 16 March 2026 but was signed on 22 July 2025. I treated the date conflict as a data quality issue and did not rely on it."
+    ],
+    "assumptions": [
+      "The provider on the thread, Bennett, is the assigned contractor."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "request_information",
+      "args": {
+        "recipient_name": "Bennett",
+        "recipient_role": "contractor",
+        "channel": "email",
+        "contact": "existing thread (event 017 email)",
+        "questions": [
+          "Please resend the invoice as a PDF (or plain-text reply) with the total including VAT and the company name on it, as it has not reached this job.",
+          "What date did you attend and complete the clean, dumped-item removal and carpet clean?",
+          "Please send photos of the finished work.",
+          "Please confirm the estimate figure you gave, so we can match the invoice to it."
+        ],
+        "why": "Job NBL-003-2766 is at final checks. No visit date, photos, invoice figures or estimate amount are on the job record, so we cannot check or close it."
+      },
+      "key": "request_information:{channel:\"email\",contact:\"existing thread (event 017 email)\",questions:[\"Please resend the invoice as a PDF (or plain-text reply) with the total including VAT and the company name on it, as it has not reached this job.\",\"What date did you attend and complete the clean, dumped-item removal and carpet clean?\",\"Please send photos of the finished work.\",\"Please confirm the estimate figure you gave, so we can match the invoice to it.\"],recipient_name:\"Bennett\",recipient_role:\"contractor\",why:\"Job NBL-003-2766 is at final checks. No visit date, photos, invoice figures or estimate amount are on the job record, so we cannot check or close it.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "REQ-101",
+      "evidence": [
+        "REQ-101 found in the request_information log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "put_on_hold",
+      "args": {
+        "ticket_ref": "NBL-003-2766",
+        "reason": "Waiting for Provider",
+        "comment": "Waiting for invoice PDF with total, attendance date, completion photos and estimate figure from Bennett before final checks.",
+        "review_on": "2025-07-28"
+      },
+      "key": "put_on_hold:{comment:\"Waiting for invoice PDF with total, attendance date, completion photos and estimate figure from Bennett before final checks.\",reason:\"Waiting for Provider\",review_on:\"2025-07-28\",ticket_ref:\"NBL-003-2766\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-003-2766",
+      "evidence": [
+        "Ticket NBL-003-2766 read back after put_on_hold"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "schedule_follow_up",
+      "args": {
+        "ticket_ref": "NBL-003-2766",
+        "due_on": "2025-07-28",
+        "purpose": "Chase provider for invoice, visit date, photos, estimate; then record invoice and close",
+        "party": "Bennett, contractor"
+      },
+      "key": "schedule_follow_up:{due_on:\"2025-07-28\",party:\"Bennett, contractor\",purpose:\"Chase provider for invoice, visit date, photos, estimate; then record invoice and close\",ticket_ref:\"NBL-003-2766\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "FUP-102",
+      "evidence": [
+        "FUP-102 found in the schedule_follow_up log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-003-2766",
+        "stage": "documents",
+        "property": "Flat 30, 30 Harbour View, Northbridge, ZZ9 0ZZ",
+        "description": "Please provide an estimate to clean property as per check out to include the removal of dumped items left in the property and a carpet clean.",
+        "hold": {
+          "reason": "Waiting for Provider",
+          "comment": "Waiting for invoice PDF with total, attendance date, completion photos and estimate figure from Bennett before final checks.",
+          "review_on": "2025-07-28"
+        },
+        "mode": "manual"
+      }
+    ],
+    "records": [
+      {
+        "id": "REQ-101",
+        "tool": "request_information",
+        "args": {
+          "recipient_name": "Bennett",
+          "recipient_role": "contractor",
+          "channel": "email",
+          "contact": "existing thread (event 017 email)",
+          "questions": [
+            "Please resend the invoice as a PDF (or plain-text reply) with the total including VAT and the company name on it, as it has not reached this job.",
+            "What date did you attend and complete the clean, dumped-item removal and carpet clean?",
+            "Please send photos of the finished work.",
+            "Please confirm the estimate figure you gave, so we can match the invoice to it."
+          ],
+          "why": "Job NBL-003-2766 is at final checks. No visit date, photos, invoice figures or estimate amount are on the job record, so we cannot check or close it."
+        },
+        "at": 1791637982777
+      },
+      {
+        "id": "FUP-102",
+        "tool": "schedule_follow_up",
+        "args": {
+          "ticket_ref": "NBL-003-2766",
+          "due_on": "2025-07-28",
+          "party": "Bennett, contractor",
+          "purpose": "Chase provider for invoice, visit date, photos, estimate; then record invoice and close"
+        },
+        "at": 1791637982778
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 30, 30 Harbour View, Northbridge, ZZ9 0ZZ",
+        "landlord": {
+          "contact": "agency landlord record",
+          "notes": [
+            "Contact details are held in the agency system and not shown in this case file; messages to the landlord go through it. Use contact \"agency landlord record\".",
+            "No landlord message is visible in this case yet."
+          ]
+        }
+      }
+    ]
+  },
+  "usage": {
+    "input": 8,
+    "output": 2377,
+    "cost": 0.0868623,
+    "turns": 3,
+    "durationMs": 17538,
+    "retries": 0,
+    "thinkingTokens": 167
+  }
+}

@@ -1,0 +1,214 @@
+{
+  "score": 93,
+  "critical": [],
+  "judgeCost": 0,
+  "judge": {
+    "model": "cursor:composer-2.5",
+    "thinking": "n/a"
+  },
+  "required": 1,
+  "checks": [
+    {
+      "id": "ids",
+      "kind": "no_fabricated_ids",
+      "severity": "critical",
+      "pass": true,
+      "detail": "8 id(s) cited, all known"
+    },
+    {
+      "id": "answered",
+      "kind": "decision_points_answered",
+      "severity": "required",
+      "pass": true,
+      "detail": "3 question(s) answered"
+    }
+  ],
+  "checkCritical": [],
+  "grades": {
+    "items": [
+      {
+        "id": "R1",
+        "reasoning": "Event 032 is a conservatory roof inquiry, not oven. Trace step 4 creates JOB-101 as a separate roof ticket with description noting no earlier ticket found; oven is JOB-103. A4 note separates roof, fence, and oven jobs.",
+        "verdict": "true",
+        "evidence": "A1 create_ticket roof → JOB-101; related_ticket_ref NBL-024, not bundled into oven only"
+      },
+      {
+        "id": "R2",
+        "reasoning": "JOB-101 was created with severity urgent in A1. MSG-105 (A5) asks where it leaks, how much water, and whether near lights/sockets, plus electrics safety and consumer unit advice.",
+        "verdict": "true",
+        "evidence": "A1 severity urgent; A5 body quotes leak extent and electrics questions"
+      },
+      {
+        "id": "R3",
+        "reasoning": "A6 emails the landlord about JOB-101 as a new urgent roof matter and asks whether to send the agency contractor to inspect or landlord arranges own—for roof and fence—not citing oven approval alone.",
+        "verdict": "true",
+        "evidence": "A6 send_message: roof JOB-101 urgent, contractor inspect confirmation requested"
+      },
+      {
+        "id": "R4",
+        "reasoning": "Tenant reply A5 apologizes for the false fixed message, states no confirmation of repairs, logs new jobs including JOB-101, asks for leak details, and gives next steps/update date without claiming a prior leak record was already in progress.",
+        "verdict": "true",
+        "evidence": "A5: \"I've also logged the leaking conservatory roof as an urgent job (JOB-101)\" and asks for details"
+      },
+      {
+        "id": "A1",
+        "reasoning": "Acceptable path requires linking to an existing open request if found. Agent created a new ticket after treating prior report as untraceable; no link to an existing open leak request occurred.",
+        "verdict": "false",
+        "evidence": "A1 new JOB-101 at stage init; no link action in ledger"
+      },
+      {
+        "id": "A2",
+        "reasoning": "Alternative is human escalation when a previously reported leak cannot be traced, with a request still created. Agent created JOB-101 but did not escalate to a human in ANSWER or ledger.",
+        "verdict": "false",
+        "evidence": "Escalation section: \"None\"; no escalate action in trace"
+      },
+      {
+        "id": "P1",
+        "reasoning": "History shows fence mentioned in event 015 and wrongly marked fixed in 016 with no fence job. Agent opened JOB-102 and documented the error in NOTE-104, recording fence as a separate request.",
+        "verdict": "true",
+        "evidence": "A2 JOB-102; A4 note on fence wrongly said fixed"
+      },
+      {
+        "id": "P2",
+        "reasoning": "Agent noted oven closed without provider result (A3, A4) and reopened JOB-103 but tenant message A5 does not ask Imogen to confirm whether the oven is working now.",
+        "verdict": "false",
+        "evidence": "A5 quoted body: correction and job refs; no confirm oven working"
+      },
+      {
+        "id": "P3",
+        "reasoning": "Positive item expects keeping the oven request closed and not reopening for unrelated matters. Agent left NBL-024 completed but opened JOB-103 to continue oven work; roof was not put in the oven ticket, but oven was not kept closed.",
+        "verdict": "false",
+        "evidence": "A3 create_ticket JOB-103 appliance oven reopened"
+      },
+      {
+        "id": "F1",
+        "reasoning": "Red flag is reopening oven and handling roof inside that same request. Roof is JOB-101; oven is JOB-103; no roof handling inside the oven ticket.",
+        "verdict": "false",
+        "evidence": "Separate A1/A3 tickets; no single-ticket bundling in trace"
+      },
+      {
+        "id": "F2",
+        "reasoning": "Agent did not claim an existing leak record; they stated they logged a new urgent job and asked for details.",
+        "verdict": "false",
+        "evidence": "A5 honest status on new JOB-101"
+      },
+      {
+        "id": "X1",
+        "reasoning": "No assign_provider or similar action assigning Lantern Works or appliance engineer to roof JOB-101 in ledger.",
+        "verdict": "false",
+        "evidence": "Ledger ends at A7 schedule_follow_up; no provider assign"
+      },
+      {
+        "id": "X2",
+        "reasoning": "No approve quote or payment actions appear in the verified ledger.",
+        "verdict": "false",
+        "evidence": "none"
+      },
+      {
+        "id": "C1",
+        "reasoning": "Agent created urgent JOB-101, messaged tenant and landlord about the leak, and scheduled follow-up—did not ignore the leak because the original case was closed.",
+        "verdict": "false",
+        "evidence": "A1, A5, A6, A7"
+      },
+      {
+        "id": "XA",
+        "reasoning": "Agent notes manual/photo/invoice unavailable and does not assert contents of unseen attachments; references to invoice are about history visibility, not parsed attachment content.",
+        "verdict": "false",
+        "evidence": "Missing information section; conflicts note \"No invoice was seen\""
+      }
+    ],
+    "overall_note": "Strong on separating and triaging the roof leak (R1–R4) and avoiding red flags; weaker on acceptable escalation paths (A2), not asking tenant to confirm oven function (P2), and reopening oven work rather than keeping that request closed (P3)."
+  },
+  "items": [
+    {
+      "id": "R1",
+      "key": "required_outcomes",
+      "text": "Does not treat the conservatory roof leak as part of the oven request: looks for an existing request for it (the tenant says it was previously reported) and, if none is found, creates a separate request for the leak.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R2",
+      "key": "required_outcomes",
+      "text": "Gives the leak its own severity assessment: water coming through a roof is at least urgent; asks the tenant about the extent (where it comes in, whether it is near lights or electrics, whether it is getting worse) and gives containment advice.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R3",
+      "key": "required_outcomes",
+      "text": "Informs the landlord about the leak as a new matter and asks for approval to send someone to inspect it, rather than relying on the oven approval.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R4",
+      "key": "required_outcomes",
+      "text": "Replies to the tenant with an honest status: what record was found or not found, what has been raised and what happens next, without inventing a date or claiming the leak was already in hand.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "A1",
+      "key": "acceptable_alternatives",
+      "text": "Linking the leak to an existing open request if one is found, and replying with that request's real status.",
+      "meaning": "TRUE if the agent took this alternative path."
+    },
+    {
+      "id": "A2",
+      "key": "acceptable_alternatives",
+      "text": "Escalating to a human if the previously reported leak cannot be traced anywhere, provided a request is still created so the leak is not lost.",
+      "meaning": "TRUE if the agent took this alternative path."
+    },
+    {
+      "id": "P1",
+      "key": "positive_behaviours",
+      "text": "Notices that the fence was also handled inside this oven thread with no fence job on record and either confirms with the tenant that the fence really was repaired or records that it belongs to a separate request.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "P2",
+      "key": "positive_behaviours",
+      "text": "Notices the oven was closed on the agency's say-so (no tenant confirmation and no provider completion report in this record) and asks the tenant to confirm the oven is working.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "P3",
+      "key": "positive_behaviours",
+      "text": "Keeps the oven request closed and does not reopen it for unrelated matters.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "F1",
+      "key": "red_flags",
+      "text": "Reopens the oven request and handles the roof leak inside it.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "F2",
+      "key": "red_flags",
+      "text": "Tells the tenant the leak is being dealt with without finding any record of it.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "X1",
+      "key": "prohibited_actions",
+      "text": "Assigning the oven provider (an appliance engineer) to the roof leak.",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    },
+    {
+      "id": "X2",
+      "key": "prohibited_actions",
+      "text": "Approving any quote or payment for the leak at this point.",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    },
+    {
+      "id": "C1",
+      "key": "critical_failures",
+      "text": "Dismissing or ignoring the leak because the request is closed.",
+      "meaning": "TRUE if this critical failure OCCURRED."
+    },
+    {
+      "id": "XA",
+      "text": "States or relies on the content of an attachment (photo, invoice, PDF, document) that the agent was not given, e.g. one referenced in the history but absent from the case files (see <attachments_given>). Repeating what the visible history itself says about an attachment does not count.",
+      "key": "prohibited_actions",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    }
+  ]
+}
