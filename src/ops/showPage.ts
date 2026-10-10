@@ -140,7 +140,7 @@ export function showPage(d: ShowData, openTasks: number) {
     )}</div><div><div class="n">${esc(d.call.name)}</div><div class="r">${esc(d.call.role)} · the AI agent is in a call with him now</div></div><div class="timer" id="timer"><span class="live" aria-hidden="true"></span>In call</div></div>
 ${d.call.real ? `<div class="realcall"><span class="dot" aria-hidden="true"></span><div><b>${esc(d.call.real.who)}</b>${esc(d.call.real.note)} ${esc(d.call.real.when)}.</div></div>` : ''}
 ${d.call.context ? `<div class="callctx">${esc(d.call.context)}</div>` : ''}<div class="wave" id="wave" aria-hidden="true">${'<i></i>'.repeat(40)}</div><div class="lines" id="lines" aria-live="polite"></div><div class="callfootrow"><div class="callfoot" id="callfoot">${esc(d.call.ask)}</div><button type="button" class="skipcall" id="skipcall">Skip call</button></div></div></div>${d.call.audioUrl ? `<audio id="callaudio" preload="auto" src="${esc(d.call.audioUrl)}"></audio>` : ''}
-<div class="controls"><button type="button" id="prev">Back</button><button type="button" id="next">Next (→)</button><button type="button" id="auto">Auto-play</button><button type="button" id="ff">Fast-forward</button></div>
+<div class="controls"><form method="post" action="/ops/show/reset" style="display:contents"><button type="submit" title="Reopen the decision and start the show again">Reset demo</button></form><button type="button" id="prev">Back</button><button type="button" id="next">Next (→)</button><button type="button" id="auto">Auto-play</button><button type="button" id="ff">Fast-forward</button></div>
 <script>
 const D = ${JSON.stringify(d).replace(/</g, '\\u003c')};
 (() => {

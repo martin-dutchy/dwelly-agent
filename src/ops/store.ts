@@ -136,6 +136,9 @@ export interface OpsStore {
   getTask(id: string): Promise<HumanTask | undefined>;
   listTasks(filter?: { status?: HumanTask['status']; caseId?: string }): Promise<HumanTask[]>;
   resolveTask(id: string, decision: NonNullable<HumanTask['decision']>): Promise<HumanTask | undefined>;
+  /** Demo reset: reopen a decided task and drop what people did on the case. */
+  reopenTask(id: string): Promise<void>;
+  deleteHumanEvents(caseId: string): Promise<void>;
   startRun(r: { id: string; case_id: string; trigger: string }): Promise<void>;
   finishRun(id: string, r: Pick<OpsRun, 'outcome' | 'cost' | 'answer_md' | 'reasoning_md'>): Promise<void>;
   runs(caseId: string): Promise<OpsRun[]>;
@@ -220,6 +223,13 @@ export function memoryOpsStore(): OpsStore {
       Object.assign(t, { status: 'resolved', decision, resolved_at: now() });
       touch(t.case_id);
       return t;
+    },
+    async reopenTask(id) {
+      const t = tasks.get(id);
+      if (t) Object.assign(t, { status: 'open', decision: null, resolved_at: null });
+    },
+    async deleteHumanEvents(caseId) {
+      for (let k = events.length - 1; k >= 0; k--) if (events[k].case_id === caseId && events[k].actor === 'human') events.splice(k, 1);
     },
     async startRun({ id, case_id, trigger }) {
       runs.set(id, { id, case_id, trigger, started_at: now(), finished_at: null, outcome: null, cost: null, answer_md: null, reasoning_md: null });
@@ -337,6 +347,12 @@ export function pgOpsStore(url: string): OpsStore {
       const [r] = await sql`update ops_tasks set status = 'resolved', decision = ${json(decision)}, resolved_at = now()
         where id = ${id} and status = 'open' returning *`;
       return r ? taskRow(r) : undefined;
+    },
+    async reopenTask(id) {
+      await sql`update ops_tasks set status = 'open', decision = null, resolved_at = null where id = ${id}`;
+    },
+    async deleteHumanEvents(caseId) {
+      await sql`delete from ops_events where case_id = ${caseId} and actor = 'human'`;
     },
     async startRun({ id, case_id, trigger }) {
       await sql`insert into ops_runs (id, case_id, trigger) values (${id}, ${case_id}, ${trigger})`;

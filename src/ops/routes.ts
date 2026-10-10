@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { CallRow, EventRow } from '../voice/store.js';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { fetchAudio } from '../voice/finalize.js';
+import { parseHistory } from '../agent/publicCases.js';
 import { join } from 'node:path';
 import { CASE_SETS, gradeBatch, importRun, startBatch } from './batch.js';
 import { batchView } from './batchView.js';
@@ -194,6 +195,26 @@ export async function opsRoutes(path: string, req: IncomingMessage, res: ServerR
     res.writeHead(200, { 'content-type': r.headers.get('content-type') ?? 'audio/mpeg', 'cache-control': 'private, max-age=3600' });
     for await (const chunk of r.body) res.write(chunk);
     return void res.end();
+  }
+  // Reset the demo: reopen every decided task, drop people's replies from the cases, back to the start.
+  if (path === '/ops/show/reset' && req.method === 'POST') {
+    for (const t of await store.listTasks()) {
+      if (t.status !== 'resolved' || t.decision?.by === 'system') continue;
+      await store.reopenTask(t.id);
+      const c = await store.getCase(t.case_id);
+      if (!c) continue;
+      await store.deleteHumanEvents(c.id);
+      const strip = (md: string) => {
+        const { preamble, events } = parseHistory(md);
+        const kept = events.filter((e) => !/- \*\*From:\*\* Agency staff/.test(e.body));
+        if (kept.length === events.length) return md;
+        return `${preamble.replace(/Total events: \d+/, `Total events: ${kept.length}`)}\n\n${kept.map((e) => `<a id="event-${String(e.n).padStart(3, '0')}"></a>\n## ${e.header}\n\n${e.body}`).join('\n\n')}\n`;
+      };
+      if (c.files?.['history.md']) await store.setFiles(c.id, { ...c.files, 'history.md': strip(c.files['history.md']) });
+      else if (!c.files) await store.setHistory(c.id, strip(c.history_md));
+      await store.setStatus(c.id, 'waiting_on_human');
+    }
+    return redirect(res, '/ops/show');
   }
   if (path === '/ops/show') {
     const d = await showData(store);
