@@ -44,7 +44,7 @@ export const NextAction = z.object({
   ledger_id: z
     .string()
     .optional()
-    .describe('The verified ledger entry that performed it. Required for every type except WAIT and OTHER; for WAIT cite the schedule_follow_up or put_on_hold entry when there is one'),
+    .describe('The verified ledger entry that performed it. Required for every type except OTHER; WAIT cites the schedule_follow_up or put_on_hold entry that records the wait'),
 });
 export type NextAction = z.infer<typeof NextAction>;
 
@@ -124,6 +124,7 @@ export async function runCase(opts: CaseRunOptions) {
   const gateLog: (GateResult & { tool: string; attempt: number })[] = [];
   const gateBlocks = new Map<string, number>(); // recipient -> blocks so far
   const policyLog: { tool: string; reason: string }[] = [];
+  const policyBlocks = new Map<string, number>(); // tool|ticket -> policy blocks so far
 
   // Hard rules enforced in code, so no amount of persuasive input can talk the model past them.
   const policyBlock = (tool: string, a: Record<string, unknown>): string | undefined => {
@@ -155,9 +156,17 @@ export async function runCase(opts: CaseRunOptions) {
         if (done) return { block: true, reason: `Already done and verified as ${done.id} (${done.ref}). Do not repeat it.` };
       }
       // Run-level rules first (they know the ledger), then the toolset's own rules (they know the job record).
-      const policy = policyBlock(toolCall.name, a) ?? toolset.guard?.(toolCall.name, a);
+      const policy = policyBlock(toolCall.name, a) ?? toolset.guard?.(toolCall.name, a, ledger.entries);
       if (policy) {
         policyLog.push({ tool: toolCall.name, reason: policy });
+        const key = `${toolCall.name}|${String(a.ticket_ref ?? a.ref ?? '')}`;
+        const blocks = (policyBlocks.get(key) ?? 0) + 1;
+        policyBlocks.set(key, blocks);
+        if (blocks >= 3)
+          return {
+            block: true,
+            reason: `Blocked by policy again (${blocks} times): ${policy}\nStop calling ${toolCall.name}: it will stay blocked. Call submit_decision now, and say in it what you could not do and why (remaining_work or assumptions).`,
+          };
         return { block: true, reason: `Blocked by policy: ${policy}` };
       }
       // Jev message gate: a fast classifier checks outgoing messages before they leave.
@@ -187,11 +196,16 @@ export async function runCase(opts: CaseRunOptions) {
         for (const e of ledger.unresolved()) {
           if (!handled.has(e.id)) problems.push(`${e.id} (${e.tool}) is ${e.status}: list it in failed_actions with how you handled it.`);
         }
+        const hasTool = (n: string) => toolset.tools.some((t) => t.name === n);
+        const did = (...names: string[]) => ledger.entries.some((e) => names.includes(e.tool) && e.status === 'verified');
+        const canWait = hasTool('schedule_follow_up') || hasTool('put_on_hold');
         // The next actions are what the case is judged on: each must name a recipient and be backed by a verified action.
         if (!d.next_actions?.length) problems.push('next_actions is empty: state the next action you took (WAIT with a schedule_follow_up counts).');
         for (const na of d.next_actions ?? []) {
           if (!na.ledger_id) {
-            if (!['WAIT', 'OTHER'].includes(na.type)) problems.push(`next action "${na.action}" (${na.type}) has no ledger_id: perform it with a tool first, then cite the entry.`);
+            if (na.type === 'WAIT' && canWait)
+              problems.push(`next action "${na.action}" is WAIT with no ledger_id: record the wait with schedule_follow_up (or put_on_hold) and a review date, then cite that entry.`);
+            else if (!['WAIT', 'OTHER'].includes(na.type)) problems.push(`next action "${na.action}" (${na.type}) has no ledger_id: perform it with a tool first, then cite the entry.`);
             continue;
           }
           const e = ledger.get(na.ledger_id);
@@ -202,8 +216,8 @@ export async function runCase(opts: CaseRunOptions) {
           else if (na.type === 'ESCALATE_TO_HUMAN' && e.tool !== 'escalate_to_human') problems.push(`ESCALATE_TO_HUMAN must cite an escalate_to_human entry, not ${e.tool}.`);
         }
         // An escalation or open question must actually have been handed to someone, never left waiting.
-        const hasTool = (n: string) => toolset.tools.some((t) => t.name === n);
-        const did = (...names: string[]) => ledger.entries.some((e) => names.includes(e.tool) && e.status === 'verified');
+        if (d.outcome === 'no_action' && canWait && !did('schedule_follow_up', 'put_on_hold', 'add_note'))
+          problems.push('outcome is "no_action": doing nothing new can be right, but leave a verified trace first: schedule_follow_up or put_on_hold with a review date, or add_note saying why no action is needed.');
         if (d.outcome === 'escalated' && hasTool('escalate_to_human') && !did('escalate_to_human'))
           problems.push('outcome is "escalated" but no escalate_to_human is verified: hand it over with a packet first.');
         if (d.outcome === 'needs_info' && hasTool('request_information') && !did('request_information', 'escalate_to_human', 'request_landlord_approval'))
