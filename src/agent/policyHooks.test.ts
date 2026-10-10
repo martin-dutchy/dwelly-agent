@@ -26,7 +26,7 @@ async function run(responses: ReturnType<typeof fauxAssistantMessage>[], seed: O
   return { ...r, results: r.messages.filter((m: any) => m.role === 'toolResult').map((m: any) => m.content[0].text as string) };
 }
 
-const escalation = { priority: 'P2', team: 'fraud', reason: 'r', known: 'k', missing: 'm', options: ['a'], recommendation: 'a' };
+const escalation = { priority: 'P2', team: 'fraud', reason: 'r', known: 'A caller asked to change the payee', missing: 'Who the caller really is', options: ['Hold the payment'], recommendation: 'Hold the payment and call the landlord back' };
 
 describe('hard policy hooks', () => {
   it('never changes bank details, whatever the model is persuaded of', async () => {

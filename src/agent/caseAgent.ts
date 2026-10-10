@@ -5,7 +5,10 @@ import { FailureInjector, type FailurePlan } from '../core/failures.js';
 import { type ToolContext, type ToolResult, executeTool, tools as coreTools } from '../core/tools.js';
 import { type GateResult, checkMessage } from './jev.js';
 import type { CaseMedia } from './cases.js';
+import { type CriticResult, revisionNote, runCritic } from './critic/critic.js';
+import { escalationPacketProblems, preCriticProblems } from './critic/validators.js';
 import { ActionLedger } from './ledger.js';
+import { quoteAppears } from './opsChecks.js';
 import type { Toolset } from './opsTools.js';
 import { verify as coreVerify } from './verify.js';
 
@@ -84,11 +87,24 @@ export type CaseRunOptions = {
   toolset?: Toolset;
   maxRetries?: number;
   thinkingLevel?: 'off' | 'low' | 'medium' | 'high';
+  /** Pre-submit review of the first valid draft by a second model. Off when absent. */
+  critic?: { model: Model<Api>; streamFn: StreamFn; timeoutMs?: number; attachments: string[] };
 };
 
+/** Tools a pre-submit review may never lead to: they move money, commit a provider, or end the job. */
+const AFTER_REVIEW_BLOCKED = new Set(['approve_quote', 'assign_contractor', 'close_ticket', 'cancel_ticket', 'update_bank_details']);
+const blockedAfterReview = (tool: string, a: Record<string, unknown>) => AFTER_REVIEW_BLOCKED.has(tool) || (tool === 'update_ticket' && ['completed', 'cancelled'].includes(String(a.stage ?? '')));
+const MAX_PRE_REVIEW_BLOCKS = 2;
+const CRITIC_MIN_TIME_LEFT_MS = 60_000;
+
 export async function runCase(opts: CaseRunOptions) {
+  const startedAt = Date.now();
+  const timeoutMs = opts.timeoutMs ?? 4 * 60_000;
   const toolset = opts.toolset ?? coreToolset();
   const getTool = (name: string) => toolset.tools.find((t) => t.name === name);
+  // Only the ops toolset's escalation carries a decision packet (known / missing / options / recommendation).
+  const packetEscalation = (getTool('escalate_to_human')?.parameters as { shape?: Record<string, unknown> } | undefined)?.shape?.options !== undefined;
+  const brief = opts.prompt.match(/<case\b[^>]*>\n?([\s\S]*?)<\/case>/)?.[1] ?? '';
   const ledger = new ActionLedger();
   const ctx: ToolContext = { conversationId: `case-${opts.caseId}`, channel: 'text', failures: new FailureInjector(opts.failures) };
   const lastResults = new Map<string, ToolResult>(); // toolCallId -> raw result, for the verifier
@@ -125,6 +141,22 @@ export async function runCase(opts: CaseRunOptions) {
   const gateBlocks = new Map<string, number>(); // recipient -> blocks so far
   const policyLog: { tool: string; reason: string }[] = [];
   const policyBlocks = new Map<string, number>(); // tool|ticket -> policy blocks so far
+  let preReviewBlocks = 0; // decision-point and packet blocks, capped so they can never stall the case
+  let packetBlocks = 0;
+  let critic: CriticResult | undefined;
+  let revisionMode = false;
+  let draft: Partial<Decision> | undefined;
+  let criticEvent: (CriticResult & { type: 'critic' }) | undefined;
+
+  const reviewDraft = async (c: NonNullable<CaseRunOptions['critic']>, d: Partial<Decision>): Promise<CriticResult> => {
+    const empty = { model: c.model.id, ms: 0, cost: 0, items: [], kept: [], dropped: [] };
+    if (startedAt + timeoutMs - Date.now() < CRITIC_MIN_TIME_LEFT_MS) return { ...empty, status: 'skipped', reason: 'low_time' };
+    try {
+      return await runCritic({ prompt: opts.prompt, attachments: c.attachments, draft: d, ledger: ledger.entries, policyLog }, { model: c.model, streamFn: c.streamFn, timeoutMs: c.timeoutMs, match: quoteAppears });
+    } catch (e) {
+      return { ...empty, status: 'error', reason: `exception: ${e instanceof Error ? e.message : String(e)}` };
+    }
+  };
 
   // Hard rules enforced in code, so no amount of persuasive input can talk the model past them.
   const policyBlock = (tool: string, a: Record<string, unknown>): string | undefined => {
@@ -155,6 +187,11 @@ export async function runCase(opts: CaseRunOptions) {
         const done = ledger.findVerified(toolCall.name, a);
         if (done) return { block: true, reason: `Already done and verified as ${done.id} (${done.ref}). Do not repeat it.` };
       }
+      if (revisionMode && blockedAfterReview(toolCall.name, a)) {
+        const reason = 'after the pre-submit review only reads, messages, notes, follow-ups, holds and escalation are allowed.';
+        policyLog.push({ tool: toolCall.name, reason });
+        return { block: true, reason: `Blocked by policy: ${reason} Record what is still to do in remaining_work and call submit_decision.` };
+      }
       // Run-level rules first (they know the ledger), then the toolset's own rules (they know the job record).
       const policy = policyBlock(toolCall.name, a) ?? toolset.guard?.(toolCall.name, a, ledger.entries);
       if (policy) {
@@ -168,6 +205,13 @@ export async function runCase(opts: CaseRunOptions) {
             reason: `Blocked by policy again (${blocks} times): ${policy}\nStop calling ${toolCall.name}: it will stay blocked. Call submit_decision now, and say in it what you could not do and why (remaining_work or assumptions).`,
           };
         return { block: true, reason: `Blocked by policy: ${policy}` };
+      }
+      if (toolCall.name === 'escalate_to_human' && packetEscalation && packetBlocks < MAX_PRE_REVIEW_BLOCKS) {
+        const gaps = escalationPacketProblems(a);
+        if (gaps.length) {
+          packetBlocks++;
+          return { block: true, reason: `Escalation packet incomplete: ${gaps.join(', ')}. Give what is known, what is missing, at least one option and your recommendation (a sentence each) so a person can decide from the packet alone.` };
+        }
       }
       // Jev message gate: a fast classifier checks outgoing messages before they leave.
       // Blocks at most twice per recipient so a false positive can never stall the case.
@@ -222,7 +266,25 @@ export async function runCase(opts: CaseRunOptions) {
           problems.push('outcome is "escalated" but no escalate_to_human is verified: hand it over with a packet first.');
         if (d.outcome === 'needs_info' && hasTool('request_information') && !did('request_information', 'escalate_to_human', 'request_landlord_approval'))
           problems.push('outcome is "needs_info" but nobody was asked: send request_information (or escalate) first. Never just wait.');
+        if (preReviewBlocks < MAX_PRE_REVIEW_BLOCKS) {
+          const pre = preCriticProblems(d, packetEscalation ? ledger.entries : [], brief);
+          if (pre.length) {
+            preReviewBlocks++;
+            problems.push(...pre);
+          }
+        }
         if (problems.length) return { block: true, reason: `Decision rejected:\n- ${problems.join('\n- ')}` };
+        // One review per case, of the first draft that passes every check above; never a second round.
+        if (opts.critic && !critic) {
+          critic = await reviewDraft(opts.critic, d);
+          criticEvent = { type: 'critic', ...critic };
+          trace.push(criticEvent as any);
+          if (critic.status === 'ok' && critic.kept.length) {
+            revisionMode = true;
+            draft = d;
+            return { block: true, reason: revisionNote(critic.kept) };
+          }
+        }
       }
       return undefined;
     },
@@ -269,7 +331,7 @@ export async function runCase(opts: CaseRunOptions) {
     }
   };
 
-  const timer = setTimeout(() => agent.abort(), opts.timeoutMs ?? 4 * 60_000);
+  const timer = setTimeout(() => agent.abort(), timeoutMs);
   try {
     // Attachments go in the same user turn, each labelled so the model can match it to the file list.
     const first = opts.media?.length
@@ -282,5 +344,12 @@ export async function runCase(opts: CaseRunOptions) {
     clearTimeout(timer);
   }
 
-  return { decision, ledger: ledger.entries, state: toolset.state, gateLog, policyLog, trace, messages: agent.state.messages, error: agent.state.errorMessage };
+  // A resubmission with the same outcome and next-action types as the reviewed draft did not act on the findings.
+  if (critic && criticEvent && draft && decision) {
+    const types = (x: Partial<Decision>) => (x.next_actions ?? []).map((n) => n.type).join(',');
+    const unchanged = decision.outcome === draft.outcome && types(decision) === types(draft);
+    critic.unaddressed = criticEvent.unaddressed = unchanged ? critic.kept.map((f) => `[${f.id}] ${f.finding}`) : [];
+  }
+
+  return { decision, ledger: ledger.entries, state: toolset.state, gateLog, policyLog, trace, messages: agent.state.messages, error: agent.state.errorMessage, critic };
 }

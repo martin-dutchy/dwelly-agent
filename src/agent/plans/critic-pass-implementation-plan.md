@@ -272,6 +272,7 @@ Run from the repo root and show the output.
 
 - [x] Step 1 (12:20): `src/agent/decisionPoints.ts` (`parseQuestions`, `overlap`, `unansweredQuestions`) and `src/agent/critic/validators.ts` (`preCriticProblems`, `escalationPacketProblems`). `pnpm exec vitest run src/agent/decisionPoints.test.ts src/agent/critic/validators.test.ts`: 12 passed.
 - [x] Step 2 (12:30): `src/agent/critic/critic.ts` (`CRITIC_PROMPT`, `Review`, `runCritic`, `evidenceFilter`, `criticCorpus`, `revisionNote`). `pnpm exec vitest run src/agent/critic/`: 12 passed (evidence or drop, provider error, no `submit_review`, schema failure, timeout).
+- [x] Step 3 (12:45, on top of M1 #16 and M4 #17): `caseAgent.ts` gains `opts.critic`, the pre-review validators, the one-shot critic call after every existing `submit_decision` check, revision-mode blocks, the `critic` trace event and `critic` in the return value. `src/eval/checks.ts` now imports the parser from `src/agent/decisionPoints.ts` (its copy removed). `pnpm exec vitest run src/agent/criticHook.test.ts`: 10 passed; `pnpm verify` green (292 tests).
 
 ## Discoveries
 
@@ -288,4 +289,10 @@ Run from the repo root and show the output.
   Rationale: hackathon exception in `docs/plans/README.md`. Date/Author: 2026-10-10 12:10, Claude for Marc.
 - Decision: Marc approved the plan with every recommended default (Q1 to Q10).
   Rationale: answered in chat. Date/Author: 2026-10-10 12:06 BST, Marc.
+- Decision: the deterministic pre-review validators (unanswered case questions, thin escalation packets) run whether or not the critic is on, and block at most twice per case each.
+  Rationale: they are cheap and deterministic, so the 15:00 rule keeps them either way. The cap keeps the existing guarantee that a check can never stall a case into NO DECISION (the agent cannot always satisfy a question parsed from an unfamiliar brief format). This departs from "critic off is byte-identical to today": with the flag off, the only differences are these two checks. Date/Author: 2026-10-10 12:45, Claude for Marc.
+- Decision: the packet check also runs before `escalate_to_human` executes, not only at `submit_decision`.
+  Rationale: a verified escalation cannot be edited, so a check only at submit time could be fixed only by a duplicate escalation. The submit-time check stays as the backstop (AC-M3-2). It applies only to toolsets whose escalation has a packet (`options` in the schema), so the voice/core toolset is unaffected. Date/Author: 2026-10-10 12:45, Claude for Marc.
+- Decision: the revision-mode block also covers `update_ticket` to `completed` or `cancelled`, and `update_bank_details` (Q4's T2/T3 list). `record_landlord_decision` stays allowed: it records a fact the inputs already hold and is itself quote-checked by M1.
+  Rationale: Q4. Date/Author: 2026-10-10 12:45, Claude for Marc.
 - Decision (A/B outcome): _to be filled at step 7 with both `summary.json` paths and the table._
