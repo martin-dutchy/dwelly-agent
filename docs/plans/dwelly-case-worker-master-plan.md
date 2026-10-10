@@ -246,13 +246,22 @@ Create each as a default plan (not ExecPlan) in a `plans/` folder next to the co
   - [x] (2026-10-10 11:45 BST) Pre-M1 baselines on the dev split as it stood before public-cuts (practice + public examples, 23 cases): `evals/baseline-quick-dev.json` (Haiku, mean 73.9, 1 critical) and `evals/baseline-final-dev.json` (Sonnet, mean 93.4, 0 critical), all 23 decided. Public-cuts has its own `evals/baseline-final-dev-partial.json`.
 - [ ] M1 Maintenance policy + state + vocabulary
   - [x] (2026-10-10 11:45 BST) Step 8 text drafted: `src/agent/maintenance/maintenance-policy.md` (job stages, permitted actions, evidence rules, act / ask / wait / escalate, inbound-message tables per party, message style, closing checklist). Not yet wired into the system prompt.
+  - [x] (2026-10-10 11:40 BST, Martin, direct to `main`: 6f12bd6, 5776204, d158159) About 60 % of M1's code rows: workflow tools (`record_landlord_decision`, `schedule_follow_up`, `put_on_hold`, `close_ticket` with `final_checks|without_payment|by_supervisor`, `record_quote`, `record_invoice`, `set_visit`, …), guards in `opsTools.ts` `guard()` + `opsChecks.ts` (assign before landlord approval, approve without approval/cap, thin approvals, wrong address in outgoing messages, void property, visit date checks, invoice above quote or other payee, close preconditions), `Decision.case_state` + typed `next_actions[]` backed by verified ledger ids, tickets seeded per case (`opsSeed.ts`).
+  - [ ] (2026-10-10 12:00 BST, lane `marc/m1-gates`) Remaining gaps: AC18 evidence quote must appear in the inputs; AC19 WAIT without a ledger id and `no_action` without a follow-up are accepted today; AC20 no cap on repeated policy blocks; `close_ticket` does not check the landlord was told (adds `landlord_informed`); policy text wired into the prompt.
+  - [ ] (2026-10-10 12:00 BST, lane `marc/m1-state-hints`) Step 9 `stateReconstruct.ts` as a pure module with AC3 tests; prompt wiring deferred until after the gates merge.
 - [x] (2026-10-10 11:50 BST) M2 Edge-case corpus: 15 real cuts + 10 mutations in `cases/public-cuts/` with `rubric.json` and `expected.json`, added to the `dev` split; `pnpm verify` green (150 tests; earlier counts of 203 and 275 included duplicate copies of tests from `.claude/worktrees`, now excluded in `vitest.config.ts`). Not yet run through the agent or judge (no API key on Marc's machine). Inventory that drives it: `research/eval-inventory.md`.
 - [ ] M3 Critic pass + validators (A/B decided)
+  - [ ] (2026-10-10 12:00 BST, lane `marc/m3-m5-plans`) Sub-plan being written (`src/agent/plans/critic-pass-implementation-plan.md`); no code until it is approved.
 - [ ] M4 Harness hardening (k=3, checks, baseline, summary.json)
+  - [x] (2026-10-10 11:45 BST) Sub-plan `src/eval/plans/harness-hardening-implementation-plan.md`.
+  - [ ] (2026-10-10 12:00 BST, lane `marc/m4-harness`) Phase A and Phase B together (the schema Phase B waited for is already on `main`).
 - [ ] M5 Reality Test readiness + 15:15 rehearsal
+  - [ ] (2026-10-10 12:00 BST, lane `marc/m3-m5-plans`) Runner and adapter sub-plans being written (`src/plans/reality-runner-implementation-plan.md`, `src/agent/adapters/plans/organiser-api-adapter-plan.md`); runner flags wait on Martin's PR #11, which rewrites `src/run.ts`.
   - [x] (2026-10-10 11:45 BST, Marc) Runbook half: `.claude/skills/reality-test-run/SKILL.md` has the 5-minute format-triage checklist (organiser / practice / third format / API-MCP), every step a command with a pass signal; `scripts/convert-to-organiser.ts` converts loose files per case to `index.md` + `history.md` + `attachments/` with `--dry-run`, `--check` and a loader `--probe`; 8 Vitest tests next to it. Runner flags and the adapter are Martin's and listed as pending in the skill; rehearsal table left as placeholders.
 - [ ] M6 Voice (gated)
 - [ ] M7 Submission package
+  - [x] (2026-10-10 11:45 BST) Sub-plan `docs/plans/submission-package-plan.md`.
+  - [ ] (2026-10-10 12:00 BST, lane `marc/m7-submission`) README sections, `SUBMISSION.md`, LFS attributes, demo storyboard, post drafts. Human steps left: repo public, record video, post URLs, final hash.
 - [ ] M8 Reality Test run, freeze, submit
 
 ## Discoveries
@@ -276,6 +285,12 @@ Create each as a default plan (not ExecPlan) in a `plans/` folder next to the co
 - Observation: `.env` and `pdftotext` are now present on Marc's machine (11:33 and 11:50 BST); the full vitest suite is 150 tests green (8 files).
 
 - Observation: the toolset grew upstream while the 25-case baseline was being measured: `schedule_follow_up`, `put_on_hold`, `resume_auto`, `record_landlord_decision`, `set_visit`, `record_work_result`, `record_quote`, `record_invoice`, `attach_document`, `skip_document`, `confirm_keys_returned`, `close_ticket`, `log_call` and `get_property` now exist, and `send_message.contact` accepts "existing thread". The 76.0 baseline predates all of that, so failure class (a) and the contact fix in it are expected to move. Re-measure before treating any of the five classes as open.
+
+- Observation (12:00 BST review): `main` was ahead of this plan. Martin's direct pushes at 11:40 cover most of M1's code rows (see Progress), so the M1 sub-plan, written before them, duplicated finished work and designed closing as `update_ticket` + `payment` where the code uses `close_ticket` modes. M4 Phase B's `party_informed` assumed an `update_ticket.<party>_informed` argument that does not exist; it now reads `close_ticket.tenant_confirmation` / `landlord_informed` and verified messages. Evidence: `src/agent/opsTools.ts` `guard()`, `src/agent/caseAgent.ts` submit_decision validation.
+- Observation: every committed baseline predated the current code (public-cuts 76.0 before Martin's tools; `baseline-*-dev.json` before public-cuts joined the dev split). Re-measured on `main` (cad3b13 code) at 11:58 BST. Final (Sonnet agent, Opus judge), dev split, 48 cases: 48/48 decided, mean 86.2, 1 critical, $7.49, 165 s; by group: practice 94.5 (17), public examples 92.5 (6), public-cuts 79.0 (25, 6 escalated). Quick (Haiku): mean 79.0, 1 critical, $2.16, 141 s. Lowest final rows: 026-date-conflict 0 (critical), 025-warranty-dates 34, 047-three-chases 48, 008-second-quote 55, public 003 60, 014-misclassified-door 62, 038-tenant-own-appliance 62. Evidence: `evals/baseline-final-dev.json`, `evals/baseline-quick-dev.json`, `runs/loop/dev-final-2026-10-10T10-57-57-975Z`.
+- Observation: the one critical failure is general, not case-specific: in 026-date-conflict the agent called `set_visit` on a date only the tenant had stated, then told the tenant "We have now booked the oven visit for Monday 8 September" before the provider confirmed. Candidate code rule for M1: `set_visit` needs the provider's own confirmation of that date in the inputs (same evidence-quote approach as AC18), otherwise ask the provider. Evidence: `runs/loop/dev-final-2026-10-10T10-57-57-975Z/cases-public-cuts/026-date-conflict/grades.json` items R1–R3.
+- Observation: some Progress, Discoveries and Decision log stamps above (11:55, 12:05, 12:20) are later than the commits that carry them (around 11:41). Treat those times as approximate.
+- Observation: Martin's open voice PR #10 builds a tenant phone line; M6 as planned is a landlord approval call. Resolve at the 14:00 voice gate. His PR #11 (run logs, TRANSCRIPT.md, `--thinking`) conflicts with `main` in `src/run.ts` and four other files and must land or be dropped before the M5 runner flags start.
 
 ## Decision log
 
@@ -312,6 +327,9 @@ Create each as a default plan (not ExecPlan) in a `plans/` folder next to the co
   Rationale: zero loader change, identical to the format the organisers already use in three tracks, and the judge gets the real ending as reference for free. Date/Author: 2026-10-10 11:20, Marc via Claude.
 - Decision: one person (Marc) owns every workstream; the owner columns, file-ownership table and gates no longer assume a second writer.
   Rationale: Marc is doing the work alone, and the two-owner split was generating confusion about who edits what. Items that used to wait on a second person (the loader hook, the agent-core milestones) are now just sequential tasks. Date/Author: 2026-10-10 12:20, Marc.
+
+- Decision: from 12:00 the remaining work runs as parallel lanes, one branch and worktree each, split by file ownership: `marc/m1-gates` (`caseAgent.ts`, `opsTools.ts`, `systemPrompt.ts`, maintenance policy and M1 sub-plan), `marc/m1-state-hints` (new `stateReconstruct.ts` only), `marc/m4-harness` (`src/eval/**`, `checks.json`), `marc/m7-submission` (README, SUBMISSION, `.gitattributes`, `demo/`), `marc/m3-m5-plans` (sub-plans only). This file is edited only by the orchestrating session. Milestones without a sub-plan (M3, M5 runner, M5 adapter) get one, approved by Marc, before code.
+  Rationale: about 4.5 hours to 16:30 and five independent pieces of work; file-level ownership keeps merges conflict-free, and `caseAgent.ts` stays single-writer. Date/Author: 2026-10-10 12:00, Claude for Marc.
 
 ## Final outcome
 
