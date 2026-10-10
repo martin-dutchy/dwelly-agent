@@ -47,7 +47,7 @@ Open `https://<app-name>.fly.dev/admin`, create an invite per person and send th
 
 ## Updating
 
-- Code: `fly deploy --ha=false`.
+- Code: `bash src/voice/deploy-when-idle.sh` (waits until no call is in progress, then deploys; a deploy mid-call drops that call's in-memory state).
 - Agent prompt or settings: run `pnpm voice:sync` with the production `ELEVENLABS_AGENT_ID`, `PUBLIC_BASE_URL` and `VOICE_TOOL_SECRET`. Tools are matched only within that agent, so a local agent (ngrok) and production never overwrite each other.
 
 ## Notes

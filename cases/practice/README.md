@@ -69,3 +69,5 @@ Challenge letters refer to the table in `research/scenarios.md` section 2:
 | [20](20/case.md) | S20 | Water pouring into the flat below | A,G,I |
 | [21](21/case.md) | S21 | Status enquiry plus an off-topic question | N |
 | [22](22/case.md) | S22 | Tenant has died: sister asks for the deposit and a clearance | J,I,G |
+| [23](23/case.md) | voice test call, 10 Oct | Gas smell after the AI phone line verified the caller against the wrong tenant record | A,D,E,I,J |
+| [24](24/case.md) | voice test call, 10 Oct | A verified tenant's repair dropped by a system failure mid-call; the phone line promised a colleague would follow up | D,L |

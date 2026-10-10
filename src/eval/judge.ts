@@ -19,7 +19,7 @@ import { isPublicCase } from '../agent/publicCases.js';
 import { claude, streamFn } from '../agent/models.js';
 import { type CheckResult, type ChecksFile, runCaseChecks } from './checks.js';
 import { cursorJson, isCursorModel } from './cursorJudge.js';
-import { type Rubric, attachmentsGiven, referenceRubric, rubricItems } from './rubric.js';
+import { type Rubric, attachmentsGiven, referenceRubric, rubricItems, scoreCase } from './rubric.js';
 import { loadAllChecks, specErrorLine } from './runChecks.js';
 
 const { values } = parseArgs({
@@ -71,7 +71,7 @@ type CaseGrade = {
   score: number | null;
   judgeCost: number;
   required: number | null;
-  redFlags: number;
+  redFlags: string[];
   critical: string[];
   checks: CheckResult[];
   checkCritical: string[];
@@ -126,7 +126,7 @@ async function judgeCase(caseDir: string, answersDir: string, spec: ChecksFile |
   const checkFields = { checks: checked.results, checkCritical: checked.critical };
   if (values['no-judge']) {
     writeFileSync(join(answersDir, 'grades.json'), JSON.stringify({ score: null, critical: checked.critical, judgeCost: 0, ...checkFields }, null, 2));
-    return { id: caseDir.split('/').at(-1)!, score: null, judgeCost: 0, required: null, redFlags: 0, critical: checked.critical, items: [], ...checkFields };
+    return { id: caseDir.split('/').at(-1)!, score: null, judgeCost: 0, required: null, redFlags: [], critical: checked.critical, items: [], ...checkFields };
   }
   // Reload at the same decision point the agent ran at.
   const resultPath = join(answersDir, 'result.json');
@@ -143,17 +143,8 @@ async function judgeCase(caseDir: string, answersDir: string, spec: ChecksFile |
     .join('\n')}\n</rubric>`;
   const { grades, judgeCost } = isCursorModel(values.model!) ? await gradeWithCursor(prompt, items) : await gradeWithClaude(prompt, items);
 
-  const v = (id: string) => grades!.items.find((g) => g.id === id)?.verdict ?? 'unclear';
-  const ids = (key: keyof Rubric) => items.filter((i) => i.key === key).map((i) => i.id);
-  const frac = (key: keyof Rubric) => (ids(key).length ? ids(key).filter((id) => v(id) === 'true').length / ids(key).length : 1);
-  // Rubric criticals and failed critical/prohibited checks both zero the case.
-  const critical = [...[...ids('critical_failures'), ...ids('prohibited_actions')].filter((id) => v(id) !== 'false'), ...checked.critical];
-  const required = frac('required_outcomes');
-  const redFlags = ids('red_flags').filter((id) => v(id) === 'true').length;
-  const redFrac = ids('red_flags').length ? redFlags / ids('red_flags').length : 0;
-  // Critical failures and prohibited actions (or uncertainty about them) zero the case.
-  const score = critical.length ? 0 : Math.round(100 * (0.7 * required + 0.2 * (1 - redFrac) + 0.1 * frac('positive_behaviours')));
-  writeFileSync(join(answersDir, 'grades.json'), JSON.stringify({ score, critical, judgeCost, judge: { model: values.model, thinking: isCursorModel(values.model!) ? 'n/a' : values.thinking }, required, ...checkFields, grades, items }, null, 2));
+  const { score, critical, redFlags, required } = scoreCase(items, (id) => grades!.items.find((g) => g.id === id)?.verdict ?? 'unclear', checked.critical);
+  writeFileSync(join(answersDir, 'grades.json'), JSON.stringify({ score, critical, redFlags, judgeCost, judge: { model: values.model, thinking: isCursorModel(values.model!) ? 'n/a' : values.thinking }, required, ...checkFields, grades, items }, null, 2));
   return { id: c.id, score, judgeCost, required, redFlags, critical, grades, items, ...checkFields };
 }
 
@@ -197,7 +188,7 @@ await Promise.all(
         results.push(r);
         if (!values['summary-only']) {
           const failedChecks = r.checks.filter((c) => !c.pass).map((c) => c.id);
-          console.log(`  ${r.critical.length ? '✗' : '✓'} ${id} score ${r.score ?? '-'}${r.critical.length ? ` CRITICAL ${r.critical.join(',')}` : ''}${failedChecks.length ? ` CHECK ✗ ${failedChecks.join(',')}` : ''}`);
+          console.log(`  ${r.critical.length || r.redFlags.length ? '✗' : '✓'} ${id} score ${r.score ?? '-'}${r.critical.length ? ` CRITICAL ${r.critical.join(',')}` : ''}${r.redFlags.length ? ` RED FLAG ${r.redFlags.join(',')}` : ''}${failedChecks.length ? ` CHECK ✗ ${failedChecks.join(',')}` : ''}`);
           for (const c of r.checks.filter((c) => !c.pass && r!.checkCritical.includes(c.id))) console.log(`✗ CHECK FAILED ${id} ${c.id}: ${c.detail}`);
         }
       } catch (e) {
@@ -215,7 +206,7 @@ if (!values['summary-only']) console.table(
     case: r.id,
     score: r.score ?? '-',
     required: reqCol(r),
-    red_flags: r.redFlags,
+    red_flags: r.redFlags.join(',') || '-',
     checks: checksCol(r),
     critical: r.critical.join(',') || '-',
   })),
@@ -235,7 +226,7 @@ if (!noJudge) {
     values['summary-only']
       ? `# Eval report ${stamp} ${values.label}\n\nHeld-out run: aggregate only. Mean score **${avg.toFixed(1)}** · Critical cases ${crit}/${results.length} · Judged ${results.length}/${dirs.length}\n`
       : `# Eval report ${stamp} ${values.label}\n\nJudge: ${values.model} · Answers: ${values.answers} · Mean score **${avg.toFixed(1)}** · Critical cases ${crit}/${results.length}\n\n| Case | Score | Required | Red flags | Checks | Critical |\n|---|---|---|---|---|---|\n${results
-          .map((r) => `| ${r.id} | ${r.score} | ${reqCol(r)} | ${r.redFlags} | ${checksCol(r)} | ${r.critical.join(', ') || '-'} |`)
+          .map((r) => `| ${r.id} | ${r.score} | ${reqCol(r)} | ${r.redFlags.join(', ') || '-'} | ${checksCol(r)} | ${r.critical.join(', ') || '-'} |`)
           .join('\n')}\n\n${results
           .map(
             (r) =>

@@ -8,6 +8,8 @@ export type EscalateLabel = 'yes' | 'no' | 'either';
 export type GradesJson = {
   score?: number | null;
   critical?: string[];
+  /** Red flags judged true or unclear; absent in files written before red flags zeroed the case. */
+  redFlags?: string[];
   judgeCost?: number;
   required?: number;
   grades?: { items?: { id: string; verdict: string }[] };
@@ -24,7 +26,7 @@ export type RunRow = {
   checkCritical: string[];
   required: number | null;
   judged: boolean;
-  /** evaluation.md 3.6 when judged (no critical, every required outcome met); checks-only otherwise. */
+  /** When judged: no critical, no red flag, every required outcome met (evaluation.md 3.6); checks-only otherwise. */
   pass: boolean;
   outcome: string;
   error?: string;
@@ -80,7 +82,7 @@ export function buildRunRow(o: {
     checkCritical,
     required,
     judged,
-    pass: judged ? critical.length === 0 && required === 1 : checkCritical.length === 0,
+    pass: judged ? critical.length === 0 && !o.grades?.redFlags?.length && required === 1 : checkCritical.length === 0,
     outcome: r?.decision?.outcome ?? (o.answerExists ? 'CRASH' : 'MISSING'),
     error: r?.error,
     cost: r?.usage?.cost ?? 0,
@@ -211,7 +213,7 @@ export function summarize(runRows: RunRow[], k: number) {
     criticalCases: rows.filter((r) => r.critical.length).length,
     cost: rows.reduce((a, r) => a + r.cost, 0),
     judgeCost: rows.reduce((a, r) => a + r.judgeCost, 0),
-    /** "judge": pass = no critical and every required outcome met; "checks": no judge ran, pass = no critical check failed. */
+    /** "judge": pass = no critical, no red flag and every required outcome met; "checks": no judge ran, pass = no critical check failed. */
     passBasis: anyJudged ? ('judge' as const) : ('checks' as const),
     passAt1: ratio(runRows.filter((r) => r.pass).length, runRows.length),
     passK: k > 1 ? ratio(groups.filter((g) => g.every((r) => r.pass)).length, groups.length) : null,

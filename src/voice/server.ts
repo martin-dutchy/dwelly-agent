@@ -14,7 +14,7 @@ import { adminCallPage, adminHomePage } from './http/adminPages.js';
 import { type ChatRequest, createPiBrain } from './pi/brain.js';
 import { buildCallLog, callBrief, firstMessage, grade, publicScenarios, scenarioById, scenarios, testerCard, worldFor } from './scenarios.js';
 import { type VoiceStore, createStore } from './store.js';
-import { handleVoiceToolCall, registerScenario, setWorldSeeder } from './toolCall.js';
+import { handleVoiceToolCall, registerScenario, setEventLoader, setWorldSeeder } from './toolCall.js';
 
 type Env = NodeJS.ProcessEnv;
 
@@ -154,6 +154,55 @@ async function placePhoneCall(env: Env, store: VoiceStore, o: { to: string; scen
   return out.conversation_id;
 }
 
+const PHONE_DAILY_CAP = 3;
+// Twilio dialling is only enabled for UK numbers; others get a browser-call invite instead.
+const DIALLABLE = /^\+44/;
+
+/** Public sign-up (/join/<code>): rate-limited per client IP, in memory. */
+const joins = new Map<string, number[]>();
+function allowJoin(ip: string) {
+  const now = Date.now();
+  const recent = (joins.get(ip) ?? []).filter((t) => now - t < 3_600_000);
+  if (recent.length >= 10) return false;
+  joins.set(ip, [...recent, now]);
+  return true;
+}
+
+/** The case with the fewest calls and invites so far, so public sign-ups balance the dataset. */
+async function leastCoveredScenario(store: VoiceStore) {
+  const [calls, testers] = await Promise.all([store.listCalls(1000), store.listTesters()]);
+  const load = (id: string) => calls.filter((c) => c.scenario_id === id).length + testers.filter((t) => !t.revoked && t.scenario_id === id).length;
+  const pool = scenarios.filter((s) => s.source); // case-grounded scenarios only
+  const min = Math.min(...pool.map((s) => load(s.id)));
+  const best = pool.filter((s) => load(s.id) === min);
+  return best[Math.floor(Math.random() * best.length)];
+}
+
+async function joinRoutes(code: string, rest: string, req: IncomingMessage, res: ServerResponse, store: VoiceStore, env: Env) {
+  if (!env.PUBLIC_JOIN_CODE || !sameSecret(code, env.PUBLIC_JOIN_CODE)) return html(res, page('closed.html'));
+  if (!rest) return html(res, page('join.html'));
+  if (rest === 'api' && req.method === 'POST') {
+    const ip = String(req.headers['fly-client-ip'] ?? req.socket.remoteAddress ?? '');
+    if (!allowJoin(ip)) return send(res, 429, { error: 'Too many sign-ups from here. Try again in an hour.' });
+    const { phone, consent } = await readJson(req);
+    if (consent !== true) return send(res, 400, { error: 'Please tick the box to agree to the recorded test call.' });
+    const number = phone ? toE164(phone) : null;
+    if (phone && !number) return send(res, 400, { error: 'That phone number doesn\'t look right. Try the format +44 7700 900123, or leave it blank to use your browser.' });
+    const dialable = number && DIALLABLE.test(number) ? number : null;
+    // Same number again: hand back that invite (it can only ever ring this number) rather than piling up duplicates.
+    if (dialable) {
+      const existing = (await store.activeByPhone(dialable))[0];
+      if (existing) return send(res, 200, { link: `/t/${existing.token}`, existing: true });
+    }
+    const s = await leastCoveredScenario(store);
+    // No name asked: label public sign-ups by the last digits of their number in the admin.
+    const label = dialable ? `Public ·${dialable.slice(-4)}` : `Public · browser ${Math.random().toString(36).slice(2, 6)}`;
+    const t = await store.createTester({ name: label, dailyCap: PHONE_DAILY_CAP, phone: dialable, scenarioId: s.id });
+    return send(res, 200, { link: `/t/${t.token}`, browserOnly: !dialable, foreign: !!number && !dialable });
+  }
+  return send(res, 404, { error: 'not found' });
+}
+
 /** The scenario this tester has done least, skipping one they asked to swap. */
 async function nextScenario(store: VoiceStore, testerId: string, skip?: string) {
   const counts = await store.scenarioCounts(testerId);
@@ -182,7 +231,8 @@ async function testerRoutes(token: string, rest: string, req: IncomingMessage, r
     if (!tester.phone || !env.ELEVENLABS_PHONE_NUMBER_ID) return send(res, 400, { error: 'Phone calls are not set up for this link.' });
     if (!scenarios.some((x) => x.id === scenarioId) || (tester.scenario_id && tester.scenario_id !== scenarioId)) return send(res, 400, { error: 'bad request' });
     const used = await store.callsToday(tester.id);
-    if (used >= tester.daily_cap || !mint(tester.id, tester.daily_cap) || !mint('all', Number(env.VOICE_DAILY_CALL_CAP ?? 200)))
+    // Per number as well as per invite: a public sign-up must never be usable to pester someone else's phone.
+    if (used >= tester.daily_cap || !mint(tester.id, tester.daily_cap) || !mint(`phone:${tester.phone}`, PHONE_DAILY_CAP) || !mint('all', Number(env.VOICE_DAILY_CALL_CAP ?? 200)))
       return send(res, 429, { error: "That's the limit for today. Thank you! Try again tomorrow." });
     let conversationId: string;
     try {
@@ -320,6 +370,8 @@ const publicBase = (req: IncomingMessage, env: Env) => env.PUBLIC_BASE_URL || `h
 export function createVoiceServer(env: Env = process.env, store: VoiceStore = createStore(env.DATABASE_URL)) {
   // Each call's tools work on a copy of its case: tenant, property, open job.
   setWorldSeeder(worldFor);
+  // After a restart, a live call's identity state is rebuilt from the durable event log.
+  setEventLoader((id) => store.events(id) as never);
   // Every tool event also goes to the durable event log.
   onAudit((id, e) => void store.appendEvent(id, e as never).catch((err) => console.error('[voice] event', err)));
 
@@ -329,6 +381,9 @@ export function createVoiceServer(env: Env = process.env, store: VoiceStore = cr
     try {
       if (req.method === 'GET' && (path === '/voice/health' || path === '/health')) return send(res, 200, { ok: true });
       if (path === '/' || path === '/favicon.ico') return send(res, 404, { ok: false });
+
+      const join = path.match(/^\/join\/([\w-]{4,64})(?:\/(.*))?$/);
+      if (join) return await joinRoutes(join[1], join[2] ?? '', req, res, store, env);
 
       const tester = path.match(/^\/t\/([\w-]{6,40})(?:\/(.*))?$/);
       if (tester) return await testerRoutes(tester[1], tester[2] ?? '', req, res, store, env);

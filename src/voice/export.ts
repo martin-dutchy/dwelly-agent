@@ -93,12 +93,14 @@ export function exportCall(call: CallRow, ledger: Ledger, outRoot: string) {
 }
 
 if (process.argv[1]?.endsWith('export.ts')) {
-  const { values } = parseArgs({ options: { out: { type: 'string', default: 'datasets/voice' }, all: { type: 'boolean', default: false } } });
+  const { values } = parseArgs({ options: { out: { type: 'string', default: 'datasets/voice' }, all: { type: 'boolean', default: false }, only: { type: 'string' } } });
+  const only = values.only?.split(',').map((s) => s.trim());
   const store = createStore();
   await store.init();
   let n = 0;
   for (const row of await store.listCalls(1000)) {
     if (row.status !== 'graded') continue;
+    if (only && !only.some((o) => row.conversation_id.endsWith(o))) continue;
     const call = (await store.getCall(row.conversation_id))!;
     // Skip calls nobody really took part in (no caller speech), unless --all.
     if (!values.all && !(call.transcript ?? []).some((t) => t.role === 'user' && (t.message ?? '').trim().length > 3)) continue;
