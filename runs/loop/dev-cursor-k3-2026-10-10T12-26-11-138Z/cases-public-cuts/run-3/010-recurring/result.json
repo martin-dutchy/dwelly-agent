@@ -1,0 +1,265 @@
+{
+  "id": "010-recurring",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "cutoff": 15,
+  "totalEvents": 15,
+  "inputs": [
+    {
+      "name": "history.md",
+      "method": "derived",
+      "bytes": 2843,
+      "chars": 2813,
+      "note": "events 1–15 of 15 from history.md"
+    },
+    {
+      "name": "attachments/attachment-01-photograph-of-a-solar-photovoltaic-generation-me.pdf",
+      "method": "pdftotext",
+      "bytes": 73851,
+      "chars": 987
+    }
+  ],
+  "withheld": [
+    {
+      "name": "index.md",
+      "reason": "sections that reveal the ending: Overview, Outcome, Next action at escalation, History, Attachments"
+    },
+    {
+      "name": "rubric.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    }
+  ],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Current reading photo sent to landlord (event 013); landlord acknowledged and gave next date 15 Sept (event 015). Ticket back in auto mode with follow-up FUP-101 on 2025-09-08.",
+    "next_actions": [
+      {
+        "type": "WAIT",
+        "action": "Wait until 2025-09-08, then ask the tenant for the next solar meter photo for the landlord's 15 September date",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Thank tenant, say next request comes early September",
+        "recipient": "Miles Fletcher, tenant",
+        "channel": "email",
+        "ledger_id": "A3"
+      },
+      {
+        "type": "OTHER",
+        "action": "Acknowledge landlord's next date of 15 September",
+        "recipient": "Ava, landlord",
+        "channel": "email",
+        "ledger_id": "A2"
+      }
+    ],
+    "boundaries": [
+      "Acknowledgements do not confirm the tenant will supply the next photo.",
+      "The reading figure (16845) is as described in the attachment and was not independently verified.",
+      "The original request said every 3 months; the landlord's stated next date (15 Sept) was followed, and any intermediate readings were not scheduled."
+    ],
+    "remaining_work": [
+      "Send tenant the photo request around 8 Sept 2025 and forward to landlord by 15 Sept (agency)."
+    ],
+    "missing_info": [],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "The tenant's reading photo went to the landlord, who confirmed receipt and said she next needs it on 15 September. I acknowledged to both parties, scheduled a follow-up for 8 September and returned the ticket to auto mode.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "This round is complete: the photo was supplied and sent to the landlord, who replied. Outstanding is the next reading, due 15 September."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Follow-up FUP-101 on 2025-09-08 to ask the tenant for the photo by email. Landlord and tenant have been acknowledged by email now."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "No. It is routine and nothing needs authority."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Follow-up scheduled for 2025-09-08"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Landlord acknowledged by email"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Tenant thanked by email"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Ticket returned to auto mode"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Event 008 mentions a caller from Oakfield Compliance, which does not match the tenant; it was not relied on. The tenant's email (event 012) had no text, but the meter photo was sent on to the landlord, so I treated it as supplied.",
+      "Event 013's attachment tag appears as attachment-80-document, while the file present is attachment-01. I used the file present."
+    ],
+    "assumptions": [
+      "The photo sent to the landlord is the attachment on file.",
+      "Early September gives enough lead time before 15 September."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "schedule_follow_up",
+      "args": {
+        "due_on": "2025-09-08",
+        "purpose": "Ask tenant for a clear photo of the solar panel meter reading so it reaches landlord by 15 September 2025 (landlord's stated next date, event 015).",
+        "ticket_ref": "NBL-010-recurring",
+        "party": "Tenant / Landlord"
+      },
+      "key": "schedule_follow_up:{due_on:\"2025-09-08\",party:\"Tenant / Landlord\",purpose:\"Ask tenant for a clear photo of the solar panel meter reading so it reaches landlord by 15 September 2025 (landlord's stated next date, event 015).\",ticket_ref:\"NBL-010-recurring\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "FUP-101",
+      "evidence": [
+        "FUP-101 found in the schedule_follow_up log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Ava",
+        "recipient_role": "landlord",
+        "channel": "email",
+        "contact": "existing thread (event 015 email)",
+        "ticket_ref": "NBL-010-recurring",
+        "body": "Hello Ava, thank you. We've noted that you next need the solar panel reading on 15 September. We'll ask the tenant for a photo ahead of that date and send it on to you.\n\nKind regards, Northbridge Lettings"
+      },
+      "key": "send_message:{body:\"Hello Ava, thank you. We've noted that you next need the solar panel reading on 15 September. We'll ask the tenant for a photo ahead of that date and send it on to you.\\n\\nKind regards, Northbridge Lettings\",channel:\"email\",contact:\"existing thread (event 015 email)\",recipient_name:\"Ava\",recipient_role:\"landlord\",ticket_ref:\"NBL-010-recurring\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-102",
+      "evidence": [
+        "MSG-102 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Miles Fletcher",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 012 email)",
+        "ticket_ref": "NBL-010-recurring",
+        "body": "Hello Miles, thank you for the solar panel reading photo, it has gone to the landlord. We'll be in touch in early September to ask for the next one. Nothing else is needed from you until then.\n\nKind regards, Northbridge Lettings"
+      },
+      "key": "send_message:{body:\"Hello Miles, thank you for the solar panel reading photo, it has gone to the landlord. We'll be in touch in early September to ask for the next one. Nothing else is needed from you until then.\\n\\nKind regards, Northbridge Lettings\",channel:\"email\",contact:\"existing thread (event 012 email)\",recipient_name:\"Miles Fletcher\",recipient_role:\"tenant\",ticket_ref:\"NBL-010-recurring\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-103",
+      "evidence": [
+        "MSG-103 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "resume_auto",
+      "args": {
+        "ticket_ref": "NBL-010-recurring"
+      },
+      "key": "resume_auto:{ticket_ref:\"NBL-010-recurring\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-010-recurring",
+      "evidence": [
+        "Ticket NBL-010-recurring read back after resume_auto"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-010-recurring",
+        "stage": "init",
+        "property": "Flat 10, 180 Alder Lane, Cedarford, ZZ3 4ZZ",
+        "description": "Solar panel readings every 3 months w photo needed from Ts for LL. Next due Mid June.",
+        "mode": "auto"
+      }
+    ],
+    "records": [
+      {
+        "id": "FUP-101",
+        "tool": "schedule_follow_up",
+        "args": {
+          "ticket_ref": "NBL-010-recurring",
+          "due_on": "2025-09-08",
+          "party": "Tenant / Landlord",
+          "purpose": "Ask tenant for a clear photo of the solar panel meter reading so it reaches landlord by 15 September 2025 (landlord's stated next date, event 015)."
+        },
+        "at": 1791635443231
+      },
+      {
+        "id": "MSG-102",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Ava",
+          "recipient_role": "landlord",
+          "channel": "email",
+          "contact": "existing thread (event 015 email)",
+          "body": "Hello Ava, thank you. We've noted that you next need the solar panel reading on 15 September. We'll ask the tenant for a photo ahead of that date and send it on to you.\n\nKind regards, Northbridge Lettings",
+          "ticket_ref": "NBL-010-recurring"
+        },
+        "at": 1791635443232
+      },
+      {
+        "id": "MSG-103",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Miles Fletcher",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 012 email)",
+          "body": "Hello Miles, thank you for the solar panel reading photo, it has gone to the landlord. We'll be in touch in early September to ask for the next one. Nothing else is needed from you until then.\n\nKind regards, Northbridge Lettings",
+          "ticket_ref": "NBL-010-recurring"
+        },
+        "at": 1791635443233
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 10, 180 Alder Lane, Cedarford, ZZ3 4ZZ",
+        "landlord": {
+          "contact": "agency landlord record",
+          "notes": [
+            "Contact details are held in the agency system and not shown in this case file; messages to the landlord go through it. Use contact \"agency landlord record\".",
+            "Landlord messages visible in this case: event 013 (email, to landlord); event 015 (email, from landlord)."
+          ]
+        }
+      }
+    ]
+  },
+  "usage": {
+    "input": 8,
+    "output": 2394,
+    "cost": 0.040019700000000005,
+    "turns": 3,
+    "durationMs": 18084,
+    "retries": 0,
+    "thinkingTokens": 281
+  }
+}
