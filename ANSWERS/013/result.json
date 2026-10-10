@@ -1,0 +1,358 @@
+{
+  "id": "013",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "cutoff": 24,
+  "totalEvents": 24,
+  "inputs": [
+    {
+      "name": "history.md",
+      "method": "derived",
+      "bytes": 7959,
+      "chars": 7900,
+      "note": "events 1–24 of 24 from history.md"
+    },
+    {
+      "name": "attachments/glazing-invoice.pdf",
+      "method": "pdftotext",
+      "bytes": 133358,
+      "chars": 315
+    }
+  ],
+  "withheld": [
+    {
+      "name": "index.md",
+      "reason": "sections that reveal the ending: History, Attachments"
+    }
+  ],
+  "inputProblems": [],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "harness": {
+    "flags": "none",
+    "enabled": {
+      "ingestV2": false,
+      "brief": false,
+      "skills": false,
+      "guardsV2": false,
+      "completionV2": false,
+      "criticContext": false
+    },
+    "tags": [],
+    "skills": [],
+    "manifest": [
+      {
+        "path": "history.md",
+        "included": true,
+        "parse": "derived"
+      },
+      {
+        "path": "attachments/glazing-invoice.pdf",
+        "included": true,
+        "parse": "pdftotext"
+      },
+      {
+        "path": "index.md",
+        "included": false,
+        "parse": "withheld"
+      }
+    ],
+    "errors": [],
+    "log": {
+      "guardBlocks": [],
+      "completion": [],
+      "skillsLoaded": []
+    }
+  },
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Approved up to £180 total (conditional). Glass was ordered and delayed, and no visit was recorded. An amount-less invoice has arrived. On hold, waiting for the provider (and the tenant's confirmation); review 2025-09-12.",
+    "next_actions": [
+      {
+        "type": "REQUEST_INFORMATION",
+        "action": "Ask the contractor for the invoice total, the date fitted and photos",
+        "recipient": "Sella Vane, contractor",
+        "channel": "email",
+        "ledger_id": "A3"
+      },
+      {
+        "type": "CHASE_TENANT",
+        "action": "Ask the tenant to confirm whether the glass was fitted and whether the problem is resolved",
+        "recipient": "Elowen Marr, tenant",
+        "channel": "email",
+        "ledger_id": "A4"
+      },
+      {
+        "type": "WAIT",
+        "action": "Hold for the provider's reply; review 12 Sept",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A2"
+      }
+    ],
+    "boundaries": [
+      "The invoice does not show the work was done or what it cost.",
+      "The conditional approval does not cover anything above £180 total.",
+      "The glass replacement does not address the wider cold or damp concern, which has had no site assessment."
+    ],
+    "remaining_work": [
+      "Get the invoice total, date and photos, then record the invoice and check it against £180.",
+      "Get the tenant's confirmation.",
+      "Confirm the landlord is told and then close.",
+      "Check the damp and cold concern after the fix."
+    ],
+    "missing_info": [
+      "Invoice amount",
+      "Visit date",
+      "Photos",
+      "Tenant confirmation"
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "An invoice for one pane arrived on 10 Sept with no amount and no recorded visit or work result. I recorded the landlord's conditional £180 approval, asked the contractor for the total, the date fitted and photos, asked the tenant whether the work was done, updated the landlord, and put the job on hold until 12 Sept. Nothing is closed or paid.",
+    "answers": [
+      {
+        "question": "Where does this case stand and what is outstanding?",
+        "answer": "Landlord approval is conditional at £180 total including VAT. The contractor has sent an invoice with no amount and there is no visit date, report or photos. Outstanding: the invoice total, the date fitted, photos, tenant confirmation that it is fixed, and payment and closure."
+      },
+      {
+        "question": "What is the next action, for whom and by which channel?",
+        "answer": "Email to Sella Vane (Clearfirth) asking for the amount, date attended and photos. Email to the tenant asking whether the work was done. Email update to the landlord."
+      },
+      {
+        "question": "Does anything need a human decision?",
+        "answer": "No. This is routine chasing. It escalates to accounts only if the invoice exceeds £180 or the provider's explanation does not settle it."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Recorded landlord conditional approval, cap £180"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Put job on hold, review 2025-09-12"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Emailed contractor for invoice amount, visit date, photos"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Emailed tenant to confirm whether work done"
+      },
+      {
+        "ledger_id": "A5",
+        "description": "Emailed landlord with status"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Event 011 said £150 + VAT while event 012 said £180 total. They are consistent (£150 + VAT = £180).",
+      "Event 012 recorded the quote as approved with no landlord reply to event 011. I relied on the landlord's event 010 conditional reply.",
+      "Event 022 moved the case to post-visit documents with no visit on record. I treat the work as unconfirmed."
+    ],
+    "assumptions": [
+      "£150 + VAT equals £180, which meets the landlord's condition."
+    ],
+    "escalations": [],
+    "follow_ups": [
+      {
+        "party": "Clearfirth / tenant",
+        "purpose": "Review reply on invoice amount, visit date and tenant confirmation",
+        "review_on": "2025-09-12",
+        "ledger_id": "A2"
+      }
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "record_landlord_decision",
+      "args": {
+        "ticket_ref": "NBL-013",
+        "decision": "conditional",
+        "cap_gbp": 180,
+        "conditions": "Approved only if £180 is the total value of the quote (£150 + VAT = £180 total, per event 009)",
+        "evidence_quote": "happy to use the contractor if £180 was the total value of the quote",
+        "source": "event 010, email 2025-08-11"
+      },
+      "key": "record_landlord_decision:{cap_gbp:180,conditions:\"Approved only if £180 is the total value of the quote (£150 + VAT = £180 total, per event 009)\",decision:\"conditional\",evidence_quote:\"happy to use the contractor if £180 was the total value of the quote\",source:\"event 010, email 2025-08-11\",ticket_ref:\"NBL-013\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-013",
+      "evidence": [
+        "Ticket NBL-013 read back after record_landlord_decision"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "put_on_hold",
+      "args": {
+        "ticket_ref": "NBL-013",
+        "reason": "Waiting for Provider",
+        "comment": "Invoice NBL-013-INV-09 shows no amount and no visit/attendance is recorded. Awaiting from Clearfirth: invoice amount, date attended, photos. Tenant asked to confirm whether work done.",
+        "review_on": "2025-09-12"
+      },
+      "key": "put_on_hold:{comment:\"Invoice NBL-013-INV-09 shows no amount and no visit/attendance is recorded. Awaiting from Clearfirth: invoice amount, date attended, photos. Tenant asked to confirm whether work done.\",reason:\"Waiting for Provider\",review_on:\"2025-09-12\",ticket_ref:\"NBL-013\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-013",
+      "evidence": [
+        "Ticket NBL-013 read back after put_on_hold"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Sella Vane",
+        "recipient_role": "contractor",
+        "channel": "email",
+        "contact": "existing thread (event 018 email)",
+        "ticket_ref": "NBL-013",
+        "body": "Hello Sella, we have invoice NBL-013-INV-09 dated 10 September for the kitchen glazing at 8 Brackenmere Walk, but the amount is blank and we have no record of a visit. Please reply with: (1) the invoice total including VAT, typed in your email, and a corrected PDF; (2) the date you fitted the pane and who let you in; (3) photos of the finished work. The approved figure is £180 in total including VAT, so please let us know before charging anything above that. We can't process payment until we have these. Thank you."
+      },
+      "key": "send_message:{body:\"Hello Sella, we have invoice NBL-013-INV-09 dated 10 September for the kitchen glazing at 8 Brackenmere Walk, but the amount is blank and we have no record of a visit. Please reply with: (1) the invoice total including VAT, typed in your email, and a corrected PDF; (2) the date you fitted the pane and who let you in; (3) photos of the finished work. The approved figure is £180 in total including VAT, so please let us know before charging anything above that. We can't process payment until we have these. Thank you.\",channel:\"email\",contact:\"existing thread (event 018 email)\",recipient_name:\"Sella Vane\",recipient_role:\"contractor\",ticket_ref:\"NBL-013\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-101",
+      "evidence": [
+        "MSG-101 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Elowen Marr",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 014 email)",
+        "ticket_ref": "NBL-013",
+        "body": "Hello Elowen, we've received an invoice from the glazing contractor saying the kitchen pane has been replaced, but we have no record of a visit. Has the new glass been fitted? If so, roughly what date, and is the misting and water around the frame gone? If not, please tell us and we'll chase the contractor for a date, which we'll confirm with you before anyone attends. Please also let us know if the kitchen is still very cold or you see any damp or mould. We'll update you by 12 September."
+      },
+      "key": "send_message:{body:\"Hello Elowen, we've received an invoice from the glazing contractor saying the kitchen pane has been replaced, but we have no record of a visit. Has the new glass been fitted? If so, roughly what date, and is the misting and water around the frame gone? If not, please tell us and we'll chase the contractor for a date, which we'll confirm with you before anyone attends. Please also let us know if the kitchen is still very cold or you see any damp or mould. We'll update you by 12 September.\",channel:\"email\",contact:\"existing thread (event 014 email)\",recipient_name:\"Elowen Marr\",recipient_role:\"tenant\",ticket_ref:\"NBL-013\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-102",
+      "evidence": [
+        "MSG-102 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A5",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Orren Vale",
+        "recipient_role": "landlord",
+        "channel": "email",
+        "contact": "agency landlord record",
+        "ticket_ref": "NBL-013",
+        "body": "Hello Orren, an update on the kitchen glazing at 8 Brackenmere Walk. We've recorded your 11 August reply as approval up to £180 in total including VAT (the quote was £150 + VAT). Clearfirth has now sent an invoice for supplying and fitting one pane, but the amount is blank and we have no visit report. We've asked them for the total, the date fitted and photos, and are checking with the tenant that the work is done. Nothing will be paid until it matches the £180 approval; anything above comes back to you first. We'll update you by 12 September."
+      },
+      "key": "send_message:{body:\"Hello Orren, an update on the kitchen glazing at 8 Brackenmere Walk. We've recorded your 11 August reply as approval up to £180 in total including VAT (the quote was £150 + VAT). Clearfirth has now sent an invoice for supplying and fitting one pane, but the amount is blank and we have no visit report. We've asked them for the total, the date fitted and photos, and are checking with the tenant that the work is done. Nothing will be paid until it matches the £180 approval; anything above comes back to you first. We'll update you by 12 September.\",channel:\"email\",contact:\"agency landlord record\",recipient_name:\"Orren Vale\",recipient_role:\"landlord\",ticket_ref:\"NBL-013\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-103",
+      "evidence": [
+        "MSG-103 found in the send_message log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-013",
+        "stage": "init",
+        "property": "8 Brackenmere Walk, Vellumbrook, ZZ1 1ZZ",
+        "description": "The kitchen glazing has been misted between the panes for some time. Water gathers around the frame, the kitchen feels very cold, and I am concerned about damp, particularly in winter. The sash opens, closes and locks. There are pets in the home.",
+        "landlord_approval": "confirmed",
+        "landlord_decision": {
+          "decision": "conditional",
+          "evidence_quote": "happy to use the contractor if £180 was the total value of the quote",
+          "source": "event 010, email 2025-08-11",
+          "cap_gbp": 180,
+          "conditions": "Approved only if £180 is the total value of the quote (£150 + VAT = £180 total, per event 009)"
+        },
+        "hold": {
+          "reason": "Waiting for Provider",
+          "comment": "Invoice NBL-013-INV-09 shows no amount and no visit/attendance is recorded. Awaiting from Clearfirth: invoice amount, date attended, photos. Tenant asked to confirm whether work done.",
+          "review_on": "2025-09-12"
+        },
+        "mode": "manual"
+      }
+    ],
+    "records": [
+      {
+        "id": "MSG-101",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Sella Vane",
+          "recipient_role": "contractor",
+          "channel": "email",
+          "contact": "existing thread (event 018 email)",
+          "body": "Hello Sella, we have invoice NBL-013-INV-09 dated 10 September for the kitchen glazing at 8 Brackenmere Walk, but the amount is blank and we have no record of a visit. Please reply with: (1) the invoice total including VAT, typed in your email, and a corrected PDF; (2) the date you fitted the pane and who let you in; (3) photos of the finished work. The approved figure is £180 in total including VAT, so please let us know before charging anything above that. We can't process payment until we have these. Thank you.",
+          "ticket_ref": "NBL-013"
+        },
+        "at": 1791646729788
+      },
+      {
+        "id": "MSG-102",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Elowen Marr",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 014 email)",
+          "body": "Hello Elowen, we've received an invoice from the glazing contractor saying the kitchen pane has been replaced, but we have no record of a visit. Has the new glass been fitted? If so, roughly what date, and is the misting and water around the frame gone? If not, please tell us and we'll chase the contractor for a date, which we'll confirm with you before anyone attends. Please also let us know if the kitchen is still very cold or you see any damp or mould. We'll update you by 12 September.",
+          "ticket_ref": "NBL-013"
+        },
+        "at": 1791646729788
+      },
+      {
+        "id": "MSG-103",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Orren Vale",
+          "recipient_role": "landlord",
+          "channel": "email",
+          "contact": "agency landlord record",
+          "body": "Hello Orren, an update on the kitchen glazing at 8 Brackenmere Walk. We've recorded your 11 August reply as approval up to £180 in total including VAT (the quote was £150 + VAT). Clearfirth has now sent an invoice for supplying and fitting one pane, but the amount is blank and we have no visit report. We've asked them for the total, the date fitted and photos, and are checking with the tenant that the work is done. Nothing will be paid until it matches the £180 approval; anything above comes back to you first. We'll update you by 12 September.",
+          "ticket_ref": "NBL-013"
+        },
+        "at": 1791646729788
+      }
+    ],
+    "properties": [
+      {
+        "address": "8 Brackenmere Walk, Vellumbrook, ZZ1 1ZZ",
+        "landlord": {
+          "contact": "agency landlord record",
+          "notes": [
+            "Contact details are held in the agency system and not shown in this case file; messages to the landlord go through it. Use contact \"agency landlord record\".",
+            "Landlord messages visible in this case: event 003 (email, to landlord); event 004 (email, to landlord); event 008 (email, to landlord); event 009 (email, to landlord); event 010 (email, from landlord); event 011 (email, to landlord)."
+          ]
+        }
+      }
+    ]
+  },
+  "usage": {
+    "input": 10,
+    "output": 3669,
+    "cost": 0.0788438,
+    "turns": 4,
+    "durationMs": 26566,
+    "retries": 0,
+    "thinkingTokens": 431
+  }
+}
