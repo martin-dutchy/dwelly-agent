@@ -25,22 +25,21 @@ The evaluation harness (`pnpm loop`) is part of the product: a frozen dev/holdou
 
 ### Results on our own evaluation
 
-Both runs below are from the committed baselines, measured before the maintenance-policy work (milestone M1) merged. Agent `claude-sonnet-5-5` (thinking medium, concurrency 8), grader `claude-opus-5-5`, k = 1 run per case, no tool-failure injection, 10 Oct 2026.
+Both columns come from one run of the whole dev split, the committed baseline `evals/baseline-final-dev.json` (run 11:58 BST, committed in `8fa5414`), measured before the remaining maintenance-policy gates (milestone M1) merged. Agent `claude-sonnet-5-5` (thinking medium, concurrency 8), grader `claude-opus-5-5`, k = 1 run per case, no tool-failure injection, 10 Oct 2026. The 48 cases took 165 s wall time in total.
 
-- Left column: `evals/baseline-final-dev.json`, run 11:43 BST, committed in `84cf7bc`. 17 hand-written practice cases graded against their own rubric, plus 6 organiser public cases cut halfway through their history and graded against what the agency actually did next.
-- Right column: `evals/baseline-final-dev-partial.json`, run 11:38 BST, committed in `10bfdf2`. 25 organiser public cases cut at a hand-picked decision point (`cases/public-cuts/`), each with a rubric we wrote.
+- Left column: 17 hand-written practice cases graded against their own rubric, plus 6 organiser public cases cut halfway through their history and graded against what the agency actually did next.
+- Right column: 25 organiser public cases cut at a hand-picked decision point or mutated with one messy edit (`cases/public-cuts/`), each with a rubric we wrote.
 
 | Metric | Practice + public cases | Public cases cut at a decision point |
 |---|---|---|
 | Cases attempted | 23 | 25 |
 | Coverage (decision submitted / attempted) | 23 / 23 | 25 / 25 |
-| Mean rubric score (0–100, ungraded counts as 0) | 93.4 | 76.0 |
-| Cases with a critical failure | 0 | 0 |
-| Cases scoring below 60 | 1 | 5 |
-| Outcome: escalated / action taken / resolved / no action | 11 / 9 / 0 / 3 | 5 / 19 / 1 / 0 |
-| Mean seconds per case | 19.5 | 16.5 |
-| Agent cost per case (USD) | 0.049 | 0.038 |
-| Wall time for the whole set (s) | 104 | 134 |
+| Mean rubric score (0–100, ungraded counts as 0) | 94.0 | 79.0 |
+| Cases with a critical failure | 0 | 1 |
+| Cases scoring below 60 | 0 | 4 |
+| Outcome: escalated / action taken / resolved / no action | 10 / 13 / 0 / 0 | 6 / 19 / 0 / 0 |
+| Mean seconds per case | 23.5 | 22.0 |
+| Agent cost per case (USD) | 0.071 | 0.066 |
 | Tool-failure injection (chaos) | off | off |
 | Runs per case (k) | 1 | 1 |
 

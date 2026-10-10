@@ -68,8 +68,8 @@ fi
 git ls-files | grep -q "Rules For Participants" && warn "organiser rules doc is tracked; it is not ours to publish under Apache 2.0 (git rm --cached it)"
 
 # §13. Judge manipulation
-if git grep -nIiE '(ignore (all|previous) instructions|give (this|the) (project|submission) a (high|perfect|full)|dear (judge|evaluator)|note to (the )?(judge|grader|evaluator))' -- . ':!.claude/' ':!research/' ':!*Rules For Participants*' >/dev/null 2>&1; then
-  bad "text aimed at the judge found (rules §13):"; git grep -nIiE '(ignore (all|previous) instructions|give (this|the) (project|submission) a (high|perfect|full)|dear (judge|evaluator)|note to (the )?(judge|grader|evaluator))' -- . ':!.claude/' ':!research/' ':!*Rules For Participants*' | cut -c1-120
+if git grep -nIiE '(ignore (all|previous) instructions|give (this|the) (project|submission) a (high|perfect|full)|dear (judge|evaluator)|note to (the )?(judge|grader|evaluator))' -- . ':!.claude/' ':!research/' ':!research_notes/' ':!reports/' ':!*Rules For Participants*' >/dev/null 2>&1; then
+  bad "text aimed at the judge found (rules §13):"; git grep -nIiE '(ignore (all|previous) instructions|give (this|the) (project|submission) a (high|perfect|full)|dear (judge|evaluator)|note to (the )?(judge|grader|evaluator))' -- . ':!.claude/' ':!research/' ':!research_notes/' ':!reports/' ':!*Rules For Participants*' | cut -c1-120
 else pass "no judge-directed text"; fi
 
 # Reproducibility basics
