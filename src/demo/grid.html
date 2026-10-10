@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maintenance Desk</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: an operations wall. Header counters, a 10-wide grid of live case tiles, and a right rail for the human queue and the event feed. */
+:root{
+  --bg:#0b100f; --panel:#121917; --tile:#151d1b; --line:#24302c; --ink:#e2ebe7; --muted:#7f8e88;
+  --work:#43c2a2; --done:#8fd3a8; --human:#f2a73b; --block:#ef6b5c; --idle:#2a3532;
+  --f-ui:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:13px;display:flex;flex-direction:column;overflow:hidden}
+header{display:flex;align-items:center;gap:28px;padding:14px 20px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
+h1{margin:0;font-size:17px;font-weight:600;letter-spacing:.01em}
+h1 small{display:block;font-size:11px;font-weight:400;color:var(--muted);font-family:var(--f-mono);margin-top:2px}
+.counters{display:flex;gap:22px;margin-left:auto;flex-wrap:wrap}
+.ctr{display:flex;flex-direction:column;align-items:flex-end;min-width:64px}
+.ctr b{font-family:var(--f-mono);font-size:22px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.1}
+.ctr span{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.ctr.human b{color:var(--human)} .ctr.work b{color:var(--work)} .ctr.block b{color:var(--block)} .ctr.done b{color:var(--done)}
+main{flex:1;display:grid;grid-template-columns:1fr 340px;min-height:0}
+#grid{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));grid-auto-rows:minmax(0,1fr);gap:6px;padding:12px;min-height:0}
+.tile{background:var(--tile);border:1px solid var(--line);border-radius:5px;padding:8px 9px;display:flex;flex-direction:column;gap:4px;min-width:0;overflow:hidden;position:relative;cursor:pointer;transition:border-color .3s,background .3s}
+.tile .top{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.tile .num{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.chip{font-size:9.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:1px 6px;border-radius:3px;background:var(--idle);color:var(--muted);white-space:nowrap}
+.tile .ttl{font-size:11.5px;line-height:1.3;color:var(--ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;opacity:.85}
+.tile .now{font-family:var(--f-mono);font-size:10.5px;color:var(--work);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:auto}
+.tile .bar{display:flex;gap:2px;flex-wrap:wrap;min-height:6px}
+.tile .bar i{width:6px;height:6px;border-radius:1px;background:var(--work);opacity:.75}
+.tile .bar i.w{background:var(--done);opacity:1}
+.tile .bar i.x{background:var(--block);opacity:1}
+.tile .bar i.h{background:var(--human);opacity:1}
+.tile[data-state=queued]{opacity:.45}
+.tile[data-state=thinking] .chip,.tile[data-state=working] .chip{background:rgba(67,194,162,.15);color:var(--work)}
+.tile[data-state=working]{border-color:rgba(67,194,162,.45)}
+.tile[data-state=thinking]::after,.tile[data-state=working]::after{content:"";position:absolute;left:0;bottom:0;height:2px;width:40%;background:var(--work);animation:scan 1.4s ease-in-out infinite}
+@keyframes scan{0%{transform:translateX(-100%)}100%{transform:translateX(260%)}}
+.tile[data-state=done] .chip{background:rgba(143,211,168,.14);color:var(--done)}
+.tile[data-state=done] .now{color:var(--done)}
+.tile[data-state=human]{border-color:var(--human);background:#1f1a10}
+.tile[data-state=human] .chip{background:var(--human);color:#1b1305}
+.tile[data-state=human] .now{color:var(--human)}
+.tile[data-state=crash]{border-color:var(--block)}
+.tile[data-state=crash] .chip{background:var(--block);color:#1b0805}
+.tile.flash{animation:flash .9s ease-out}
+@keyframes flash{0%{box-shadow:0 0 0 2px var(--block);border-color:var(--block)}100%{box-shadow:0 0 0 0 transparent}}
+.tile .blk{position:absolute;inset:auto 6px 6px 6px;font-size:9.5px;font-weight:600;color:var(--block);background:#1d1110;border:1px solid var(--block);border-radius:3px;padding:2px 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:0;transition:opacity .2s}
+.tile .blk.on{opacity:1}
+aside{border-left:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;min-height:0}
+aside h2{margin:0;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:12px 14px 8px}
+#queue{flex:1 1 55%;overflow:auto;padding:0 10px 10px;display:flex;flex-direction:column;gap:6px;min-height:0}
+.q{border:1px solid var(--human);border-radius:4px;padding:8px 10px;background:#1c170e;display:flex;flex-direction:column;gap:3px;cursor:pointer}
+.q .h{display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:11px;color:var(--human)}
+.q p{margin:0;font-size:11.5px;line-height:1.35;color:var(--ink)}
+.empty{color:var(--muted);font-size:12px;padding:4px 4px}
+#feed{flex:1 1 45%;overflow:hidden;border-top:1px solid var(--line);padding:0 14px 10px;font-family:var(--f-mono);font-size:10.5px;line-height:1.55;min-height:0}
+#feed div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted)}
+#feed .c{color:var(--ink)} #feed .b{color:var(--block)} #feed .hh{color:var(--human)} #feed .d{color:var(--done)}
+dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;max-width:560px;width:90vw;padding:18px}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+dialog h3{margin:0 0 6px;font-size:15px}
+dialog ol{font-family:var(--f-mono);font-size:11px;line-height:1.6;padding-left:22px;max-height:40vh;overflow:auto}
+dialog button{background:var(--idle);color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:5px 12px;font:inherit;cursor:pointer}
+button:focus-visible,.tile:focus-visible,.q:focus-visible{outline:2px solid var(--work);outline-offset:2px}
+@media (max-width:1100px){main{grid-template-columns:1fr}aside{display:none}#grid{grid-template-columns:repeat(5,minmax(0,1fr));overflow:auto}}
+@media (prefers-reduced-motion:reduce){.tile::after{animation:none!important}.tile.flash{animation:none}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Maintenance desk <small id="sub">connecting…</small></h1>
+  <div class="counters">
+    <div class="ctr work"><b id="c-run">0</b><span>Working</span></div>
+    <div class="ctr done"><b id="c-auto">0</b><span>Handled</span></div>
+    <div class="ctr human"><b id="c-human">0</b><span>Need a human</span></div>
+    <div class="ctr"><b id="c-tools">0</b><span>Tool calls</span></div>
+    <div class="ctr done"><b id="c-ver">0</b><span>Verified</span></div>
+    <div class="ctr block"><b id="c-block">0</b><span>Blocked</span></div>
+    <div class="ctr"><b id="c-time">0:00</b><span>Elapsed</span></div>
+  </div>
+</header>
+<main>
+  <section id="grid" aria-label="Cases"></section>
+  <aside>
+    <h2>Needs a human</h2>
+    <div id="queue"><div class="empty">Nothing yet. Cases land here when the agent escalates or needs information only a person can give.</div></div>
+    <h2>Live activity</h2>
+    <div id="feed"></div>
+  </aside>
+</main>
+<dialog id="dlg"><h3 id="d-t"></h3><div id="d-s" style="color:var(--muted);font-size:12px"></div><p id="d-sum" style="font-size:13px;line-height:1.45"></p><ol id="d-log"></ol><form method="dialog"><button>Close</button></form></dialog>
+<script>
+const $=id=>document.getElementById(id);
+const S={cases:new Map(),tools:0,ver:0,block:0,startedAt:0,doneAt:0};
+const HUMAN=new Set(['escalated','needs_info']);
+const LABEL={action_taken:'Acted',resolved:'Resolved',no_action:'No action',escalated:'Escalated',needs_info:'Needs info','NO DECISION':'No decision',CRASH:'Crashed'};
+const pretty=t=>String(t||'').replace(/_/g,' ');
+function tile(c){
+  const el=document.createElement('div');el.className='tile';el.dataset.state='queued';el.tabIndex=0;
+  el.innerHTML=`<div class="top"><span class="num">${c.id}</span><span class="chip">Queued</span></div><div class="ttl"></div><div class="bar"></div><div class="now"></div><div class="blk"></div>`;
+  el.querySelector('.ttl').textContent=c.title;
+  el.onclick=el.onkeydown=e=>{if(e.type==='click'||e.key==='Enter')open(c.id)};
+  $('grid').appendChild(el);
+  S.cases.set(c.id,{...c,el,log:[],state:'queued'});
+}
+function set(c,state,chip){c.state=state;c.el.dataset.state=state;c.el.querySelector('.chip').textContent=chip}
+function dot(c,cls){const i=document.createElement('i');if(cls)i.className=cls;c.el.querySelector('.bar').appendChild(i)}
+function feed(text,cls){const d=document.createElement('div');d.textContent=text;if(cls)d.className=cls;$('feed').prepend(d);while($('feed').children.length>60)$('feed').lastChild.remove()}
+function counts(){
+  let run=0,auto=0,human=0;
+  for(const c of S.cases.values()){if(c.state==='working'||c.state==='thinking')run++;else if(c.state==='done')auto++;else if(c.state==='human')human++}
+  $('c-run').textContent=run;$('c-auto').textContent=auto;$('c-human').textContent=human;
+  $('c-tools').textContent=S.tools;$('c-ver').textContent=S.ver;$('c-block').textContent=S.block;
+}
+function queue(c,ev){
+  const box=$('queue');box.querySelector('.empty')?.remove();
+  const q=document.createElement('div');q.className='q';q.tabIndex=0;
+  const why=c.escalation||ev.summary||(c.holdout?'Held-out case: details hidden.':'');
+  q.innerHTML=`<div class="h"><span>${c.id} · ${LABEL[ev.outcome]||ev.outcome}</span><span>${c.escPri||ev.severity||''}</span></div><p></p>`;
+  q.querySelector('p').textContent=(c.title+(why?' — '+why:''));
+  q.onclick=()=>open(c.id);box.prepend(q);
+}
+function open(id){
+  const c=S.cases.get(id);if(!c)return;
+  $('d-t').textContent=`${c.id} · ${c.title}`;
+  $('d-s').textContent=c.state==='queued'?'Queued':`${LABEL[c.outcome]||pretty(c.state)}${c.secs?` · ${c.secs}s`:''}${c.actions!=null?` · ${c.verified}/${c.actions} actions verified`:''}${c.holdout?' · held-out case, details hidden':''}`;
+  $('d-sum').textContent=c.summary||'';
+  $('d-log').innerHTML='';for(const l of c.log){const li=document.createElement('li');li.textContent=l;$('d-log').appendChild(li)}
+  $('dlg').showModal();
+}
+function handle(ev){
+  if(ev.kind==='init'){
+    if(S.cases.size){location.reload();return}ev.cases.forEach(tile);
+    S.startedAt=ev.startedAt||0;$('sub').textContent=`${ev.cases.length} live cases · ${ev.model} · every action read back before it counts`;counts();return;
+  }
+  if(ev.kind==='run_start'){S.startedAt=ev.startedAt;return}
+  if(ev.kind==='run_done'){S.doneAt=ev.t;feed(`All cases finished in ${ev.secs}s`,'d');return}
+  const c=S.cases.get(ev.id);if(!c)return;
+  const now=c.el.querySelector('.now');
+  switch(ev.kind){
+    case 'start':set(c,'thinking','Reading');now.textContent='reading the case…';break;
+    case 'tool':{
+      S.tools++;if(c.state!=='working')set(c,'working','Working');
+      const line=`${pretty(ev.tool)}${ev.target?' · '+ev.target:''}`;now.textContent='→ '+line;c.log.push(line);
+      if(ev.tool==='escalate_to_human'){dot(c,'h');c.escPri=ev.target;if(ev.detail)c.escalation=ev.detail;feed(`${c.id}  escalate · ${ev.target}`,'hh')}
+      else{dot(c);feed(`${c.id}  ${line}`,'c')}
+      break}
+    case 'verified':if(ev.status==='verified'){S.ver++;const b=c.el.querySelector('.bar i:last-child');if(b&&!b.className)b.className='w'}break;
+    case 'tool_failed':c.log.push(`  ✕ ${pretty(ev.tool)} failed`);feed(`${c.id}  ${pretty(ev.tool)} failed, recovering`,'b');break;
+    case 'blocked':{
+      S.block++;dot(c,'x');c.log.push(`  ⛔ blocked ${pretty(ev.tool)}${ev.reason?': '+ev.reason:''}`);
+      const blk=c.el.querySelector('.blk');blk.textContent='Blocked: '+(ev.reason||pretty(ev.tool));blk.classList.add('on');
+      c.el.classList.remove('flash');void c.el.offsetWidth;c.el.classList.add('flash');
+      clearTimeout(c.bt);c.bt=setTimeout(()=>blk.classList.remove('on'),3500);
+      feed(`${c.id}  blocked ${pretty(ev.tool)}${ev.reason?' — '+ev.reason:''}`,'b');break}
+    case 'done':{
+      Object.assign(c,{outcome:ev.outcome,summary:ev.summary,secs:ev.secs,actions:ev.actions,verified:ev.verified});
+      if(ev.outcome==='CRASH'||ev.outcome==='NO DECISION'){set(c,'crash',LABEL[ev.outcome]);now.textContent=ev.error||'';}
+      else if(HUMAN.has(ev.outcome)){set(c,'human',LABEL[ev.outcome]);now.textContent=`${ev.verified}/${ev.actions} done, decision handed over`;queue(c,ev);feed(`${c.id}  needs a human`,'hh')}
+      else{set(c,'done',LABEL[ev.outcome]||ev.outcome);now.textContent=`✓ ${ev.verified}/${ev.actions} actions verified · ${ev.secs}s`;feed(`${c.id}  ${LABEL[ev.outcome]||ev.outcome} in ${ev.secs}s`,'d')}
+      break}
+  }
+  counts();
+}
+setInterval(()=>{if(!S.startedAt)return;const s=Math.floor(((S.doneAt||Date.now())-S.startedAt)/1000);$('c-time').textContent=`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`},500);
+const es=new EventSource('/events');
+es.onmessage=m=>handle(JSON.parse(m.data));
+es.onerror=()=>{$('sub').textContent='connection lost: is pnpm grid still running?'};
+</script>
+</body>
+</html>
