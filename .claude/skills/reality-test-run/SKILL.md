@@ -20,7 +20,7 @@ CASES="$RELEASE/Property Management"               # the folder whose children a
 
 - `.env` is filled in, and `pnpm verify` passes.
 - The code and demo video are committed and pushed, and the hash is noted (the 16:30 form).
-- Time a full practice batch to confirm that N cases fit in about 15 minutes. Adjust `--concurrency`, keeping rate limits in mind (`LLM_CONCURRENCY`).
+- Time a full practice batch to confirm that N cases fit in about 15 minutes. Adjust `--concurrency`. If the run hits rate limits, set `LLM_CONCURRENCY` in `.env` to cap in-flight requests per model.
 - Run the probe on the public examples so you know what a green result looks like:
   ```bash
   pnpm exec tsx .claude/skills/reality-test-run/scripts/convert-to-organiser.ts --probe "HackatonPublicCases/Property Management"

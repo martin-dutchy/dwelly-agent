@@ -4,7 +4,7 @@ import { basename, join, relative } from 'node:path';
 import { isBinaryAttachment, readAttachment } from './attachments.js';
 import { type FailurePlan, normaliseFailurePlan } from '../core/failures.js';
 import type { Ticket } from './opsTools.js';
-import { isPublicCase, loadPublicCase } from './publicCases.js';
+import { clip, isPublicCase, loadPublicCase } from './publicCases.js';
 
 export type CaseInput = { name: string; content: string };
 /** Images and scanned PDFs, sent to the model as native content blocks. */
@@ -25,7 +25,6 @@ export type LoadedCase = {
 
 // Never shown to the agent.
 const HIDDEN = new Set(['rubric.json', 'tool_failures.json', 'checks.json']);
-const MAX_FILE_CHARS = 60_000;
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((f) => {
@@ -43,7 +42,7 @@ function extractTickets(json: unknown): Ticket[] {
     .filter((t: Ticket) => t.ref);
 }
 
-/** `at` (public-format cases): events to show, as a number, a percentage like "50%", or "auto". */
+/** `at` (public-format cases): events to show, as a number, a percentage like "50%", "auto" (recorded marker or 50 %) or "none" (all). Default: "auto" under HackatonPublicCases/, "none" elsewhere. */
 export function loadCase(dir: string, at?: string): LoadedCase {
   if (isPublicCase(dir)) return { ...loadPublicCase(dir, at), dir, failures: {}, seedTickets: [] };
   const files = walk(dir).filter((p) => !HIDDEN.has(basename(p)));
@@ -56,9 +55,7 @@ export function loadCase(dir: string, at?: string): LoadedCase {
       const name = relative(dir, p);
       const a = isBinaryAttachment(p) ? readAttachment(p, name) : { content: readFileSync(p, 'utf8') };
       if (a.media) media.push({ name, media: a.media });
-      let content = a.content;
-      if (content.length > MAX_FILE_CHARS) content = `${content.slice(0, MAX_FILE_CHARS)}\n…[truncated ${content.length - MAX_FILE_CHARS} chars]`;
-      return { name, content };
+      return { name, content: clip(a.content) };
     });
   const seedTickets = inputs
     .filter((i) => /ticket/i.test(i.name) && i.name.endsWith('.json'))

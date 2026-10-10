@@ -16,9 +16,10 @@ export function claude(id: string): Model<Api> {
  * pi only sends ANTHROPIC_WORKSPACE_ID for federated auth; keys that aren't scoped to a
  * workspace need the anthropic-workspace-id header on every request.
  */
-// Our API key allows only 2 concurrent connections PER MODEL (measured 2026-10-09).
-// Cap in-flight requests per model across all cases in this process; extra calls queue here.
-const MAX_IN_FLIGHT = Number(process.env.LLM_CONCURRENCY ?? 2);
+// Optional cap on in-flight requests per model (LLM_CONCURRENCY). Unset = no cap.
+// Rate-limit errors are retried with backoff by the case agent and the judge, so a cap is only
+// needed if a key's connection limit makes those retries pile up.
+const MAX_IN_FLIGHT = Number(process.env.LLM_CONCURRENCY) || Infinity;
 const slots = new Map<string, { inFlight: number; waiting: (() => void)[] }>();
 const slot = (id: string) => slots.get(id) ?? (slots.set(id, { inFlight: 0, waiting: [] }), slots.get(id)!);
 const acquire = (id: string) => {

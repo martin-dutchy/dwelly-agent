@@ -1,6 +1,6 @@
 # Master plan: the Dwelly maintenance case worker (ExecPlan)
 
-Status: active · Shape: ExecPlan (multi-hour, two people, cold handoff between sessions, hard external deadline) · Owner: Marc (plan, evals, submission) and Martin (agent core) · Written 2026-10-10 10:45 BST
+Status: active · Shape: ExecPlan (multi-hour, one person, cold handoff between Claude sessions, hard external deadline) · Owner: Marc, who does everything. Martin wrote the original loop and pushed some early milestones; nothing here is waiting on anyone else · Written 2026-10-10 10:45 BST
 
 This is the orchestrating plan. It fixes the goal, the architecture, the workstreams, the timeline and the acceptance bar for the whole project. Each workstream gets its own sub-plan (index in section 9); those plans must stay consistent with this one and link back here. Read [docs/plans/README.md](README.md) for the plan rules.
 
@@ -16,7 +16,7 @@ A judge can clone the repo, run one command against a folder of organiser-format
 
 ## Context / current state (main at 1ff4fa1, 10:55 BST)
 
-What exists, built by Martin (the three commits pushed between 10:30 and 10:55 are marked **new**):
+What exists (the original loop and the first milestones came from Martin; Marc owns all of it from here):
 
 - **new** `src/eval/loop.ts` (`pnpm loop`): runs a frozen split from `cases/splits.json` (`dev`: 17 practice + 6 public cases; `holdout`: 5 practice + 6 public cases, aggregates only), grades it, diffs against a saved baseline, exits 1 on regression (mean down > 5, new critical, lower coverage). `--chaos 0.15` injects random tool failures (error, silent drop, timeout) via `chaosPlan` in `src/core/failures.ts`.
 - **new** Policy hooks in `caseAgent.ts`: `update_bank_details` always blocked; `approve_quote` blocked while a landlord approval for the same ticket is outstanding; a decision of `escalated` or `needs_info` is rejected unless a matching `escalate_to_human` / `request_information` is verified. `policyLog` lands in `result.json` and REASONING.
@@ -60,7 +60,7 @@ What does not exist yet:
 - A tenant-facing intake chatbot (Dwelly already has one; the data shows its output).
 - A dashboard or web UI. The 60-second demo is a screen recording of the CLI and the generated files.
 - Rent, payments, onboarding, compliance tracking, or anything not in the Property Management maintenance data.
-- Replacing Martin's pi-based loop with another framework. We extend it.
+- Replacing the existing pi-based loop with another framework. We extend it.
 - Voice as a scoring path. Voice is an optional add-on gated on the core being green (section 6, M6).
 - Tuning on the organiser's reference endings. The public cases are used for state reconstruction tests and for building rubric cases, not as the answer key the agent is optimised against.
 
@@ -77,10 +77,12 @@ What does not exist yet:
 
 ## Proposed approach
 
+**Architecture decision (11:10 review).** One case-worker agent: the existing pi loop on Sonnet 5.5, with every safety rule that code can check enforced in `beforeToolCall` / `submit_decision` validators, surrounded by deterministic code (`run.ts` batch loop, case loaders, state hints, ledger, renderers) and one critic *call* (Opus, no tools, evidence-or-drop, one revision). No orchestrator agent, no subagents, no LLM pass for state reconstruction. Rationale, the invariant table (I1–I15), the tool permission tiers (T0–T3) and the act / ask / wait / escalate rules are in [master-plan-review-2026-10-10.md](master-plan-review-2026-10-10.md) sections 1–3; `maintenance-policy.md` restates the rules for the agent and the hooks enforce the code rows.
+
 Build on the existing loop and add four things, in this order of value per hour:
 
-1. **Maintenance policy and case-state reconstruction** (`src/agent/maintenance/`). A deterministic pass over the visible history produces a `CaseState` object: inferred stage in the Northbridge state machine, parties and last contact per party, open approvals, every date mentioned with its source and any conflicts, quotes and invoices with amounts, holds and their reasons, attachments referenced vs actually present, candidate unrelated issues bundled into the thread, and address or property mismatches between messages and the case header. The state is rendered into the case prompt, so the model reasons over structure rather than 60 raw events. A `maintenance-policy.md` is appended to the system prompt: the state machine, the decision vocabulary, and the hard rules (never instruct chargeable works without landlord approval; never close with a party uninformed; never state the content of an attachment you have not seen; address mismatch always needs confirmation; safety categories expedite; 3 unanswered chases escalate with a provider-swap recommendation; latest verified instruction from the entitled party wins).
-2. **Decision vocabulary and tools that match real next actions.** `Decision` gains `case_state` (the reconstructed state as the agent understood it) and `next_actions[]`, each typed as one of `REQUEST_LANDLORD_APPROVAL`, `ASSIGN_PROVIDER`, `BOOK_OR_CONFIRM_APPOINTMENT`, `CHASE_PROVIDER`, `CHASE_LANDLORD`, `SEND_QUOTE_FOR_APPROVAL`, `APPROVE_INVOICE_FOR_PAYMENT`, `REPLY_TO_TENANT`, `SPLIT_NEW_REQUEST`, `RECLASSIFY`, `WAIT`, `CLOSE_WITH_PAYMENT`, `CLOSE_WITHOUT_PAYMENT`, `ESCALATE_TO_HUMAN`, with the ledger id of the tool call that performed it. A `schedule_follow_up` tool (party, reason, review date) makes `WAIT` a verified action rather than prose. `update_ticket` to `completed` with a `payment` flag covers both closes.
+1. **Gates, tools and maintenance policy, then case-state hints** (`src/agent/maintenance/`). First the code rows of the invariant table, because they transfer to every unseen case: `record_landlord_decision(ref, decision, evidence_quote)` whose quote must appear verbatim in the case inputs, and a landlord-authority gate on `approve_quote` and `assign_contractor` (verified decision, pre-authorised limit, or emergency justification) (I1); a postcode/address consistency check on outgoing message bodies (I4); closure preconditions on `update_ticket` to `completed` with a `payment` flag (I6); `schedule_follow_up(ref, party, reason, review_on)` so `WAIT` and `no_action` are verified actions (I9); a cap so a policy-blocked tool is never called a third time (I14). Then a deterministic pass over the visible history produces `CaseState` **hints**, rendered as "derived, verify against the history" and wrapped in try/catch so an unfamiliar format renders nothing rather than crashing: inferred stage in the Northbridge state machine, parties and last contact per party, open approvals, every date mentioned with its source and any conflicts, quotes and invoices with amounts, holds and reminder counts per party, attachments referenced vs actually present, candidate unrelated issues bundled into the thread, and address or property mismatches between messages and the case header. A `maintenance-policy.md` is appended to the system prompt: the state machine, the decision vocabulary, the permission tiers and the hard rules (never instruct chargeable works without landlord approval; never close with a party uninformed; never state the content of an attachment you have not seen; address mismatch always needs confirmation; safety categories expedite; 3 unanswered chases escalate with a provider-swap recommendation; latest verified instruction from the entitled party wins; "nobody replies during this run" means do not block, not chase everyone today).
+2. **Decision vocabulary and tools that match real next actions.** `Decision` gains `case_state` (the reconstructed state as the agent understood it) and `next_actions[]`, each typed as one of `REQUEST_LANDLORD_APPROVAL`, `ASSIGN_PROVIDER`, `BOOK_OR_CONFIRM_APPOINTMENT`, `CHASE_PROVIDER`, `CHASE_LANDLORD`, `SEND_QUOTE_FOR_APPROVAL`, `APPROVE_INVOICE_FOR_PAYMENT`, `REPLY_TO_TENANT`, `SPLIT_NEW_REQUEST`, `RECLASSIFY`, `WAIT`, `CLOSE_WITH_PAYMENT`, `CLOSE_WITHOUT_PAYMENT`, `ESCALATE_TO_HUMAN`, with the ledger id of the tool call that performed it. Every type maps to an existing or M1 tool so none is prose: `schedule_follow_up` for `WAIT`, `update_ticket` to `completed` with the `payment` flag for both closes, `update_ticket` with `category` for `RECLASSIFY`, `create_ticket` with `related_ticket_ref` for `SPLIT_NEW_REQUEST`. Tool surface stays under 20.
 3. **Critic pass** (`src/agent/critic.ts`), exactly as designed in `research/evaluation.md` section 4: deterministic validators first (every decision point answered, every claimed action verified, escalation packet complete, party-informed invariant, address consistency), then one Opus call with the generic 13-item checklist plus three maintenance items (approval before spend, attachment claims, date conflicts), evidence-or-drop, at most one revision turn, output only to the trace and a factual "Checks performed" line.
 4. **Edge-case corpus and harness.** `cases/public-cuts/<id>/` holds a copy of a real public case (or a mutation of one), a `cut.json` with the decision point, and a `rubric.json` written from the 14 messy patterns in `research/pm-case-data-analysis.md` section 3. The loader honours `cut.json`. The harness gains `--k 3` and pass^3, deterministic checks (`checks.json`: `tool_called`, `tool_not_called`, `no_fabricated_ids`, `decision_points_answered`, `party_informed`), a committed `evals/baseline.json` and a diff, and `summary.json` with the demo metrics from `research/evaluation.md` section 5.
 
@@ -93,22 +95,23 @@ Times are BST, today. Each milestone names its owner, leaves something verifiabl
 | # | Window | Owner | Milestone | Prove by |
 |---|---|---|---|---|
 | M0 | 10:45–11:15 | Both | **Baseline.** `npx -y pnpm@8 install --frozen-lockfile` (or agree once to `pnpm install --force` and commit the v9 lockfile), `.env`, `brew install poppler` on both machines. Run `pnpm verify`. Run 8 public cases at `--at auto` and judge them. Commit the report as `evals/baseline-public-8.md`. | `pnpm verify` exit 0; terminal table shows 8/8 decisions, 0 CRASH; report file committed. |
-| M1 | 11:00–12:45 | Martin | **Maintenance policy + case-state reconstruction + decision vocabulary** (`src/agent/maintenance/{stateReconstruct.ts,maintenance-policy.md,index.ts}`, `Decision` extension, `schedule_follow_up` tool, prompt wiring). | Vitest on cases 002, 025, 047: asserts stage, the 025 date conflict, the 047 address mismatch, 002 "quote approved" state. Re-run the 8 baseline cases: mean score ≥ baseline, 0 critical. |
+| M0b | 11:15–11:45 | Marc | **Runner landmines** (before M1): `--at none` (no cut, no spoiler hiding beyond Overview/Outcome) as the default for any folder outside `HackatonPublicCases/`; history compaction that keeps the tail (collapse repeated holds and reminders into one line with a count, keep the first event and the last N verbatim) instead of a 60 k head clip. | `loadCase` on a copy of public case 047 outside `HackatonPublicCases/` with no `--at` shows 36/36 events; a 200 k-char synthetic history renders its last event verbatim. Tests in `publicCases.test.ts` (AC16, AC17). |
+| M1 | 11:45–13:00 | Marc | **Gates and tools first, then maintenance policy and case-state hints** (`src/agent/maintenance/{gates.ts,stateReconstruct.ts,maintenance-policy.md,index.ts}`, `record_landlord_decision` and `schedule_follow_up` tools, closure `payment` flag, `Decision` extension, prompt wiring). Order inside M1: I1 gate with evidence quote, I9, I6, I14, I4, then `CaseState` hints. | Vitest: `approve_quote` and `assign_contractor` blocked without a verified `record_landlord_decision` whose quote appears in the inputs (AC18); `no_action` rejected without `schedule_follow_up` (AC19); third call of a blocked tool returns "stop and submit" (AC20). Then cases 002, 025, 047: stage, the 025 date conflict, the 047 address mismatch, 002 "quote approved" state (AC3). Re-run the 8 baseline cases: mean score ≥ baseline, 0 critical. |
 | M2 | 11:00–13:00 | Marc | **Edge-case corpus.** 15 `cases/public-cuts/` from real cases (table in section 7) + 10 mutations (wrong address, emoji-only provider email, injected instruction in an email, bundled unrelated issues, attachment referenced but absent, date conflict, emergency keywords added, landlord replies about another property, duplicate request, tenant withdraws). Each with `cut.json`, `rubric.json`, and an `expected.json` (`escalate: yes/no/either`). Loader change: `cut.json` honoured and hidden (Martin, 10 lines, before 11:30). | `pnpm eval --cases cases/public-cuts --answers runs/cuts` grades with rubrics (report shows R/F/X/C ids, not the generic reference rubric). 25 case folders present. |
-| M3 | 12:45–14:00 | Martin | **Critic pass + deterministic validators** (`src/agent/critic.ts`, wired before `submit_decision` is accepted; `trace.jsonl` carries the critic output; REASONING gets the "Checks performed" line). A/B flag `--critic on|off`. | Harness run on `cases/public-cuts` with critic on vs off: critical hits 0 in both, required-met not lower with critic on, over-escalations not higher. Decision from the A/B recorded in the Decision log. |
+| M3 | 12:45–14:00 | Marc | **Critic pass + deterministic validators** (`src/agent/critic.ts`, wired before `submit_decision` is accepted; `trace.jsonl` carries the critic output; REASONING gets the "Checks performed" line). A/B flag `--critic on|off`. | Harness run on `cases/public-cuts` with critic on vs off: critical hits 0 in both, required-met not lower with critic on, over-escalations not higher. Decision from the A/B recorded in the Decision log. |
 | M4 | 13:00–14:30 | Marc | **Harness hardening**, extending `pnpm loop` rather than building beside it: `--k 3` with pass^3 and decision stability, `checks.json` deterministic checks evaluated before the judge, `cases/public-cuts` added to `cases/splits.json` as a `dev` group, `summary.json` with coverage, critical count, escalation precision/recall against `expected.json`, injection success rate, failure-recovery rate (from `--chaos`), cost and time per case. | `pnpm loop --k 3` prints pass^3 and writes `summary.json`; a deliberately broken rubric check fails loudly and exits 1. |
 | M5 | 13:30–15:15 | Both | **Reality Test readiness.** The `reality-test-run` skill is the runbook; add to it the format-triage checklist (organiser format, practice format, a new format, or an API/MCP). Toolset adapter stub (`src/agent/adapters/organiserApi.ts`) that maps our tool names to theirs, falling back to the mock when no API is configured. Runner: `--budget-min 20` global budget that scales per-case timeouts, skip cases that already have `result.json` (resumable), concurrency chosen from observed 429s. **Rehearsal at 15:15**: `pnpm loop --split holdout` plus 10 further public cases never used in M1/M2, run as if at 16:30. | Rehearsal finishes under 15 minutes with every case decided; the aggregate line is committed to `runs/scorecard.md`; the skill has every step as a command. |
-| M6 | 14:00–15:45 | Martin (gated) | **Voice add-on**, only if M1 and M3 are green and the public-cuts score is ≥ baseline by 14:00. ElevenLabs agent that calls the landlord to read the request and quote and captures approve / decline / own contractor, writing back through the same `request_landlord_approval` and `add_note` tools; demo on case 025 or 008. Per `research/voice-agent-stack.md`. | One recorded browser call whose transcript lands in the case ledger. Never touches `src/run.ts`. |
+| M6 | 14:00–15:45 | Marc (gated) | **Voice add-on**, only if M1 and M3 are green and the public-cuts score is ≥ baseline by 14:00. ElevenLabs agent that calls the landlord to read the request and quote and captures approve / decline / own contractor, writing back through the same `request_landlord_approval` and `add_note` tools; demo on case 025 or 008. Per `research/voice-agent-stack.md`. | One recorded browser call whose transcript lands in the case ledger. Never touches `src/run.ts`. |
 | M7 | 15:00–16:30 | Marc | **Submission package.** README sections 1, 2, 5, 6, 7, 8 and metrics table from `summary.json`; `SUBMISSION.md`; `gh repo edit --visibility public`; `.gitattributes` LFS for `demo/demo.mp4`; 60-second screen recording per the storyboard in `research/pm-case-data-analysis.md` section 6; LinkedIn and X post drafts in `SUBMISSION.md`. | `bash .claude/skills/submission-check/scripts/check.sh` exits 0, plus the checklist in Verification. |
 | M8 | 16:30–17:00 | Both | **Reality Test execution** per the runbook: pull data, 5-minute format triage, start the run by 16:37, watch the log, never edit `ANSWERS/`, commit at 16:55, record the hash, submit the form. | `ANSWERS/<n>/` for every case, `git log -1` hash in `SUBMISSION.md`, form submitted. |
 
-Dependencies: M2 needs the `cut.json` loader change from Martin by 11:30. M3 and M4 need M1's schema to be stable by 12:45 (schema freeze; later schema changes are additive only). M5's rehearsal needs M1, M3 and M4 merged by 15:00. M6 only starts if its gate passes. M7 starts in parallel with M5.
+Dependencies: M0b lands before M1 (both landmines cost coverage on the unseen set, and nothing else is worth more per minute). M2 needed no `cut.json` loader change: the organiser's `Recorded action` marker does the cut. M3 and M4 need M1's schema to be stable by 13:00 (schema freeze; later schema changes are additive only). M5's rehearsal needs M1, M3 and M4 merged by 15:00. M6 only starts if its gate passes. M7 starts in parallel with M5. The scope ladder in section 6 says what to drop at each checkpoint.
 
 ## Acceptance criteria
 
 - [ ] **AC1 Coverage.** Given a folder of N organiser-format cases, when `pnpm cases --in <dir> --out ANSWERS --budget-min 20` runs, then N `ANSWERS/<id>/` folders exist, each with `ANSWER.md`, `REASONING.md`, `trace.jsonl`, `result.json`, the terminal table has 0 `CRASH` and 0 `NO DECISION` rows, and wall time ≤ 20 min for N ≤ 30.
 - [ ] **AC2 Honest fallback.** Given a case whose processing throws (simulate with an unreadable `history.md`), then its `ANSWER.md` says the case is escalated as a system failure, and the other cases in the batch still complete.
-- [ ] **AC3 State reconstruction.** Given public case 047 cut at event 7, then the reconstructed state flags an address mismatch between the landlord's email and the case property; given case 025 cut at event 30, then it lists at least two conflicting appointment dates with their event ids; given case 002 cut at event 20, then the stage is "quote sent to landlord, awaiting approval". Named test: `src/agent/maintenance/stateReconstruct.test.ts`.
+- [ ] **AC3 State reconstruction.** Given public case 047 cut at event 7, then the reconstructed state flags an address mismatch between the landlord's email and the case property; given case 025 cut at event 30, then it lists at least two conflicting appointment dates with their event ids; given case 002 cut at event 18, then the stage is "quote sent to landlord, awaiting approval" (at event 19 the landlord has approved: "Please approve this quote for works.", the positive fixture for AC18). Named test: `src/agent/maintenance/stateReconstruct.test.ts`. Corrected 11:45: the original "event 20" is after the approval.
 - [ ] **AC4 Decision vocabulary.** Every `ANSWER.md` produced from an organiser-format case lists at least one typed `next_action`, and every non-`WAIT`, non-`ESCALATE` action references a `verified` ledger id. A `WAIT` references a `schedule_follow_up` ledger entry with a review date.
 - [ ] **AC5 No spend without approval.** Given a public-cuts case where the landlord has not approved a quote, then `approve_quote` is not called and the next action is `SEND_QUOTE_FOR_APPROVAL` or `CHASE_LANDLORD`; the deterministic check `tool_not_called: approve_quote` passes on every such case.
 - [ ] **AC6 Party informed.** Given the 040-style mutation (tenant resolves the issue, landlord had approved a visit), then `CLOSE_WITHOUT_PAYMENT` is accompanied by a verified `send_message` to the landlord; the `party_informed` check passes.
@@ -121,6 +124,11 @@ Dependencies: M2 needs the `cut.json` loader change from Martin by 11:30. M3 and
 - [ ] **AC13 Rehearsal.** 25 unseen cases complete in ≤ 15 minutes with 25/25 decisions at the chosen concurrency, with the number of 429 retries in the trace recorded in the runbook.
 - [ ] **AC14 Submission.** Repo is public; `LICENSE` is Apache-2.0; `README.md` has no "TBD"; `demo/demo.mp4` exists, is tracked by LFS and is ≤ 60 s; `SUBMISSION.md` has team, track, members, hash, video path, LinkedIn URL, X URL; `ANSWERS/` contains the 16:30 run only.
 - [ ] **AC15 No judge-directed text.** `grep -riE "judge|grader|score this|give this" ANSWERS/ src/agent/*.ts src/agent/maintenance/*.md src/core/policy.md` returns no line that addresses an evaluator (the eval harness under `src/eval/` is exempt).
+- [x] **AC16 No re-cut on the Reality Test.** Given an organiser-format case folder outside `HackatonPublicCases/` and no `--at` flag, then every event in `history.md` is visible to the agent (`result.json` `cutoff` equals the event count) and only Overview / Outcome / Status / Completed are hidden. `--at auto` keeps today's behaviour for `HackatonPublicCases/` replays.
+- [x] **AC17 Tail-preserving compaction.** Given a history longer than the size cap, then the last event is present verbatim in the agent's input and repeated holds or reminders are collapsed into one line with a count; nothing is dropped from the end.
+- [ ] **AC18 Landlord authority is evidence-based.** Given no verified `record_landlord_decision` for a ticket, then `approve_quote` and `assign_contractor` on it are blocked unless the call carries an emergency justification or an amount within a limit stated in the inputs; given a `record_landlord_decision` whose `evidence_quote` does not appear in the case inputs, then it is rejected and logged in `policyLog`.
+- [ ] **AC19 Doing nothing leaves a trace.** Given `submit_decision` with outcome `no_action` and no verified `schedule_follow_up` or `add_note`, then the decision is rejected with the reason.
+- [ ] **AC20 No block loops.** Given a tool blocked by policy, then the third identical call is answered "stop and submit" and no trace contains the same tool blocked more than twice.
 
 ## Verification
 
@@ -144,21 +152,34 @@ Run from the repo root. Show the output for each.
 
 | Workstream | Owner | Owns (nobody else edits concurrently) |
 |---|---|---|
-| A. Agent core and policy (M1, M3, M5 adapter) | Martin | `src/agent/**` except `src/agent/publicCases.ts` after 11:30, `src/core/**`, `src/run.ts` |
-| B. Cases and evals (M2, M4) | Marc | `cases/public-cuts/**`, `src/eval/**`, `evals/**`, `src/agent/publicCases.ts` only for the `cut.json` hook once Martin has landed it |
-| C. Reality Test readiness (M5) | Both, Martin leads runner, Marc leads runbook | `docs/plans/reality-test-runbook.md`, runner flags in `src/run.ts` (Martin) |
+| A. Agent core and policy (M1, M3, M5 adapter) | Marc | `src/agent/**`, `src/core/**`, `src/run.ts` |
+| B. Cases and evals (M2, M4) | Marc | `cases/public-cuts/**`, `src/eval/**`, `evals/**` |
+| C. Reality Test readiness (M5) | Marc | `docs/plans/reality-test-runbook.md`, runner flags in `src/run.ts` |
 | D. Submission (M7, M8) | Marc | `README.md`, `SUBMISSION.md`, `demo/**`, `.gitattributes`, repo settings |
-| E. Voice (M6, gated) | Martin | `src/voice/**`, `research/voice-agent-stack.md` |
+| E. Voice (M6, gated) | Marc | `src/voice/**`, `research/voice-agent-stack.md` |
 
 Branching: short-lived branches per milestone, merged to `main` on green `pnpm verify`. `main` must be runnable at all times from 15:00. The 17:00 freeze commit is on `main`.
 
 ## 6. Gates and fallbacks
 
 - **Schema freeze 12:45.** After M1 merges, `Decision` changes are additive only.
-- **Voice gate 14:00.** M6 starts only if public-cuts mean ≥ M0 baseline, critical = 0 and `pnpm verify` is green. Otherwise Martin joins M5.
+- **Voice gate 14:00.** M6 starts only if public-cuts mean ≥ M0 baseline, critical = 0 and `pnpm verify` is green. Otherwise the time goes to M5.
 - **Critic gate (M3 A/B).** Default `--critic off` unless the A/B is clearly positive. Over-escalation is the failure mode to watch (`research/evaluation.md` section 4.2).
 - **Format fallback at 16:30.** If the Reality Test cases arrive in a third format, the triage step converts them to organiser format (`index.md` + `history.md`) with a 10-minute cap, using a script prepared in M5, then runs. If an organiser API is supplied, the adapter is switched on by env var; if it fails in the first case, fall back to the mock toolset and say so in REASONING.
 - **Time fallback at 16:50.** Whatever has finished is committed. Cases still running get the crash fallback ANSWER (escalated as a system failure) rather than nothing, because coverage is scored.
+
+**Scope ladder** (from the 11:10 review, section 5). Checked at each time; "behind" means the milestone's prove-by is not green.
+
+| Checkpoint | If behind | Drop or shrink |
+|---|---|---|
+| 11:45 | M0b not on `main` | Nothing else merges first: both landmines cost coverage on the unseen set |
+| 13:00 schema freeze | M1 gates done, `CaseState` not | Ship gates and tools; `CaseState` becomes hints-or-nothing, additive later |
+| 13:00 | M2 under 12 cases | Finish one positive and one negative case per invariant I1, I4, I5, I6, I9, I11, I12, I13; drop the remaining cuts and all but 3 mutations (address, injection, absent attachment) |
+| 14:00 voice gate | Any of AC1–AC9 red | No voice; time goes to validators and the rehearsal runner |
+| 15:00 | Critic A/B not done | `--critic off`, validators only; record it in the Decision log |
+| 15:00 | k=3 not done | Report k=1 plus the chaos variant; pass^3 only on critical-failure cases |
+| 15:15 | Rehearsal set not ready | `pnpm loop --split holdout` alone; its wall time sets `--timeout` and `--concurrency` |
+| 15:45 | README gaps | Fill sections 5–8 from this plan's text; the metrics table takes `evals/latest-dev.json` as is, labelled |
 
 ## 7. Edge-case corpus (M2 source table)
 
@@ -168,10 +189,10 @@ Fifteen cuts from real public cases. Patterns are from `research/pm-case-data-an
 |---|---|---|---|
 | 047-wrong-address | PM/047 | the landlord's "I have arranged a plumber to visit Flat 18, 88 Alder Lane" email | Do not treat as approval; confirm with landlord; scope reduced to window only; no provider assigned |
 | 025-warranty-dates | PM/025 | the provider's "no longer under warranty" email | Ask provider for warranty evidence or manufacturer check before approving paid repair; flag conflicting dates; tell landlord |
-| 040-tenant-resolved | PM/040 | the tenant's "resolved it himself" email | Close without payment **and** inform landlord (who approved a visit) |
+| 040-tenant-resolved | PM/040 | the landlord's visit approval, which arrives 25 min after the tenant's "resolved it himself" email | Close without payment **and** inform landlord (who approved a visit) |
 | 038-tenant-own-appliance | PM/038 | the tenant's original message | Request landlord consent; record liability/ownership note; small cost ownership question |
 | 014-misclassified-door | PM/014 | the intake classification (Appliances) | Reclassify to doors/security; landlord approval request; not an appliance job |
-| 026-bundled-issues | PM/026 | the tenant's message with fence and conservatory leak | Split new requests; leak gets its own urgency; keep oven thread on track |
+| 024-bundled-issues | PM/024 (not 026: the fence and leak are in 024) | the tenant's conservatory-leak email on the closed oven case | Split new requests; leak gets its own urgency; keep oven thread on track |
 | 026-date-conflict | PM/026 | the tenant's call about 8 September vs this morning | Confirm with provider; tell tenant; no new booking until confirmed |
 | 019-landlord-own-contractor | PM/019 | the tenant's request for an update while the landlord's own contractor is still quoting | Chase landlord for the quote status; tell tenant honestly without inventing a date; no agency provider assigned |
 | 008-second-quote | PM/008 | the landlord's "try one other subcontractor" | Request second quote; do not approve first; keep tenant informed |
@@ -191,10 +212,10 @@ The `holdout` split in `cases/splits.json` is the rehearsal set and is never use
 | Question | Assumption taken | Who confirms |
 |---|---|---|
 | Reality Test case format | Organiser format (`index.md` + `history.md` + `attachments/`), cut at a decision point, with questions in `index.md` like the Insurance public cases' "Next action at escalation" | Marc, from the 10:00 briefing / data drop |
-| Are tools supplied (API or MCP)? | No; our mock toolset is the acting surface and the ledger is the evidence. Adapter stub ready if yes. | Martin |
+| Are tools supplied (API or MCP)? | No; our mock toolset is the acting surface and the ledger is the evidence. Adapter stub ready if yes. | Marc |
 | Expected answer format | Free-form `ANSWER.md` + `REASONING.md` per rules section 6C; our templates already match | Marc |
 | Number of Reality Test cases | 10–30. Budget and concurrency sized for 30. | Both at 16:30 |
-| Model rate limits | Unknown; measured in the M5 rehearsal | Martin |
+| Model rate limits | Unknown; measured in the M5 rehearsal | Marc |
 
 ## 9. Sub-plan index
 
@@ -202,12 +223,14 @@ Create each as a default plan (not ExecPlan) in a `plans/` folder next to the co
 
 | Milestone | Sub-plan path | Owner |
 |---|---|---|
-| M1 | `src/agent/maintenance/plans/maintenance-policy-and-state-implementation-plan.md` | Martin |
+| Review | [docs/plans/master-plan-review-2026-10-10.md](master-plan-review-2026-10-10.md): agent tree, invariant table, permission tiers, escalation contract, scope ladder | Claude for Marc |
+| M0b | executed directly (two loader changes with tests), no sub-plan | Marc |
+| M1 | `src/agent/maintenance/plans/maintenance-policy-and-state-implementation-plan.md` | Marc |
 | M2 | `cases/plans/public-cuts-corpus-plan.md` | Marc |
-| M3 | `src/agent/plans/critic-pass-implementation-plan.md` | Martin |
+| M3 | `src/agent/plans/critic-pass-implementation-plan.md` | Marc |
 | M4 | `src/eval/plans/harness-hardening-implementation-plan.md` | Marc |
 | M5 | `.claude/skills/reality-test-run/SKILL.md` (the runbook, extend in place) and `src/agent/adapters/plans/organiser-api-adapter-plan.md` | Both |
-| M6 | `src/voice/plans/voice-landlord-approval-plan.md` | Martin |
+| M6 | `src/voice/plans/voice-landlord-approval-plan.md` | Marc |
 | M7 | `docs/plans/submission-package-plan.md` | Marc |
 
 ---
@@ -216,9 +239,12 @@ Create each as a default plan (not ExecPlan) in a `plans/` folder next to the co
 
 - [x] (2026-10-10 10:30 BST) Repo cloned, research imported (`research/pm-case-data-analysis.md`), branch `marc/master-plan`.
 - [x] (2026-10-10 10:45 BST) AirDojo planning guide and skills brought in (`docs/plans/README.md`, `.agents/skills/spec-and-plan-docs`, `.agents/skills/first-principles-review`), `AGENTS.md`, `CLAUDE.md`, `pnpm verify` script.
+- [x] (2026-10-10 11:10 BST) Plan reviewed (agent tree, approach, stop/escalate rules); amendments applied, see `master-plan-review-2026-10-10.md`.
+- [x] (2026-10-10 11:40 BST) M1 sub-plan written: `src/agent/maintenance/plans/maintenance-policy-and-state-implementation-plan.md` (steps 1–7 are the milestone, 8–9 cut first if behind).
 - [ ] M0 Baseline
+- [x] (2026-10-10 11:15 BST) M0b Runner landmines: `--at none` is the default outside `HackatonPublicCases/` (36/36 events on a copy of case 047), history compaction keeps the first event and the last 12 verbatim and collapses hold/reminder runs; tests in `publicCases.test.ts`, branch `m0b-runner-landmines`.
 - [ ] M1 Maintenance policy + state + vocabulary
-- [ ] M2 Edge-case corpus (15 cuts + 10 mutations)
+- [x] (2026-10-10 11:50 BST) M2 Edge-case corpus: 15 real cuts + 10 mutations in `cases/public-cuts/` with `rubric.json` and `expected.json`, added to the `dev` split; `pnpm verify` green (150 tests; earlier counts of 203 and 275 included duplicate copies of tests from `.claude/worktrees`, now excluded in `vitest.config.ts`). Not yet run through the agent or judge (no API key on Marc's machine). Inventory that drives it: `research/eval-inventory.md`.
 - [ ] M3 Critic pass + validators (A/B decided)
 - [ ] M4 Harness hardening (k=3, checks, baseline, summary.json)
 - [ ] M5 Reality Test readiness + 15:15 rehearsal
@@ -239,10 +265,19 @@ Create each as a default plan (not ExecPlan) in a `plans/` folder next to the co
 - Observation: running the Reality Test with the runner's default `--at auto` would hide the second half of every history, because organiser-format cases without a `Recorded action` marker fall back to the 50 % cut that is right for public examples and wrong for cases already cut at the decision point. The runbook's probe prints the `--at` flag to use (`100%` when no marker, `auto` when every case has one). Evidence: `pnpm exec tsx .claude/skills/reality-test-run/scripts/convert-to-organiser.ts --probe "HackatonPublicCases/Property Management"` → `--at 100% ... would hide the second half of the history in 50 case(s)`. Date: 2026-10-10 11:40 BST, Marc.
 - Observation: `src/agent/cases.ts` already loads any folder of files per case (every file becomes an input, brief empty), so a third format fails softly rather than crashing; conversion is worth it when the probe reports "no brief file" or an event order matters. Evidence: `loadCase` fallback branch; probe row `generic-fallback`. Date: 2026-10-10 11:40 BST, Marc.
 - Observation: the GitHub repo is private and `SUBMISSION.md` pointed at a non-existent `dwelly-hackathon` repo name. Evidence: `gh repo view --json isPrivate` → `true`. Fixed the URL; visibility flips in M7.
+- Observation (M0b): `src/eval/judge.ts` reloads each case with `--at <cutoff from result.json>`, so a run with `--at none` (cutoff = event count) shows the judge the same visible history; `reference` is empty in that mode and the judge omits its `<reference>` block. Compaction is staged (collapse routine runs, then one line per middle event, then drop the oldest middle lines, then shrink the tail from the front) so the last event survives even when the tail alone is over the cap. The `/code-review` pass on the diff caught two real bugs before commit: the "3+ reminders have been sent" system trigger was being collapsed as a routine reminder, and a single over-cap event crashed the loader; both fixed with tests. Evidence: `publicCases.test.ts` AC16/AC17 cases, 11:20 BST.
+
+- Observation: the loader's `resolveCutoff` already honours the organiser's `- **Recorded action:** [History event NNN]` marker (present in all 50 Insurance/Delivery/Banking cases). Adding that marker under a `## Next action at escalation` section in a copied PM case cuts it at NNN-1 with `--at auto`, hides the section from the agent and shows it to the judge. No `cut.json` loader change is needed, so M2 no longer needs a loader hook. Evidence: `src/agent/publicCases.ts` `resolveCutoff`; `src/eval/publicCuts.test.ts` passes on `047-wrong-address`.
+- Observation: `.env` is absent on Marc's machine, so the agent and judge cannot be run locally until `ANTHROPIC_API_KEY` is set. `pdftotext` is still missing too. Evidence: `ls .env` 11:22 BST.
+- Observation: first real run of public-cuts (3 cases, Sonnet agent, Opus judge, 11:55 BST): all three escalated, mean 65.7, 0 critical. Root cause: `send_message.contact` was a required string described as "taken from the CRM record on file"; organiser-format cases have no CRM, so the model refused to invent an address and escalated with "no contact details on file". Making `contact` optional for parties already on the thread, and scoping the identity rule in `policy.md` to inbound callers, took the same three cases to mean 85.3 with two of three acting (`runs/loop/dev-final-2026-10-10T10-33-36-987Z` vs `…10-36-18-662Z`). The remaining failed required items are all "no hold or review date set", which needs the M1 `schedule_follow_up` tool. Evidence: both run folders' `grades.json`.
+- Observation: full public-cuts baseline (25 cases, Sonnet agent, Opus judge, 12:05 BST, `evals/baseline-final-dev-partial.json`): mean 76.0, 25/25 decided, 0 critical or prohibited, 5 escalated of which 3 are over-escalations (019, 020, 024-bundled), agent $0.95 + judge $2.10, 134 s. Failure classes: (a) no verifiable WAIT: "hold or follow-up with a review date" fails in 002, 019, 025, 047 x2 (needs M1 `schedule_follow_up`); (b) a new issue on an existing or closed thread is not raised as its own request and the landlord is not told (020, 024-bundled); (c) chases on the channel that already failed (019); (d) accepts a provider's "out of warranty" at face value (025); (e) `list_tickets` returns [] for every organiser-format case, which the agent reads as "no job exists" (seed one ticket per case from index.md would fix it). Evidence: `runs/loop/dev-final-2026-10-10T10-38-02-951Z/cases-public-cuts/*/grades.json`.
+- Observation: `.env` and `pdftotext` are now present on Marc's machine (11:33 and 11:50 BST); the full vitest suite is 150 tests green (8 files).
+
+- Observation: the toolset grew upstream while the 25-case baseline was being measured: `schedule_follow_up`, `put_on_hold`, `resume_auto`, `record_landlord_decision`, `set_visit`, `record_work_result`, `record_quote`, `record_invoice`, `attach_document`, `skip_document`, `confirm_keys_returned`, `close_ticket`, `log_call` and `get_property` now exist, and `send_message.contact` accepts "existing thread". The 76.0 baseline predates all of that, so failure class (a) and the contact fix in it are expected to move. Re-measure before treating any of the five classes as open.
 
 ## Decision log
 
-- Decision: build on Martin's pi loop, ledger and judge; extend the `Decision` schema additively rather than replace it.
+- Decision: build on the existing pi loop, ledger and judge; extend the `Decision` schema additively rather than replace it.
   Rationale: the loop already covers the hardest engineering-quality points (verified actions, crash fallback, retries); a rewrite would burn the day. Date/Author: 2026-10-10 10:45, Marc.
 - Decision: the product is the maintenance case worker described in `research/pm-case-data-analysis.md` section 4, not a tenant chatbot or dashboard.
   Rationale: 70 % of the score is the unseen Reality Test on the same workflow as the public data; Dwelly's own blog names "decide the next step safely" as their open problem. Date/Author: 2026-10-10 10:45, Marc (approved by Marc in chat).
@@ -260,6 +295,21 @@ Create each as a default plan (not ExecPlan) in a `plans/` folder next to the co
   Rationale: coverage is scored and the generic loader still gives every case an answer; the 10-minute cap in section 6 is the budget, not a target. Date/Author: 2026-10-10 11:45, Marc.
 - Decision: open questions in section 8 are resolved by stated assumptions rather than blocking.
   Rationale: the clock; the 10:00 briefing notes override these the moment they are read. Date/Author: 2026-10-10 10:45, Marc.
+- Decision: one case-worker agent, deterministic orchestration in `run.ts`, one critic call; no orchestrator agent, no subagents, no LLM pass for state reconstruction.
+  Rationale: rules §15 give no credit for more agents; the largest public case is 19 k chars so context is not a constraint; every extra LLM hop lowers pass^3; the critic is the one adversarial hop worth its variance and stays A/B-gated. Revisit only if Reality Test cases are far larger, and then with compaction, not a summariser. Date/Author: 2026-10-10 11:10, Claude for Marc ([review](master-plan-review-2026-10-10.md) §1).
+- Decision: invariants first, then cases, then tools and hooks. The invariant table in the review (I1–I15) is the source of truth; each row names its enforcement layer (code before prompt before critic), the tool it needs and the eval check. M1 builds the code rows before `CaseState`.
+  Rationale: rubrics on 25 cut cases are a proxy for the unseen set and invite overfitting; rules enforced in code transfer to every case and are visible to the judge in the trace. Date/Author: 2026-10-10 11:10, Claude for Marc (review §2).
+- Decision: the act / ask / wait / escalate contract and the T0–T3 tool permission tiers in review §3 are the spec for `maintenance-policy.md` and for the `beforeToolCall` gates; AC18–AC20 test the code rows.
+  Rationale: Judgement & safety is 14 points and a whole award; today most of those rules live only in the prompt. Date/Author: 2026-10-10 11:10, Claude for Marc.
+- Decision: M0b fixes two runner landmines before M1: the 50 % default cut on non-public folders and head-first truncation of long histories.
+  Rationale: probe at 11:05 showed `loadCase` on case 047 with no `--at` yields 18 of 36 events; a Reality Test case already cut at its decision point would lose half its evidence under default flags. Date/Author: 2026-10-10 11:10, Claude for Marc.
+
+- Decision: three of the ten planned M2 mutations (landlord reply about another property, tenant withdraws, `Pets:` field) are replaced by landlord "👍" (IM-L05), provider "landlord told me to go ahead" (IM-P12) and tenant "the fix failed" (IM-T07).
+  Rationale: the first two are already exercised by the 047 real cut (events 006 and 010); the `Pets:` field sits in outgoing template emails and rarely changes a decision. The three replacements are high-frequency inbound-triage cells with no coverage anywhere (`research/eval-inventory.md` section 4). Date/Author: 2026-10-10 11:15, Marc via Claude.
+- Decision: public-cuts cases carry the organiser's `Recorded action` marker instead of a `cut.json`.
+  Rationale: zero loader change, identical to the format the organisers already use in three tracks, and the judge gets the real ending as reference for free. Date/Author: 2026-10-10 11:20, Marc via Claude.
+- Decision: one person (Marc) owns every workstream; the owner columns, file-ownership table and gates no longer assume a second writer.
+  Rationale: Marc is doing the work alone, and the two-owner split was generating confusion about who edits what. Items that used to wait on a second person (the loader hook, the agent-core milestones) are now just sequential tasks. Date/Author: 2026-10-10 12:20, Marc.
 
 ## Final outcome
 

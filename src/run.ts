@@ -1,7 +1,9 @@
 // Batch runner: process every case folder autonomously and write ANSWERS/<id>/.
 // Usage: pnpm cases --in cases/practice --out ANSWERS [--only 01,06] [--concurrency 6] [--model claude-sonnet-5-5]
 // Robustness: add --chaos 0.15 [--seed x] to inject random tool failures into every case.
-// Public-format cases: pnpm cases --in "HackatonPublicCases/Property Management" --out runs/pm [--at auto|12|50%]
+// Public-format cases: pnpm cases --in "HackatonPublicCases/Property Management" --out runs/pm [--at auto|12|50%|none]
+//   --at defaults to "auto" (replay: cut at a decision point) under HackatonPublicCases/ and to "none" (take the
+//   case as it comes, every event visible) anywhere else, which is what the Reality Test cases need.
 import 'dotenv/config';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { chaosPlan } from './core/failures.js';
@@ -11,6 +13,7 @@ import { runCase } from './agent/caseAgent.js';
 import { type LoadedCase, casePrompt, listCases, loadCase } from './agent/cases.js';
 import { claude, streamFn } from './agent/models.js';
 import { jevEnabled, prescreen, screenNote } from './agent/jev.js';
+import { seedFromCase } from './agent/opsSeed.js';
 import { createOpsToolset } from './agent/opsTools.js';
 import { type Usage, renderAnswer, renderReasoning } from './agent/report.js';
 import { CASE_SYSTEM_PROMPT } from './agent/systemPrompt.js';
@@ -24,7 +27,7 @@ const { values } = parseArgs({
     model: { type: 'string', default: process.env.CASE_MODEL ?? 'claude-sonnet-5-5' },
     thinking: { type: 'string', default: 'medium' },
     timeout: { type: 'string', default: '300' },
-    at: { type: 'string', default: 'auto' },
+    at: { type: 'string' },
     chaos: { type: 'string', default: '0' },
     seed: { type: 'string', default: '1' },
   },
@@ -45,7 +48,7 @@ async function processCase(dir: string): Promise<Row> {
     c = loadCase(dir, values.at);
     const prompt = casePrompt(c);
     const screen = await prescreen(prompt);
-    const toolset = createOpsToolset(c.seedTickets);
+    const toolset = createOpsToolset(seedFromCase(c));
     const writeTools = toolset.tools.filter((t) => t.kind === 'write').map((t) => t.name);
     const failures = chaosPlan(writeTools, Number(values.chaos), `${values.seed}:${c.id}`, c.failures);
     const chaos = Object.fromEntries(Object.entries(failures).filter(([k]) => !(k in c!.failures)));

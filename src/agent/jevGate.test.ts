@@ -25,7 +25,7 @@ describe('Jev pre-send gate', () => {
       fauxAssistantMessage([msg("We've logged your leak and will confirm a visit time within 24 hours.")]),
       fauxAssistantMessage([
         fauxToolCall('submit_decision', {
-          outcome: 'action_taken', severity: 'urgent', summary: 's', answers: [],
+          case_state: 'open', next_actions: [{ type: 'WAIT', action: 'wait', recipient: 'internal', channel: 'internal' }], boundaries: [], remaining_work: [], missing_info: [], outcome: 'action_taken', severity: 'urgent', summary: 's', answers: [],
           actions_claimed: [{ ledger_id: 'A1', description: 'tenant update' }], failed_actions: [], conflicts: [], assumptions: [],
         }),
       ]),
