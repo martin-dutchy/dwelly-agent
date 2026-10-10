@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { executeWith } from '../core/executor.js';
 import type { ToolContext, ToolDef, ToolResult } from '../core/tools.js';
 import { type LedgerEntry, canonical } from './ledger.js';
-import { addressKnown, foreignAddresses, invoiceFlags, quoteAppears, quoteTotal, tooThinForApproval, visitProblems } from './opsChecks.js';
+import { addressKnown, foreignAddresses, invoiceFlags, mentionsDate, quoteAppears, quoteSpeakers, quoteTotal, tooThinForApproval, visitProblems } from './opsChecks.js';
 import type { Verification } from './verify.js';
 
 /**
@@ -39,6 +39,7 @@ export const LANDLORD_DECISIONS = ['approved', 'declined', 'own_contractor', 'te
 export const WORK_OUTCOMES = ['completed', 'partial', 'needs_quote', 'no_access', 'missed_appointment'] as const;
 export const DOC_KINDS = ['invoice', 'quote', 'photos', 'inspection_report', 'certificate', 'other'] as const;
 export const CLOSE_MODES = ['final_checks', 'without_payment', 'by_supervisor'] as const;
+export const VISIT_CONFIRMERS = ['provider', 'landlord', 'assigned_this_run'] as const;
 
 export type Toolset = {
   tools: ToolDef[];
@@ -229,13 +230,21 @@ export function createOpsToolset(seed: OpsSeed | Ticket[] = []): Toolset {
     }),
     def({
       name: 'set_visit',
-      description: 'Book or reschedule the contractor visit. Sends confirmations to the contractor and tenant. Only for future visits.',
+      description:
+        'Book or reschedule the contractor visit. Sends confirmations to the contractor and tenant. Only for future visits, and only for a date the party doing the visit has confirmed: a date only the tenant (or anyone else) stated is a proposal, so ask the provider to confirm it instead.',
       kind: 'write',
       parameters: z.object({
         ...ticketRef,
         datetime: z.string().describe('YYYY-MM-DD HH:MM'),
         slot_text: z.string().describe('The slot as agreed, e.g. "Monday 2-5pm"'),
         access: z.enum(['tenant_home', 'agency_key', 'caretaker', 'lockbox', 'landlord']).describe('How the contractor gets in'),
+        confirmed_by: z
+          .enum(VISIT_CONFIRMERS)
+          .describe('provider = the contractor doing the visit confirmed this date; landlord = the landlord confirmed it for their own contractor; assigned_this_run = you assigned the contractor with this window in this run (assign_contractor)'),
+        evidence_quote: z
+          .string()
+          .optional()
+          .describe('For provider or landlord: their words confirming the date, copied exactly from the case, including the date itself. Checked against the case text.'),
       }),
       run: ({ ticket_ref, datetime, slot_text, access }) =>
         onTicket(ticket_ref, (t) => ((t.visit = { datetime, slot_text, access }), (t.visit_window = datetime), (t.stage = 'visit'), { stage: 'visit', visit: t.visit })),
@@ -464,6 +473,26 @@ export function createOpsToolset(seed: OpsSeed | Ticket[] = []): Toolset {
   const knownAddresses = () => [...state.tickets.map((t) => String(t.property ?? '')), ...state.properties.map((p) => p.address)].filter(Boolean);
   const ran = (tool: string, ref?: string) => state.records.some((r) => r.tool === tool && (!ref || JSON.stringify(r.args).includes(ref)));
 
+  // A visit date counts only when the party doing the visit confirmed it, in words that are in the case and name the date.
+  const visitUnconfirmed = (a: Record<string, any>, ledger?: readonly LedgerEntry[]): string | undefined => {
+    const date = String(a.datetime ?? '').slice(0, 10);
+    if (a.confirmed_by === 'assigned_this_run') {
+      if (!ledger) return undefined;
+      const assigned = ledger.some((e) => e.tool === 'assign_contractor' && e.status === 'verified' && e.args.ticket_ref === a.ticket_ref);
+      return assigned ? undefined : `confirmed_by is assigned_this_run, but no assign_contractor for ${a.ticket_ref} is verified in this run.`;
+    }
+    if (!evidence) return undefined;
+    const quote = String(a.evidence_quote ?? '').trim();
+    if (!quote) return `No confirmation of ${date} is quoted (evidence_quote).`;
+    if (!quoteAppears(quote, evidence)) return `The evidence_quote "${quote.slice(0, 120)}" is not in the case.`;
+    if (!mentionsDate(quote, a.datetime, today)) return `The evidence_quote does not name ${date}; a weekday or "next week" alone does not confirm a date.`;
+    const speakers = quoteSpeakers(quote, evidence);
+    const role = a.confirmed_by === 'landlord' ? /landlord/i : /contractor|provider|maintenance|engineer|trades/i;
+    if (speakers && !speakers.some((s) => role.test(s)))
+      return `Those words come from ${[...new Set(speakers)].join(' / ') || 'nobody identifiable'}, not the ${a.confirmed_by === 'landlord' ? 'landlord' : 'provider'}, so ${date} is not confirmed by the party doing the visit.`;
+    return undefined;
+  };
+
   // Rules enforced in code, not left to the prompt. Each comes from a red flag in the cases.
   const guard = (name: string, a: Record<string, any>, ledger?: readonly LedgerEntry[]): string | undefined => {
     const t = a.ticket_ref ? ticket(a.ticket_ref) : undefined;
@@ -497,7 +526,11 @@ export function createOpsToolset(seed: OpsSeed | Ticket[] = []): Toolset {
       }
       case 'set_visit': {
         const problems = visitProblems(a.datetime, a.slot_text, today);
-        return problems.length ? problems.join(' ') : undefined;
+        if (problems.length) return problems.join(' ');
+        const unconfirmed = visitUnconfirmed(a, ledger);
+        return unconfirmed
+          ? `${unconfirmed} Do not book it and do not tell anyone it is booked: ask the provider to confirm the date (request_information), tell the tenant the date is not confirmed yet, and schedule_follow_up.`
+          : undefined;
       }
       case 'send_message':
       case 'request_information': {

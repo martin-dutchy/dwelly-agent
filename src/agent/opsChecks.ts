@@ -78,6 +78,40 @@ export function quoteAppears(quote: string, evidence: string): boolean {
   return candidates.some((c) => c.trim() && found(c));
 }
 
+/**
+ * Who wrote the words: the `From:` line of every organiser-format event (`### … event NNN`) whose
+ * text contains `quote`. Undefined when the evidence has no such events, so callers skip the check.
+ */
+export function quoteSpeakers(quote: string, evidence: string): string[] | undefined {
+  const blocks = evidence.split(/^(?=#{2,4} .*\bevent[- ]?\d+)/im).filter((b) => /^#{2,4} .*\bevent[- ]?\d+/i.test(b));
+  if (!blocks.length) return undefined;
+  return blocks.filter((b) => quoteAppears(quote, b)).map((b) => b.match(/^- \*\*From:\*\*\s*(.+)$/m)?.[1]?.trim() ?? 'unknown');
+}
+
+const MONTHS = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+
+/** True when `text` names the calendar date of `datetime` (e.g. "8 September", "Sept 8th", "08/09", "2025-09-08", or "tomorrow" relative to `today`). A weekday alone does not count. */
+export function mentionsDate(text: string, datetime: string, today?: string): boolean {
+  const when = parseWhen(datetime);
+  if (!when) return false;
+  const d = when.getUTCDate();
+  const m = when.getUTCMonth();
+  const t = text.toLowerCase();
+  const day = `0?${d}(?:st|nd|rd|th)?`;
+  const month = `${MONTHS[m].slice(0, 3)}[a-z]*\\.?`;
+  const patterns = [
+    `\\b${day}\\s+(?:of\\s+)?${month}`,
+    `\\b${month}\\s+${day}\\b`,
+    `\\b0?${d}[/.-]0?${m + 1}\\b`,
+    `\\b${when.toISOString().slice(0, 10)}\\b`,
+  ];
+  if (patterns.some((p) => new RegExp(p).test(t))) return true;
+  const now = today ? parseWhen(today) : undefined;
+  if (!now) return false;
+  const days = Math.round((Date.UTC(when.getUTCFullYear(), m, d) - Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())) / 86_400_000);
+  return (days === 0 && /\btoday\b/.test(t)) || (days === 1 && /\btomorrow\b/.test(t));
+}
+
 /** Approval text that is too thin to rely on (emoji, "ok", empty). */
 export const tooThinForApproval = (quote: string) => quote.replace(/[^A-Za-z]/g, '').length < 4;
 

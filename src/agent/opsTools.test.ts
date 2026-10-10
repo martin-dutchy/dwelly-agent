@@ -2,7 +2,7 @@ import { createModels, fauxAssistantMessage, fauxProvider, fauxToolCall } from '
 import { describe, expect, it } from 'vitest';
 import { runCase } from './caseAgent.js';
 import { loadCase } from './cases.js';
-import { foreignAddresses, invoiceFlags, quoteAppears, quoteTotal, tooThinForApproval, visitProblems } from './opsChecks.js';
+import { foreignAddresses, invoiceFlags, mentionsDate, quoteAppears, quoteSpeakers, quoteTotal, tooThinForApproval, visitProblems } from './opsChecks.js';
 import { seedFromCase } from './opsSeed.js';
 import { createOpsToolset, landlordInformedProblem } from './opsTools.js';
 
@@ -49,6 +49,56 @@ describe('ops checks', () => {
     expect(quoteAppears('Please approve this quote', 'Please approve this quoted figure')).toBe(false);
     expect(quoteAppears('old toilet back … Please approve', history)).toBe(false);
     expect(quoteAppears('', history)).toBe(false);
+  });
+});
+
+describe('visit confirmation', () => {
+  const history = [
+    '### 2025-08-26 20:21 UTC — event 016',
+    '- **From:** Contractor',
+    'Visit tentatively planned for Monday morning between 10 and 12. Confirmed for 1st September, 10am.',
+    '### 2025-08-30 14:02 UTC — event 021',
+    '- **From:** Tenant',
+    'She previously arranged the repair for the 8 September 2025.',
+  ].join('\n');
+
+  it('recognises a named calendar date, not a weekday alone', () => {
+    expect(mentionsDate('arranged the repair for the 8 September 2025', '2025-09-08 10:00')).toBe(true);
+    expect(mentionsDate('see you Sept 8th', '2025-09-08 10:00')).toBe(true);
+    expect(mentionsDate('booked 08/09 am', '2025-09-08 10:00')).toBe(true);
+    expect(mentionsDate('booked 18/09 am', '2025-09-08 10:00')).toBe(false);
+    expect(mentionsDate('Monday morning between 10 and 12', '2025-09-08 10:00')).toBe(false);
+    expect(mentionsDate('I can come tomorrow at 10', '2025-09-08 10:00', '2025-09-07 15:00')).toBe(true);
+  });
+
+  it('says who wrote the words in an organiser history, and nothing for other formats', () => {
+    expect(quoteSpeakers('arranged the repair for the 8 September 2025', history)).toEqual(['Tenant']);
+    expect(quoteSpeakers('Confirmed for 1st September, 10am', history)).toEqual(['Contractor']);
+    expect(quoteSpeakers('anything', '{"crm": true}')).toBeUndefined();
+  });
+
+  it("will not book a date only the tenant stated, and books one the provider confirmed", () => {
+    const t = ops({}, { evidence: history, today: '2025-08-30 14:10' });
+    const visit = (datetime: string, over: Record<string, unknown>) => t.guard!('set_visit', { ticket_ref: 'NBL-1', datetime, slot_text: 'Monday 10-12', access: 'tenant_home', ...over }, []);
+    expect(visit('2025-09-08 10:00', { confirmed_by: 'provider', evidence_quote: 'arranged the repair for the 8 September 2025' })).toMatch(/come from Tenant.*ask the provider to confirm/);
+    expect(visit('2025-09-08 10:00', { confirmed_by: 'provider', evidence_quote: 'Monday morning between 10 and 12' })).toMatch(/does not name 2025-09-08/);
+    expect(visit('2025-09-08 10:00', { confirmed_by: 'provider' })).toMatch(/No confirmation/);
+    expect(visit('2025-09-08 10:00', { confirmed_by: 'assigned_this_run' })).toMatch(/no assign_contractor/);
+    expect(visit('2025-09-01 10:00', { confirmed_by: 'provider', evidence_quote: 'Confirmed for 1st September, 10am' })).toBeUndefined();
+  });
+
+  it('accepts a visit the agent itself assigned this run, and is off with no case text', () => {
+    const assigned = [{ id: 'A1', tool: 'assign_contractor', args: { ticket_ref: 'NBL-1' }, key: 'k', attempts: 1, status: 'verified' as const, evidence: [] }];
+    const t = ops({}, { evidence: history });
+    expect(t.guard!('set_visit', { ticket_ref: 'NBL-1', datetime: '2026-10-12 14:00', slot_text: 'Monday 2-5pm', access: 'tenant_home', confirmed_by: 'assigned_this_run' }, assigned)).toBeUndefined();
+    expect(ops().guard!('set_visit', { ticket_ref: 'NBL-1', datetime: '2026-10-12 14:00', slot_text: 'Monday 2-5pm', access: 'tenant_home', confirmed_by: 'provider' })).toBeUndefined();
+  });
+
+  it('blocks the tenant-stated date on the real date-conflict cut', () => {
+    const t = createOpsToolset(seedFromCase(loadCase('cases/public-cuts/026-date-conflict')));
+    const ref = t.state.tickets[0].ref;
+    const r = t.guard!('set_visit', { ticket_ref: ref, datetime: '2025-09-08 10:00', slot_text: 'Monday 8 September, 10-12', access: 'tenant_home', confirmed_by: 'provider', evidence_quote: 'she previously arranged the repair for the 8 September 2025' }, []);
+    expect(r).toMatch(/not the provider/);
   });
 });
 
