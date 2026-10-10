@@ -74,7 +74,10 @@ PDF attachments are extracted with `pdftotext` (poppler: `brew install poppler`)
 See `.env.example` for the full list.
 
 ## 5. Models, APIs and external services
-TBD
+TBD (core). Voice add-on:
+- **ElevenLabs Agents** (ASR `scribe_realtime`, TTS `eleven_v4_turbo`, turn-taking, hosted `claude-haiku-4-5`): the voice layer. Agent and webhook tools are generated from our code with `pnpm voice:sync`. Keys: `ELEVENLABS_API_KEY`, `ELEVENLABS_WEBHOOK_SECRET`.
+- **ngrok** (or any HTTPS host): exposes `pnpm voice:serve` so ElevenLabs can reach our tools. Optional when deployed.
+- **Anthropic API**: used by the voice layer only with `VOICE_BRAIN=pi` (ElevenLabs Custom LLM -> our pi agent).
 
 ## 6. Assumptions
 TBD

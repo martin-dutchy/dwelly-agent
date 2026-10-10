@@ -223,6 +223,8 @@ Create each as a default plan (not ExecPlan) in a `plans/` folder next to the co
 - [ ] M4 Harness hardening (k=3, checks, baseline, summary.json)
 - [ ] M5 Reality Test readiness + 15:15 rehearsal
 - [ ] M6 Voice (gated)
+  - [x] (2026-10-10 11:40 BST) Inbound tenant-line agent on ElevenLabs, `src/voice/**`: shared tools via webhooks, swappable brain (`VOICE_BRAIN=native|pi`), per-call ledger, post-call `CALL.md`, test console at `/voice/console` with 6 graded scenarios. Text-mode runs of routine-repair and gas-emergency both PASS.
+  - [ ] Landlord-approval outbound call (the original M6 scope) on the same plumbing.
 - [ ] M7 Submission package
 - [ ] M8 Reality Test run, freeze, submit
 
@@ -236,6 +238,8 @@ Create each as a default plan (not ExecPlan) in a `plans/` folder next to the co
 - Observation: with dependencies installed, `pnpm verify` on Marc's machine has 14/15 tests passing; the one failure is `publicCases.test.ts › extracts PDF attachments as text`, because `pdftotext` is missing (content length 53 = the placeholder string). Typecheck is clean. Evidence: vitest output 10:43 BST.
 - Observation: `main` moved by three commits while this plan was being written (test loop with dev/holdout splits and chaos, policy hooks, native attachments, tool catalogue, three skills). Merged into this branch at 10:58 BST; conflicts in `package.json` (both scripts kept) and `CLAUDE.md` (merged). M4 and M5 were re-scoped to extend `pnpm loop` and the `reality-test-run` skill rather than duplicate them. Two M2 cut cases (036, 045) were swapped out because they are in the holdout split. Evidence: `git log 65fbb9e..origin/main`.
 - Observation: the GitHub repo is private and `SUBMISSION.md` pointed at a non-existent `dwelly-hackathon` repo name. Evidence: `gh repo view --json isPrivate` → `true`. Fixed the URL; visibility flips in M7.
+- Observation: ElevenLabs gives no ASR confidence anywhere (transcript, webhook or API), so bad audio can only be caught by protocol: read-back + explicit yes before writes (enforced server-side by `caller_confirmed_readback`), exact DOB match after server-side spoken-date normalisation, fuzzy names. Evidence: research subagent report 10 Oct, `research/voice-agent-stack.md` "Update 10 Oct".
+- Observation: in the gas test the agent escalated P1 before learning who or where the caller was, and did not update the handover when it later heard the name and address. Evidence: console run 11:39 BST, escalation E-4902 has no tenant or address.
 
 ## Decision log
 
@@ -253,6 +257,8 @@ Create each as a default plan (not ExecPlan) in a `plans/` folder next to the co
   Rationale: real patterns beat predicted ones; the holdout keeps the rehearsal honest. Date/Author: 2026-10-10 10:45, Marc.
 - Decision: open questions in section 8 are resolved by stated assumptions rather than blocking.
   Rationale: the clock; the 10:00 briefing notes override these the moment they are read. Date/Author: 2026-10-10 10:45, Marc.
+- Decision: the live voice brain is ElevenLabs-hosted Claude (`claude-haiku-4-5`) calling our tools as webhooks; the pi agent is a drop-in alternative via ElevenLabs Custom LLM (`VOICE_BRAIN=pi`).
+  Rationale: native keeps the lowest latency and ElevenLabs' automatic LLM fallback; Custom LLM has no fallback and adds a hop. Both share tools, guard, ledger, prompt and turn settings, so the brain can be A/B'd per call. Date/Author: 2026-10-10 11:40, Martin (with Claude).
 
 ## Final outcome
 

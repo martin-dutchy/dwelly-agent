@@ -15,6 +15,39 @@ Researched 9 Oct 2026. Sources are cited inline. **[UNVERIFIED]** marks claims t
 
 ---
 
+## Update 10 Oct 2026: what we built and why (supersedes sections 3 and 5.6 where they differ)
+
+Re-checked against the official docs and changelog on 10 Oct. The product is now "ElevenAgents"; docs moved to `/docs/eleven-agents/`. Code: `src/voice/`.
+
+**Brain: swappable, native by default.** `VOICE_BRAIN=native` lets ElevenLabs host `claude-haiku-4-5` and call our tools as webhooks. `VOICE_BRAIN=pi` points ElevenLabs Custom LLM (`/v1/chat/completions`, OpenAI SSE) at a long-lived pi `Agent` per call, which runs the same tools in-process. Native wins on latency and on resilience: ElevenLabs cascades to a backup LLM after `cascade_timeout_seconds` (default 4 s), and Custom LLM never cascades ([cascading](https://elevenlabs.io/docs/eleven-agents/customization/llm/llm-cascading.md), [custom LLM](https://elevenlabs.io/docs/eleven-agents/customization/llm/custom-llm.md)). Both brains share the tool schema (`src/voice/voiceTools.ts`), the handler (`src/voice/toolCall.ts`: identity guard, read-back verification, per-call ledger, audit), the prompt and the turn settings. `pnpm voice:sync` applies either one.
+
+**Interruptions.**
+- `turn_model: turn_v3`. Barge-in stays on (`interruption` in client events).
+- Write tools use `interruption_mode: disable_during_tool`, so a cough cannot cancel a half-made ticket. `transcribe_on_disabled_interruptions: true` keeps what the caller said meanwhile.
+- `disable_first_message_interruptions: true`, so the AI disclosure is always heard.
+- British backchannels go in `interruption_ignore_terms`, merged with the English presets, so "yeah", "mm" and "ta" don't stop the agent ([tool interruptions](https://elevenlabs.io/docs/eleven-agents/customization/tools/tool-configuration/tool-interruptions.md), changelog 22 Jun, 6 Jul and 17 Aug 2026).
+- pi brain: ElevenLabs resends only what the caller heard. `syncInterruption` cuts the agent's memory at that point, across tool-call turns, so it never believes the rest was heard. A new request aborts the previous generation.
+
+**Latency.**
+- Haiku 4.5 with thinking off for live turns. ElevenLabs publishes no per-model latency numbers.
+- `eleven_v4_turbo` TTS (~100 ms; the agent default since 5 Oct).
+- `pre_tool_speech: force` on writes and `auto` on reads; `tool_call_sound: typing`; `response_timeout_secs: 10`.
+- `soft_timeout_config` speaks a filler after 3 s.
+- Tool handlers run in about 1 ms against fixtures, so LLM time dominates.
+- `speculative_turn` is left off: it risks cutting callers off mid-number.
+
+**Bad audio.** ElevenLabs exposes **no ASR confidence** and no input noise-suppression setting on agents. The browser SDK hard-codes echo cancellation, noise suppression and AGC. Robustness therefore has to come from protocol:
+- **ASR settings:** `scribe_realtime`, `quality: high`, and `asr.keywords` built from tenant names, streets and postcodes.
+- **Turn-taking:** `turn_eagerness: patient`, `spelling_patience: auto` and `retranscribe_on_turn_timeout: true`, because callers read out dates of birth and postcodes.
+- **Server-side normalisation:** spoken dates ("14th of March 91") and postcodes ("e eight one h l") are normalised in `src/voice/spoken.ts`. Unreadable values pass through unchanged, so verification fails closed.
+- **Read-back gate:** every write requires `caller_confirmed_readback: true`, a required schema field enforced by the server.
+- **Post-call evidence:** `data_collection.unclear_audio` and the evaluation criteria feed the flags in `CALL.md`.
+- **Phone calls:** use native Twilio or SIP with G.722, which gives 16 kHz instead of 8 kHz. DTMF (`dtmf_input_settings`) is a noise-proof fallback for yes/no and amounts on Twilio and SIP only.
+
+**Testing.** ElevenLabs simulations are text-only, so they can't exercise audio. `http://localhost:3000/voice/console` (localhost only) offers a scenario card, a script, stress tips (noise, coughs, barge-in), a live transcript, a live server audit log and a deterministic grade from the audit log. Its text-only mode tests decisions without a mic.
+
+---
+
 ## 1. Context that shapes the choice
 
 From the event page ([luma.com/ja5x0m76](https://luma.com/ja5x0m76)) and the local rules file:
