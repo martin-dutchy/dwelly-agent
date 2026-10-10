@@ -1,6 +1,6 @@
 # dwelly-hackathon
 
-> Real-World Agents Hackathon — 10 October 2026. Track: TBD.
+> Real-World Agents Hackathon — 10 October 2026. Track: Property Management.
 
 ## 1. What we built
 TBD
@@ -9,7 +9,20 @@ TBD
 TBD
 
 ## 3. Architecture
-TBD
+
+```
+case folder ──► src/agent/cases.ts (practice format)  ─┐
+            └─► src/agent/publicCases.ts (index.md +   ├─► case prompt ──► pi agent loop (Claude) ──► submit_decision
+                history.md, cut at a decision point)  ─┘                       │
+                                                                               ▼
+               ops tools (src/agent/opsTools.ts) ─► every write read back (verify) ─► action ledger (src/agent/ledger.ts)
+                                                                               │
+                                     ANSWER.md / REASONING.md rendered from the ledger, never from model prose
+```
+
+- **Verified action ledger:** each state-changing tool is read back after it runs. The final decision is rejected if it claims an unverified action or leaves a failed one unhandled.
+- **Guards:** repeat writes are blocked, and an optional Jev classifier pre-screens each case and checks outgoing messages before they are sent (`src/agent/jev.ts`).
+- **Policy:** the system prompt (`src/agent/systemPrompt.ts`) is built on `src/core/policy.md` and covers UK lettings law as of October 2026.
 
 ## 4. How to run it
 
@@ -26,16 +39,29 @@ cp .env.example .env   # fill in keys
 ### Run
 ```bash
 # Process a folder of cases and write ANSWERS/<n>/ANSWER.md + REASONING.md
-pnpm run cases --in ./cases --out ./ANSWERS
+pnpm cases --in cases/practice --out ANSWERS
+
+# Replay the organisers' public examples at a decision point (later events and the outcome are hidden)
+pnpm cases --in "HackatonPublicCases/Property Management" --out runs/pm --only 003,008 --at auto   # or --at 12, --at 50%
+
+# Grade a run: practice cases use their rubric.json, public cases are graded against the recorded ending
+pnpm eval --cases "HackatonPublicCases/Property Management" --answers runs/pm
 ```
+
+`--at auto` uses the case's recorded escalation point when it has one; otherwise it cuts halfway through the history (Property Management cases have no marker).
+
+### Test data
+- `HackatonPublicCases/`: the organisers' 200 public examples (50 per track).
+- `cases/practice/`: 22 hand-written property-management cases, each with `rubric.json` and scripted `tool_failures.json`.
 
 ### Environment variables
 | Variable | Purpose |
 |---|---|
 | `ANTHROPIC_API_KEY` | Claude models |
-| `ELEVENLABS_API_KEY`, `ELEVENLABS_AGENT_ID` | ElevenLabs voice agent |
-| `PUBLIC_BASE_URL`, `VOICE_TOOL_SECRET` | Public URL + bearer secret for ElevenLabs tool webhooks |
-| `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` | LiveKit Cloud project for the LiveKit worker |
+| `CASE_MODEL`, `JUDGE_MODEL` | Agent and judge models (defaults: Sonnet 5.5, Opus 5.5) |
+| `TYPESAFE_API_KEY` | Optional Jev classifier for pre-screen and pre-send checks |
+
+PDF attachments are extracted with `pdftotext` (poppler: `brew install poppler`).
 
 See `.env.example` for the full list.
 
@@ -50,40 +76,6 @@ TBD
 
 ## 8. What we'd build next
 TBD
-
-## Voice layer (ElevenLabs or LiveKit)
-
-Both voice stacks sit on the same core, so the provider can be swapped without touching business logic:
-
-```
-Browser / phone ──► ElevenLabs Agents (hosted)  ──HTTPS webhooks──┐
-                └─► LiveKit Agents worker (ours) ──in-process─────┤
-                                                                  ▼
-                 src/core: tools.ts (schemas, verification guard, audit) · policy.md · calls.ts
-```
-
-| | ElevenLabs | LiveKit |
-|---|---|---|
-| Where the agent runs | ElevenLabs cloud; calls our `/api/elevenlabs/tools/:name` | Our worker process (`src/voice/livekit/agent.ts`) |
-| Pipeline | ElevenLabs ASR → Claude (`ELEVENLABS_LLM`) → ElevenLabs TTS | LiveKit Inference Deepgram STT → Claude (Anthropic plugin) → ElevenLabs or Cartesia TTS |
-| Needs a public URL | Yes (`PUBLIC_BASE_URL`, e.g. `pnpm tunnel`) | No |
-| Call record | Fetched from ElevenLabs on hang-up, or via the post-call webhook | Built from session events |
-
-Every call writes `calls/<id>/audit.jsonl` (every tool call and result), `call.json` and `transcript.md`.
-
-```bash
-cp .env.example .env            # fill in keys
-pnpm dev                        # demo page on http://localhost:3000 with a provider picker
-
-# LiveKit
-pnpm voice:livekit:dev          # start the worker (registers as "dwelly-voice")
-pnpm smoke:livekit              # headless test: speaks synthesised audio into a room, prints transcript and tool calls
-
-# ElevenLabs
-pnpm tunnel                     # copy the https URL into PUBLIC_BASE_URL
-pnpm voice:elevenlabs:provision # creates/updates tools + agent from tools.ts/policy.md; prints ELEVENLABS_AGENT_ID
-pnpm voice:elevenlabs:provision --dry-run   # inspect generated tool configs without calling ElevenLabs
-```
 
 ## Reality Test results
 See [`ANSWERS/`](ANSWERS/). Each case contains `ANSWER.md` (decision and actions) and `REASONING.md` (reasoning, tool calls, failures, escalations), generated by the system without manual edits.
