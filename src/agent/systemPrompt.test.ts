@@ -13,7 +13,7 @@ describe('case system prompt', () => {
   });
 
   it('forbids announcing an unconfirmed visit and lists routine work that is not escalated', () => {
-    expect(CASE_SYSTEM_PROMPT).toMatch(/Never tell anyone a visit is booked or confirmed unless `set_visit`/);
+    expect(CASE_SYSTEM_PROMPT).toMatch(/Never tell anyone a new date is booked unless `set_visit`/);
     expect(CASE_SYSTEM_PROMPT).toMatch(/\*\*Do not escalate\*\* what a message, one question, a new job or a dated hold can move forward/);
     expect(CASE_SYSTEM_PROMPT).not.toMatch(/anything you are unsure about/);
   });
