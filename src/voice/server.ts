@@ -239,10 +239,22 @@ async function adminRoutes(path: string, req: IncomingMessage, res: ServerRespon
 
   const api = path.slice('/admin/api/'.length);
   if (api === 'testers' && req.method === 'POST') {
-    const { name, dailyCap, phone, scenarioId } = await readJson(req);
+    const { name, dailyCap, phone, scenarioId, replace } = await readJson(req);
     if (typeof name !== 'string' || !name.trim()) return send(res, 400, { error: 'name required' });
     const number = phone ? toE164(phone) : null;
     if (phone && !number) return send(res, 400, { error: 'phone must look like +447700900123 or 07700900123' });
+    // One active invite per number: duplicates sent people to the wrong case, and a typo rang someone else.
+    if (number) {
+      const existing = await store.activeByPhone(number);
+      const sameName = (t: { name: string }) => t.name.trim().toLowerCase().split(/\s+/)[0] === name.trim().toLowerCase().split(/\s+/)[0];
+      const other = existing.find((t) => !sameName(t));
+      if (other) return send(res, 409, { error: `${number} already belongs to ${other.name}'s invite. Check the number, or revoke that invite first.` });
+      if (existing.length && replace !== true) {
+        const cases = existing.map((t) => scenarioById(t.scenario_id ?? undefined)?.title ?? 'rotating cases').join(', ');
+        return send(res, 409, { error: `${existing[0].name} already has an active invite (${cases}).`, canReplace: true });
+      }
+      for (const t of existing) await store.setRevoked(t.id, true);
+    }
     const fixed = scenarios.some((x) => x.id === scenarioId) ? (scenarioId as string) : null;
     return send(res, 200, await store.createTester({ name: name.trim().slice(0, 60), dailyCap: Math.max(1, Math.min(50, Number(dailyCap) || 10)), phone: number, scenarioId: fixed }));
   }

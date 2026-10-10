@@ -45,6 +45,8 @@ export interface VoiceStore {
   init(): Promise<void>;
   createTester(t: NewTester): Promise<Tester>;
   listTesters(): Promise<Tester[]>;
+  /** Active (not revoked) invites for this phone number. */
+  activeByPhone(phone: string): Promise<Tester[]>;
   testerByToken(token: string): Promise<Tester | undefined>;
   setRevoked(id: string, revoked: boolean): Promise<void>;
   registerCall(c: { conversationId: string; testerId: string | null; scenarioId: string; brain: string }): Promise<void>;
@@ -75,6 +77,7 @@ export function memoryStore(): VoiceStore {
       return t;
     },
     listTesters: async () => [...testers].reverse(),
+    activeByPhone: async (phone) => testers.filter((t) => t.phone === phone && !t.revoked),
     testerByToken: async (token) => testers.find((t) => t.token === token),
     async setRevoked(id, revoked) {
       const t = testers.find((x) => x.id === id);
@@ -139,7 +142,9 @@ const SCHEMA = [
 ];
 
 export function pgStore(url: string): VoiceStore {
-  const sql = postgres(url, { max: 5, idle_timeout: 30, onnotice: () => {} });
+  // prepare: false: Neon's pooler (PgBouncer) can hand back statements prepared against an older table
+  // shape after a migration ("cached plan must not change result type"); unprepared queries avoid it.
+  const sql = postgres(url, { max: 5, idle_timeout: 30, prepare: false, onnotice: () => {} });
   const iso = (v: unknown) => (v instanceof Date ? v.toISOString() : (v as string | null));
   const row = <T>(r: Record<string, unknown>) => ({ ...r, started_at: iso(r.started_at), ended_at: iso(r.ended_at), created_at: iso(r.created_at) }) as unknown as T;
   const json = (v: unknown) => (v === null || v === undefined ? null : sql.json(v as never));
@@ -153,6 +158,7 @@ export function pgStore(url: string): VoiceStore {
       return row<Tester>(t);
     },
     listTesters: async () => (await sql`select * from voice_testers order by created_at desc`).map((r) => row<Tester>(r)),
+    activeByPhone: async (phone) => (await sql`select * from voice_testers where phone = ${phone} and not revoked`).map((r) => row<Tester>(r)),
     testerByToken: async (token) => {
       const [t] = await sql`select * from voice_testers where token = ${token}`;
       return t ? row<Tester>(t) : undefined;

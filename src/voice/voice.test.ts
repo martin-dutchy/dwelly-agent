@@ -42,14 +42,23 @@ describe('spoken-form normalisation (bad ASR)', () => {
 });
 
 describe('voice tool calls', () => {
+  it('refuses to verify against a tenant id the call never looked up', async () => {
+    const id = conv('guess');
+    expect(await handleVoiceToolCall('verify_identity', { conversation_id: id, tenant_id: 'T-1001', full_name: 'Jonah Okafor', date_of_birth: '1985-11-02' })).toMatchObject({ ok: false, error: 'unknown_tenant_id' });
+    await handleVoiceToolCall('find_tenant', { conversation_id: id, name: 'Jonah Okafor' });
+    expect(await handleVoiceToolCall('verify_identity', { conversation_id: id, tenant_id: 'T-1002', full_name: 'Jonah Okafor', date_of_birth: '1985-11-02' })).toMatchObject({ verified: true });
+  });
+
   it('verifies identity from a spoken date of birth', async () => {
     const id = conv('dob');
+    await handleVoiceToolCall('find_tenant', { conversation_id: id, name: 'Amelia Clarke' });
     const res = await handleVoiceToolCall('verify_identity', { conversation_id: id, tenant_id: 'T-1001', full_name: 'Amelia Clark', date_of_birth: '14th of March 1991' });
     expect(res).toMatchObject({ verified: true });
   });
 
   it('refuses a write until the caller confirmed the read-back', async () => {
     const id = conv('readback');
+    await handleVoiceToolCall('find_tenant', { conversation_id: id, name: 'Priya Shah' });
     await handleVoiceToolCall('verify_identity', { conversation_id: id, tenant_id: 'T-1003', full_name: 'Priya Shah', date_of_birth: '1998-07-21' });
     const args = { conversation_id: id, tenant_id: 'T-1003', category: 'appliance', urgency: 'routine', description: 'Oven door hinge broken' };
     expect(await handleVoiceToolCall('create_repair_ticket', args)).toMatchObject({ ok: false, error: 'readback_required' });
@@ -154,6 +163,7 @@ describe('grading from the event log', () => {
   it('gives every call its own world, so concurrent testers do not collide', async () => {
     const [a, b] = [conv('world-a'), conv('world-b')];
     for (const id of [a, b]) {
+      await call(id)('find_tenant', { name: 'Priya Shah' });
       await call(id)('verify_identity', { tenant_id: 'T-1003', full_name: 'Priya Shah', date_of_birth: '1998-07-21' });
       const r = await call(id)('create_repair_ticket', { tenant_id: 'T-1003', category: 'appliance', urgency: 'routine', description: 'Oven door', [READBACK_FIELD]: true });
       expect(r).toMatchObject({ verified: true });
@@ -166,6 +176,8 @@ describe('grading from the event log', () => {
       expect(s.brief.situation.length).toBeGreaterThan(20);
       expect(s.brief.facts.length).toBeGreaterThan(0);
       expect(s.brief.facts[0][0]).toBe('Your name');
+      expect(s.brief.beats.length).toBeGreaterThan(1);
+      if (s.brief.twist) expect(s.brief.beats.some((b) => b.startsWith('🤫'))).toBe(true);
     }
   });
 });
@@ -212,6 +224,18 @@ describe('tester and admin routes', () => {
       await store.registerCall({ conversationId: conv('cap'), testerId: t.id, scenarioId: 'routine-repair', brain: 'native' });
       const r = await fetch(`${base}/t/${t.token}/api/start`, { method: 'POST' });
       expect(r.status).toBe(429);
+    });
+  });
+
+  it('keeps one active invite per number: replace for the same person, refuse for someone else', async () => {
+    await withServer(async (base) => {
+      const make = (body: Record<string, unknown>) => fetch(`${base}/admin/api/testers`, { method: 'POST', headers: { ...basic('pw'), 'content-type': 'application/json' }, body: JSON.stringify({ dailyCap: 5, ...body }) });
+      expect((await make({ name: 'Jayna', phone: '+447700900555', scenarioId: 'gas-emergency' })).status).toBe(200);
+      const dup = await make({ name: 'Jayna', phone: '07700 900555', scenarioId: 'routine-repair' });
+      expect(dup.status).toBe(409);
+      expect((await dup.json()).canReplace).toBe(true);
+      expect((await make({ name: 'Narcis', phone: '+447700900555' })).status).toBe(409);
+      expect((await make({ name: 'Jayna', phone: '+447700900555', scenarioId: 'routine-repair', replace: true })).status).toBe(200);
     });
   });
 
@@ -275,9 +299,10 @@ describe('WhatsApp heads-up', () => {
     expect(m).toContain('Hi Marc!');
     expect(m).toContain('Call me now');
     expect(m).toContain('https://x.test/t/abc');
-    expect(m).toContain(card.situation);
+    expect(m).toContain(card.beats[0]);
     expect(m).toContain(`YOU'RE PLAYING: ${card.persona.toUpperCase()}`);
-    expect(m).toContain('How the call starts');
+    expect(m).toContain('When the phone rings');
+    expect(m).toContain('What to do on the call');
     expect(whatsappLink(m, '+44 7877 094577')).toMatch(/^https:\/\/wa\.me\/447877094577\?text=/);
   });
 });
@@ -297,6 +322,7 @@ describe('case-grounded scenarios', () => {
     setWorldSeeder(worldFor);
     const id = conv('seed');
     registerScenario(id, 'tenant-conflicting-appointment');
+    await handleVoiceToolCall('find_tenant', { conversation_id: id, name: 'Clara Hughes' });
     const r = await handleVoiceToolCall('verify_identity', { conversation_id: id, tenant_id: 'T-026', full_name: 'Clara Hughes', date_of_birth: '11th of February 1994' });
     expect(r).toMatchObject({ verified: true });
   });

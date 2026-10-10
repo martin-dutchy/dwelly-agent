@@ -13,18 +13,15 @@ export function cardText(card: Card) {
     `🎭 YOU'RE PLAYING: ${card.persona.toUpperCase()} (${card.role})`,
     card.who,
     '',
-    `📞 How the call starts: ${card.opening}`,
+    `📞 When the phone rings: ${card.opening}`,
     '',
-    `📖 The story: ${card.situation}`,
+    '✅ What to do on the call:',
+    ...card.beats.map((b, i) => `${i + 1}. ${b.startsWith('🤫') ? `🤫 Twist: ${b.replace(/^🤫\s*/, '')}` : b}`),
     '',
-    '🪪 Your details (give them when asked):',
+    '🪪 Details, if they ask:',
     ...card.facts.map(([k, v]) => `• ${k}: ${v}`),
     '',
-    `🎯 Your goal: ${card.goal}`,
-    ...(card.twist ? ['', `🤫 Your twist: ${card.twist}`, `   When: ${card.twistWhen}`] : []),
-    '',
-    '💡 Tips:',
-    ...card.tips.map((k) => `• ${k}`),
+    'Use your own words. Hesitations and background noise are welcome.',
   ].join('\n');
 }
 

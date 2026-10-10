@@ -45,7 +45,8 @@ const verdict = (c: Pick<CallRow, 'passed' | 'status'>) =>
 type Card = ReturnType<typeof testerCard>;
 
 export function adminHomePage(testers: Tester[], calls: CallRow[], base: string, cards: Card[] = [], phoneReady = false, callerId = '') {
-  const testerRows = testers
+  const testerRows = [...testers]
+    .sort((a, b) => Number(a.revoked) - Number(b.revoked))
     .map((t) => {
       const link = `${base.replace(/\/$/, '')}/t/${t.token}`;
       const card = cards.find((c) => c.id === t.scenario_id);
@@ -92,7 +93,7 @@ export function adminHomePage(testers: Tester[], calls: CallRow[], base: string,
     `const CARDS = ${JSON.stringify(cards).replace(/</g, '\\u003c')};
     const escH = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
     const phoneForm = document.getElementById('phone');
-    const showCard = (c, note) => { document.getElementById('card').innerHTML = c ? '<div class="panel" style="margin-top:10px"><h2>' + escH(c.role) + '</h2><p style="font-size:18px;margin:0"><b>You are playing ' + escH(c.persona) + '</b></p><p class="muted">' + escH(c.who) + '</p><p><b>How the call starts:</b> ' + escH(c.opening) + '</p><p><b>The story:</b> ' + escH(c.situation) + '</p><b>Your details</b><ul>' + c.facts.map(([k, v]) => '<li>' + escH(k) + ': <b>' + escH(v) + '</b></li>').join('') + '</ul><p><b>Goal:</b> ' + escH(c.goal) + '</p>' + (c.twist ? '<p><b>Twist</b> (' + escH(c.twistWhen) + '): ' + escH(c.twist) + '</p>' : '') + '<b>Tips</b><ul>' + c.tips.map((k) => '<li>' + escH(k) + '</li>').join('') + '</ul>' + (note || '') + '</div>' : ''; };
+    const showCard = (c, note) => { document.getElementById('card').innerHTML = c ? '<div class="panel" style="margin-top:10px"><h2>' + escH(c.role) + '</h2><p style="font-size:18px;margin:0"><b>You are playing ' + escH(c.persona) + '</b></p><p class="muted">' + escH(c.who) + '</p><p><b>When the phone rings:</b> ' + escH(c.opening) + '</p><b>What to do on the call</b><ol>' + c.beats.map((b) => '<li>' + escH(b) + '</li>').join('') + '</ol><b>Details, if they ask</b><ul>' + c.facts.map(([k, v]) => '<li>' + escH(k) + ': <b>' + escH(v) + '</b></li>').join('') + '</ul>' + (note || '') + '</div>' : ''; };
     try { phoneForm.to.value = localStorage.getItem('voice-phone') || ''; } catch {}
     phoneForm.scenarioId.addEventListener('change', () => showCard(CARDS.find((c) => c.id === phoneForm.scenarioId.value)));
     showCard(CARDS.find((c) => c.id === phoneForm.scenarioId.value));
@@ -108,8 +109,11 @@ export function adminHomePage(testers: Tester[], calls: CallRow[], base: string,
     });
     document.getElementById('invite').addEventListener('submit', async (e) => {
       e.preventDefault(); const f = new FormData(e.target);
-      const r = await fetch('/admin/api/testers', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: f.get('name'), dailyCap: f.get('dailyCap'), phone: f.get('phone') || null, scenarioId: f.get('scenarioId') || null }) });
-      if (r.ok) location.reload(); else alert(await r.text());
+      const create = (replace) => fetch('/admin/api/testers', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: f.get('name'), dailyCap: f.get('dailyCap'), phone: f.get('phone') || null, scenarioId: f.get('scenarioId') || null, replace }) });
+      let r = await create(false);
+      let out = await r.json().catch(() => ({}));
+      if (r.status === 409 && out.canReplace && confirm(out.error + ' Replace it? Their old link will stop working.')) { r = await create(true); out = await r.json().catch(() => ({})); }
+      if (r.ok) location.reload(); else if (!out.canReplace) alert(out.error || 'Could not create the invite');
     });
     document.querySelectorAll('[data-copy]').forEach((b) => b.addEventListener('click', async () => { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = 'Copied ✓'; }));
     document.querySelectorAll('[data-revoke]').forEach((b) => b.addEventListener('click', async () => {
