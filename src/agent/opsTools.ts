@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { executeWith } from '../core/executor.js';
 import type { ToolContext, ToolDef, ToolResult } from '../core/tools.js';
-import { canonical } from './ledger.js';
-import { addressKnown, foreignAddresses, invoiceFlags, quoteTotal, tooThinForApproval, visitProblems } from './opsChecks.js';
+import { type LedgerEntry, canonical } from './ledger.js';
+import { addressKnown, foreignAddresses, invoiceFlags, quoteAppears, quoteTotal, tooThinForApproval, visitProblems } from './opsChecks.js';
 import type { Verification } from './verify.js';
 
 /**
@@ -24,7 +24,15 @@ export type Property = {
   contractors?: unknown[];
 };
 export type OpsState = { tickets: Ticket[]; records: Rec[]; properties: Property[] };
-export type OpsSeed = { tickets?: Ticket[]; properties?: Property[]; today?: string };
+export type OpsSeed = {
+  tickets?: Ticket[];
+  properties?: Property[];
+  today?: string;
+  /** Everything the agent was shown as text (brief + inputs). When absent, quote checks are off. */
+  evidence?: string;
+  /** Inputs the agent saw only as images or scans, so their words cannot be checked as text. */
+  mediaNames?: string[];
+};
 
 export const HOLD_REASONS = ['Waiting for Landlord', 'Waiting for Provider', 'Waiting for Tenant', 'Other'] as const;
 export const LANDLORD_DECISIONS = ['approved', 'declined', 'own_contractor', 'tenant_self_fix', 'conditional', 'unclear'] as const;
@@ -37,9 +45,26 @@ export type Toolset = {
   execute: (name: string, args: unknown, ctx: ToolContext) => Promise<ToolResult>;
   verify: (name: string, args: Record<string, unknown>, result: ToolResult | undefined, ctx: ToolContext) => Verification;
   state: OpsState;
-  /** Policy checks run before a call executes. A string blocks the call with that reason. */
-  guard?: (name: string, args: Record<string, unknown>) => string | undefined;
+  /** Policy checks run before a call executes. A string blocks the call with that reason. `ledger` is this run's action ledger, when known. */
+  guard?: (name: string, args: Record<string, unknown>, ledger?: readonly LedgerEntry[]) => string | undefined;
 };
+
+const LANDLORD_MESSAGE_TOOLS = ['send_message', 'request_information', 'request_landlord_approval'];
+
+/** Why `landlord_informed` on close_ticket does not show the landlord was told, or undefined when it does. Ledger ids are checked only when the ledger is known. */
+export function landlordInformedProblem(value: string, ledger?: readonly LedgerEntry[]): string | undefined {
+  const v = value.trim();
+  const forms = 'the ledger id of your verified message to the landlord, "history: <short quote showing they already know>", or "not_applicable: <reason>"';
+  if (!v) return `landlord_informed is empty: give ${forms}`;
+  if (/^(history|not_applicable)\s*:\s*\S/i.test(v)) return undefined;
+  const ids = [...v.matchAll(/\bA\d+\b/g)].map((m) => m[0]);
+  if (!ids.length) return `landlord_informed must be ${forms}`;
+  if (!ledger) return undefined;
+  const toLandlord = (e: LedgerEntry) =>
+    e.status === 'verified' && LANDLORD_MESSAGE_TOOLS.includes(e.tool) && (e.tool === 'request_landlord_approval' || e.args.recipient_role === 'landlord');
+  if (ids.some((id) => ledger.some((e) => e.id === id && toLandlord(e)))) return undefined;
+  return `landlord_informed cites ${ids.join(', ')}, which is not a verified message to the landlord: send_message to the landlord first and cite it, or use "history: …" or "not_applicable: …"`;
+}
 
 const recipient = {
   recipient_name: z.string().describe('Who the message is for'),
@@ -53,7 +78,7 @@ const recipient = {
 };
 
 export function createOpsToolset(seed: OpsSeed | Ticket[] = []): Toolset {
-  const { tickets: seedTickets = [], properties = [], today } = Array.isArray(seed) ? { tickets: seed } : seed;
+  const { tickets: seedTickets = [], properties = [], today, evidence, mediaNames = [] }: OpsSeed = Array.isArray(seed) ? { tickets: seed } : seed;
   const state: OpsState = { tickets: structuredClone(seedTickets), records: [], properties: structuredClone(properties) };
   let seq = 100;
   const id = (prefix: string) => `${prefix}-${++seq}`;
@@ -185,13 +210,16 @@ export function createOpsToolset(seed: OpsSeed | Ticket[] = []): Toolset {
       parameters: z.object({
         ...ticketRef,
         decision: z.enum(LANDLORD_DECISIONS),
-        evidence_quote: z.string().describe("The landlord's own words, with the date and channel"),
+        evidence_quote: z
+          .string()
+          .describe("The landlord's words copied exactly as they appear in the case (email, SMS, call summary or note). Words only: put the date and channel in source. Checked against the case text."),
+        source: z.string().optional().describe('Where the words are, e.g. "event 019, email 12/10" or "inputs/landlord_reply.eml"'),
         cap_gbp: z.number().optional().describe('Approved spend including VAT, if the landlord gave one'),
         conditions: z.string().optional(),
       }),
-      run: ({ ticket_ref, decision, evidence_quote, cap_gbp, conditions }) =>
+      run: ({ ticket_ref, decision, evidence_quote, source, cap_gbp, conditions }) =>
         onTicket(ticket_ref, (t) => {
-          t.landlord_decision = { decision, evidence_quote, cap_gbp, conditions };
+          t.landlord_decision = { decision, evidence_quote, source, cap_gbp, conditions };
           if (decision === 'approved' || decision === 'conditional') t.landlord_approval = 'confirmed';
           // No figure given: approving means approving the latest quote, so invoices are checked against it.
           const latest = ((t.quotes as { total_gbp: number }[]) ?? []).at(-1)?.total_gbp;
@@ -298,7 +326,11 @@ export function createOpsToolset(seed: OpsSeed | Ticket[] = []): Toolset {
         mode: z.enum(CLOSE_MODES),
         resolution: z.string().describe('What fixed it, and on what evidence'),
         tenant_confirmation: z.string().describe('How the tenant confirmed it is fixed, or why that is not needed'),
-        landlord_informed: z.string().describe('How the landlord was told the outcome (ledger id or message)'),
+        landlord_informed: z
+          .string()
+          .describe(
+            'How the landlord knows the outcome. One of: the ledger id of your verified message to the landlord in this run (e.g. "A3"); "history: <short quote showing they already know>"; "not_applicable: <reason>".',
+          ),
       }),
       run: ({ ticket_ref, mode, resolution, tenant_confirmation, landlord_informed }) =>
         onTicket(ticket_ref, (t) => (delete t.hold, Object.assign(t, { stage: 'completed', closed: { mode, resolution, tenant_confirmation, landlord_informed } }), { stage: 'completed' })),
@@ -433,7 +465,7 @@ export function createOpsToolset(seed: OpsSeed | Ticket[] = []): Toolset {
   const ran = (tool: string, ref?: string) => state.records.some((r) => r.tool === tool && (!ref || JSON.stringify(r.args).includes(ref)));
 
   // Rules enforced in code, not left to the prompt. Each comes from a red flag in the cases.
-  const guard = (name: string, a: Record<string, any>): string | undefined => {
+  const guard = (name: string, a: Record<string, any>, ledger?: readonly LedgerEntry[]): string | undefined => {
     const t = a.ticket_ref ? ticket(a.ticket_ref) : undefined;
     const p = propertyFor(t);
     const decision = (t?.landlord_decision as any)?.decision as string | undefined;
@@ -453,10 +485,16 @@ export function createOpsToolset(seed: OpsSeed | Ticket[] = []): Toolset {
         if (limit !== undefined && a.amount_gbp <= limit) return undefined;
         return `No recorded landlord approval covers £${a.amount_gbp}${limit !== undefined ? ` and it is above the £${limit} spend limit` : ' and no spend limit is on file'}. Send the quote with request_landlord_approval instead.`;
       }
-      case 'record_landlord_decision':
-        if (['approved', 'conditional'].includes(a.decision) && tooThinForApproval(a.evidence_quote))
-          return `"${a.evidence_quote}" is too thin to rely on as approval. Record it as unclear and ask the landlord to confirm in words.`;
-        return undefined;
+      case 'record_landlord_decision': {
+        const quote = String(a.evidence_quote ?? '');
+        if (['approved', 'conditional'].includes(a.decision) && tooThinForApproval(quote))
+          return `"${quote}" is too thin to rely on as approval. Record it as unclear and ask the landlord to confirm in words.`;
+        if (!evidence || a.decision === 'unclear') return undefined;
+        const raw = quote.trim();
+        if (raw && (quoteAppears(raw, evidence) || evidence.includes(raw))) return undefined;
+        if (mediaNames.some((m) => String(a.source ?? '').includes(m.split('/').at(-1)!))) return undefined;
+        return `The evidence_quote "${raw.slice(0, 120)}" is not in the case. Copy the landlord's words exactly as written (no paraphrase; date and channel go in source)${mediaNames.length ? ', or name the image or scanned attachment they come from in source' : ''}, or record the decision as unclear and ask the landlord.`;
+      }
       case 'set_visit': {
         const problems = visitProblems(a.datetime, a.slot_text, today);
         return problems.length ? problems.join(' ') : undefined;
@@ -481,7 +519,9 @@ export function createOpsToolset(seed: OpsSeed | Ticket[] = []): Toolset {
         if (a.mode === 'without_payment' && !work && !decision) problems.push('nothing shows how it was resolved: record the work result or the landlord decision first');
         const flags = ((t.invoice as any)?.flags as string[]) ?? [];
         if (flags.length && !ran('hold_payment') && !ran('escalate_to_human')) problems.push(`invoice flags are unhandled (${flags.join(' ')}): hold the payment or escalate`);
-        if (!String(a.tenant_confirmation).trim()) problems.push('say how the tenant confirmed the fix, or why that is not needed');
+        if (!String(a.tenant_confirmation ?? '').trim()) problems.push('say how the tenant confirmed the fix, or why that is not needed');
+        const informed = landlordInformedProblem(String(a.landlord_informed ?? ''), ledger);
+        if (informed) problems.push(informed);
         return problems.length ? `Cannot close ${t.ref} yet: ${problems.join('; ')}.` : undefined;
       }
     }

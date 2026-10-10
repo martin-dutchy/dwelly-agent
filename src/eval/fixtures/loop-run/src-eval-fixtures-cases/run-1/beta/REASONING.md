@@ -1,0 +1,3 @@
+# Case beta: REASONING
+
+Fixture.

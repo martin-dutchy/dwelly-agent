@@ -1,0 +1,3 @@
+# Case gamma: REASONING
+
+Fixture.
