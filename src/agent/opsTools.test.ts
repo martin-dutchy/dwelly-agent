@@ -338,6 +338,18 @@ describe('ops guards', () => {
     expect(t.state.tickets[0]).toMatchObject({ mode: 'auto' });
     expect(t.state.tickets[0].hold).toBeUndefined();
   });
+
+  it('sends an approved job with no contractor to provider selection on resume_auto', async () => {
+    const approved = ops({ stage: 'init', landlord_approval: 'confirmed' });
+    expect(await approved.execute('resume_auto', { ticket_ref: 'NBL-1' }, ctx)).toMatchObject({ ok: true, next: expect.stringMatching(/provider selection/) });
+    expect(approved.state.tickets[0]).toMatchObject({ mode: 'auto', provider_selection: 'requested' });
+
+    for (const fields of [{ stage: 'init', landlord_approval: 'required' }, { stage: 'visit', landlord_approval: 'confirmed', contractor: 'Riverside Works' }]) {
+      const t = ops(fields);
+      expect(await t.execute('resume_auto', { ticket_ref: 'NBL-1' }, ctx)).not.toHaveProperty('next');
+      expect(t.state.tickets[0].provider_selection).toBeUndefined();
+    }
+  });
 });
 
 describe('case seeding', () => {
