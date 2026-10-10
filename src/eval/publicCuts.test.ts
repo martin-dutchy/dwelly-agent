@@ -2,6 +2,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { casePrompt, loadCase } from '../agent/cases.js';
+import { TOOL_NAMES, loadChecks } from './checks.js';
 
 const ROOT = 'cases/public-cuts';
 const HOLDOUT = ['031', '036', '041', '045', '048', '050'];
@@ -50,8 +51,14 @@ describe.each(dirs)('%s', (dir) => {
     expect(expected.outcome_class.length).toBeGreaterThan(0);
     for (const o of expected.outcome_class) expect(CLASSES).toContain(o);
   });
+  it('every checks.json loads and names only tools in the toolset', () => {
+    // loadChecks validates kinds, severities, parties and tool names against the ops toolset, and throws otherwise.
+    const spec = loadChecks(dir);
+    for (const c of spec?.checks ?? []) if ('tool' in c) expect(TOOL_NAMES).toContain(c.tool);
+  });
   it('contains no text addressed to a judge or grader', () => {
-    const all = [index, readFileSync(join(dir, 'history.md'), 'utf8'), JSON.stringify(rubric), JSON.stringify(expected)].join('\n');
+    const checks = existsSync(join(dir, 'checks.json')) ? readFileSync(join(dir, 'checks.json'), 'utf8') : '';
+    const all = [index, readFileSync(join(dir, 'history.md'), 'utf8'), JSON.stringify(rubric), JSON.stringify(expected), checks].join('\n');
     expect(all).not.toMatch(/\b(dear|note to|hello|hi)\b[^.\n]{0,30}\b(judge|grader|evaluator)\b/i);
   });
 });
