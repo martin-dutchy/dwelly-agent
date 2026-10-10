@@ -5,6 +5,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { z } from 'zod';
 import { casePrompt, loadCase } from '../agent/cases.js';
+import { parseQuestions, unansweredQuestions } from '../agent/decisionPoints.js';
 import { createOpsToolset } from '../agent/opsTools.js';
 import { isPublicCase } from '../agent/publicCases.js';
 
@@ -135,32 +136,7 @@ const describeArgs = (a?: Record<string, unknown>) => (a && Object.keys(a).lengt
 /** Ops record ids (every write tool's prefix) and ticket/party-style refs such as R-4815, T-1001, NBL-003. */
 export const DEFAULT_ID_PATTERNS = ['\\b(?:JOB|MSG|REQ|APR|QAP|HOLD|BANK|NOTE|ESC|CALL|FUP|Q)-\\d+\\b', '\\b[A-Z]{1,4}-\\d{2,6}\\b'];
 
-/** Questions listed under a "questions / decision points" heading of the brief (numbered or bulleted lines). */
-export function parseQuestions(brief: string): string[] {
-  const lines = brief.split('\n');
-  const out: string[] = [];
-  let inside = false;
-  for (const line of lines) {
-    const heading = line.match(/^(#{1,6})\s+(.*)$/);
-    if (heading) {
-      // The case title (H1) may mention "question" without being a list of them.
-      inside = heading[1].length > 1 && /question|decision point|to decide/i.test(heading[2]);
-      continue;
-    }
-    const item = inside && line.match(/^\s*(?:\d+[.)]|[-*])\s+(.+)$/);
-    if (item) out.push(item[1].trim());
-  }
-  return out;
-}
-
-const STOP = new Set(['the', 'a', 'an', 'and', 'or', 'of', 'to', 'is', 'it', 'for', 'in', 'on', 'what', 'who', 'does', 'do', 'this', 'that', 'be', 'and', 'any', 'with', 'by', 'through', 'which', 'why', 'how', 'are', 'there']);
-const tokens = (s: string) => new Set(s.toLowerCase().replace(/[^a-z0-9£ ]+/g, ' ').split(/\s+/).filter((t) => t && !STOP.has(t)));
-export function overlap(question: string, candidate: string) {
-  const q = tokens(question);
-  if (!q.size) return 0;
-  const c = tokens(candidate);
-  return [...q].filter((t) => c.has(t)).length / q.size;
-}
+export { overlap, parseQuestions } from '../agent/decisionPoints.js';
 
 function checkOne(spec: CheckSpec, a: CaseArtefacts): { pass: boolean; detail: string } {
   const ledger = a.result.ledger ?? [];
@@ -198,12 +174,7 @@ function checkOne(spec: CheckSpec, a: CaseArtefacts): { pass: boolean; detail: s
       const d = a.result.decision;
       if (!d) return { pass: false, detail: 'no decision' };
       const questions = parseQuestions(a.brief);
-      const answers = d.answers ?? [];
-      const unanswered = questions.filter((q, i) => {
-        const best = Math.max(0, ...answers.map((x) => overlap(q, x.question)));
-        // The agent may paraphrase the question; a full positional answer list counts too.
-        return best < 0.5 && !(answers.length >= questions.length && answers[i]?.answer?.trim());
-      });
+      const unanswered = unansweredQuestions(a.brief, d.answers);
       const problems = [
         ...(unanswered.length ? [`${unanswered.length} of ${questions.length} questions unanswered: ${unanswered.map((q) => `"${q}"`).join(', ')}`] : []),
         ...(a.organiser && !d.next_actions?.length ? ['next_actions empty'] : []),
