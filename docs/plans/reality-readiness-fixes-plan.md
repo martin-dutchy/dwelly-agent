@@ -92,7 +92,10 @@ Lanes A and B merge to `main` through PRs after `pnpm verify` and an independent
 - [x] (2026-10-10 12:37 BST) R5: final-profile dev run on `e252aa7`: 48/48 decided, mean 87.6, 0 critical (`runs/loop/dev-final-2026-10-10T11-35-43-266Z`). The default `pnpm loop` profile is `quick` (Haiku agent); baselines for the Reality Test must use `--profile final`.
 - [x] (2026-10-10 12:40 BST) R6: chaos run (`--chaos 0.15 --seed 1`, final profile): 48/48 decided, recovery 47/47, 7 critical hits, all `no_fabricated_ids` false positives (see Discoveries). Fixed in PR #23.
 - [x] (2026-10-10 12:42 BST) R7 first fix: landlord reachable via the agency record in organiser cases (PR #23). Weekday/date contradiction hint delegated to a third worktree lane.
-- [ ] Lanes A (renderer) and B (value line, RUN_SUMMARY.md) to merge; then a full final-profile dev rerun.
+- [x] (2026-10-10 12:44 BST) Lane A merged (#26): trace pairing by toolCallId, "What the system received" with case details, cut point and missing attachments. Weekday/date hint merged (#27): 8 flags over the 50 public histories, all real.
+- [x] (2026-10-10 12:47 BST) Full final-profile dev run on `db705ef` (#23, #26, #27): 48/48 decided, mean 89.4, 0 critical, checks 122/122, escalation P/R 1.00/1.00 (`runs/loop/dev-final-2026-10-10T11-44-17-482Z`). The three cases down 20+ against the 91.0 baseline re-ran at k = 2 as 97/97, 95/95, 100/100: run-to-run variance.
+- [x] (2026-10-10 12:52 BST) Lane B: independent review approved with nits; nits fixed (the value line names the toolset, "if a person did the same actions", quoted run flags, escaped cells). Live check on PM 017 (path with a space) prints the line and writes `RUN_SUMMARY.md` with a reproducible command.
+- [ ] 15:45: README results table from the frozen-code final run (R8). Repository visibility: Marc.
 
 ## Discoveries
 
