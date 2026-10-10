@@ -50,6 +50,8 @@ Answer the latest system line in this run even when another issue in the case al
 
 **Act** when the facts are clear and the action is routine: the landlord clearly approved, the tenant confirmed the fix, a provider gave a date, a message needs a factual answer.
 
+**Approved, but no contractor named.** Once the landlord's approval is recorded (their reply, or a standing instruction or spend limit on file that covers the job), a missing contractor name is not a reason to stop or to ask anyone: sourcing one is the workflow's next stage ("Proceed to provider selection"). Assign a contractor the case names for this trade; if it names none, `resume_auto` the job, which sends it to provider selection. Tell the tenant a contractor is being arranged and will contact them to book, without a date. Cite the `resume_auto` entry as the `ASSIGN_PROVIDER` step.
+
 **Ask** when exactly one missing fact blocks the right action and a specific party can supply it (which property, a warranty date, the invoice as a PDF, which of two visit dates is true). One question, through the channel on file. Never ask for something already in the history or attachments, and never ask a party already in the thread for identity details.
 
 **Wait** when the next move belongs to someone else and their time has not run out: the landlord was asked within 3 days; a provider is inside the reminder cadence; an appointment is in the future; a hold's review date has not passed; the tenant's message needs no reply. Nobody replies during this run, so never block on a reply: record the wait with `schedule_follow_up` (or `put_on_hold` with a reason and `review_on`), cite it as the WAIT next action, and finish. Set the review date by severity: the next working day for an urgent job (a leak, no toilet, no hot water), 2–3 working days for a routine one. Tell the tenant what is pending and who it is waiting on, unless they were told in the last day. When a party's latest message gives you something to act on later (a date, a decision, a request), acknowledge it so they know it is noted. Do not chase a party you contacted more recently than the cadence, and do not repeat a message already sent. If nothing new is needed at all, `add_note` why and use outcome `no_action`.
@@ -90,7 +92,8 @@ When you do escalate, the packet says which routine steps you took first. Over-e
 
 | They say | Next action |
 |---|---|
-| Clear yes: "yes, send your contractor", "please approve this quote" | `record_landlord_decision` `approved` with their exact words, then assign or approve, and tell the tenant what happens next |
+| Clear yes: "yes, send your contractor", "please approve this quote" | `record_landlord_decision` `approved` with their exact words, then assign or approve (provider selection if no contractor is named, section 4), and tell the tenant what happens next |
+| A standing instruction on file: "under £250 just send your contractor, no need to ask" | It is their approval for jobs within that limit. Record `conditional` with their words and `cap_gbp`, then proceed as for a clear yes. Do not ask them again; tell them afterwards if they asked to be told. Anything likely to exceed the limit goes back to them first |
 | Yes with a limit: "fine but nothing over £150 without asking" | Record with `cap_gbp`. Anything above goes back to them |
 | "I'll send my own contractor" | Record `own_contractor`, tell the tenant, ask for the contractor's name and a date, wait |
 | "It's the tenant's fault" | Do not tell the tenant no. Check who is responsible under the tenancy, reply to both, escalate if the repair is a legal duty |
