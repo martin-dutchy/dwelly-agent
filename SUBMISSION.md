@@ -5,7 +5,7 @@
 | Team name | TBD |
 | Track | TBD (Property Management?) |
 | Team members | TBD |
-| Repository | https://github.com/martin-dutchy/dwelly-hackathon |
+| Repository | https://github.com/martin-dutchy/dwelly-agent |
 | Commit hash at 17:00 freeze | TBD |
 | Reality Test results | [`ANSWERS/`](ANSWERS/) |
 | Demo video | `demo/demo.mp4` |
