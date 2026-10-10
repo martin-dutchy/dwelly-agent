@@ -1,0 +1,176 @@
+{
+  "id": "008",
+  "model": "claude-haiku-5-5",
+  "cutoff": 25,
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Ticket NBL-008-3466 is on hold (stage mp_time) waiting on the landlord, Langley. The property is void (not tenanted). No landlord decision is recorded and no contractor is instructed. The landlord's latest email (event 024) asks for a choice between two quotes and an invoice check, and has not been answered.",
+    "next_actions": [
+      {
+        "type": "REQUEST_LANDLORD_APPROVAL",
+        "action": "Ask the landlord which quote to proceed with (Eliza Bennett £1,370.00 or Kendall £1,700.00 + VAT), whether the bedroom carpet replacement is included, and answer the invoice question (no paid invoice on record; checking).",
+        "recipient": "Langley, landlord",
+        "channel": "email",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "WAIT",
+        "action": "Hold the job for the landlord's answer with a review date of 2025-05-08.",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A2"
+      }
+    ],
+    "boundaries": [
+      "Sending the question does not approve any quote or spend.",
+      "No contractor has been assigned, and none should be until the landlord gives a clear yes.",
+      "The £1,370 estimate excludes the bedroom carpet replacement, so it does not cover the full original scope.",
+      "Nothing has been established about whether any invoice was paid, the cause of the carpet burn damage, or who should pay for it."
+    ],
+    "remaining_work": [
+      "Landlord to choose the quote and confirm scope (owner: Langley). Review 2025-05-08.",
+      "Check the payment status of the contractor invoice (attachment-04-invoice.pdf is listed but not in the inputs).",
+      "Once approved, instruct the chosen contractor, book the visit, and record the work result.",
+      "Decide deposit or tenant recharge for the check-out damage once costs are known."
+    ],
+    "missing_info": [
+      "Landlord's decision on which quote to use.",
+      "Whether the bedroom carpet replacement is in scope.",
+      "Invoice attachment-04 is not in the inputs, so no payment status can be given.",
+      "No spend limit is recorded on the property file."
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "The job is waiting on the landlord to choose between two quotes (£1,370.00 from Eliza Bennett and £1,700.00 + VAT from Kendall) and to confirm the carpet scope. I emailed the landlord on the existing thread to ask, said payment is not yet confirmed, and held the job until 2025-05-08.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "Paused at mp_time, waiting on the landlord. No approval is recorded and no contractor has been instructed. Outstanding: the landlord's choice of quote, confirmation of the carpet scope, and the invoice payment question."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Email to Langley (landlord) asking which quote to proceed with and whether the bedroom carpet is included (ledger A1). The job is held until 2025-05-08 (ledger A2). No contractor is being assigned yet."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "Not yet. The choice belongs to the landlord, who was asked this run. Escalate only if the landlord stays silent past the chase window (after a second-channel chase)."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Emailed landlord Langley on the existing thread asking which quote to proceed with, whether the bedroom carpet is included, and answering the invoice question."
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Put NBL-008-3466 on hold, waiting for landlord, review 2025-05-08."
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Event 024 names Eliza Bennett at £1,370.00 and Kendall at £1,700.00 + VAT. The attachment estimate is from Alder Compliance at £1,370.00 and excludes the bedroom carpet. The contractor names do not match.",
+      "Event 024 says 'I assume you wish to proceed with the cheaper option', which is not an approval.",
+      "The inspection reports are dated 5 January 2026, but the request and signature are April 2025, and today is 2025-05-06.",
+      "Events 021, 023 and 024 mention other addresses and roof works. These are not this property, so I did not act on them."
+    ],
+    "assumptions": [
+      "The landlord contact is the existing email thread, since no other address is on file.",
+      "The 2026 inspection dates are treated as a date error, and the April 2025 request is treated as the current job.",
+      "The review date of 2025-05-08 is two working days out, which fits the routine cadence."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Langley",
+        "recipient_role": "landlord",
+        "channel": "email",
+        "contact": "existing thread (event 024 email)",
+        "ticket_ref": "NBL-008-3466",
+        "body": "Hi Langley,\n\nThank you for your message about Flat 5, 55 Lantern Quay, Cedarford, ZZ2 4ZZ.\n\nWe have not yet instructed anyone for this job, so we are waiting for your decision.\n\nTwo different figures are on file. The estimate we hold (3 April 2025, from Alder Compliance) is £1,370.00 and does not include the bedroom carpet replacement. Your email lists Eliza Bennett at £1,370.00 and Kendall at £1,700.00 + VAT. Please confirm which quote you would like us to proceed with, and whether the bedroom carpet replacement should be included.\n\nOn the invoice: we have no paid invoice recorded for this job, so we cannot yet confirm whether the contractor has been paid. We are checking our records and will come back to you.\n\nKind regards,\nNorthbridge Lettings"
+      },
+      "key": "send_message:{body:\"Hi Langley,\\n\\nThank you for your message about Flat 5, 55 Lantern Quay, Cedarford, ZZ2 4ZZ.\\n\\nWe have not yet instructed anyone for this job, so we are waiting for your decision.\\n\\nTwo different figures are on file. The estimate we hold (3 April 2025, from Alder Compliance) is £1,370.00 and does not include the bedroom carpet replacement. Your email lists Eliza Bennett at £1,370.00 and Kendall at £1,700.00 + VAT. Please confirm which quote you would like us to proceed with, and whether the bedroom carpet replacement should be included.\\n\\nOn the invoice: we have no paid invoice recorded for this job, so we cannot yet confirm whether the contractor has been paid. We are checking our records and will come back to you.\\n\\nKind regards,\\nNorthbridge Lettings\",channel:\"email\",contact:\"existing thread (event 024 email)\",recipient_name:\"Langley\",recipient_role:\"landlord\",ticket_ref:\"NBL-008-3466\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-101",
+      "evidence": [
+        "MSG-101 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "put_on_hold",
+      "args": {
+        "ticket_ref": "NBL-008-3466",
+        "reason": "Waiting for Landlord",
+        "comment": "Landlord to confirm which quote to proceed with (Eliza Bennett £1,370.00 or Kendall £1,700.00 + VAT), whether bedroom carpet replacement is included, and to advise on the invoice chase. No approval recorded yet; no contractor instructed.",
+        "review_on": "2025-05-08"
+      },
+      "key": "put_on_hold:{comment:\"Landlord to confirm which quote to proceed with (Eliza Bennett £1,370.00 or Kendall £1,700.00 + VAT), whether bedroom carpet replacement is included, and to advise on the invoice chase. No approval recorded yet; no contractor instructed.\",reason:\"Waiting for Landlord\",review_on:\"2025-05-08\",ticket_ref:\"NBL-008-3466\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-008-3466",
+      "evidence": [
+        "Ticket NBL-008-3466 read back after put_on_hold"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-008-3466",
+        "stage": "mp_time",
+        "property": "Flat 5, 55 Lantern Quay, Cedarford, ZZ2 4ZZ",
+        "description": "Following the tenant vacating please provide an estimate to; \nRepaint bedroom any other rooms if needed\nReplace bedroom carpet that is burnt\nReplace bathroom flooring \nRepair broken plug \nRepair dripping bath tap \nRepair damaged shelf in bathroom",
+        "hold": {
+          "reason": "Waiting for Landlord",
+          "comment": "Landlord to confirm which quote to proceed with (Eliza Bennett £1,370.00 or Kendall £1,700.00 + VAT), whether bedroom carpet replacement is included, and to advise on the invoice chase. No approval recorded yet; no contractor instructed.",
+          "review_on": "2025-05-08"
+        },
+        "mode": "manual"
+      }
+    ],
+    "records": [
+      {
+        "id": "MSG-101",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Langley",
+          "recipient_role": "landlord",
+          "channel": "email",
+          "contact": "existing thread (event 024 email)",
+          "body": "Hi Langley,\n\nThank you for your message about Flat 5, 55 Lantern Quay, Cedarford, ZZ2 4ZZ.\n\nWe have not yet instructed anyone for this job, so we are waiting for your decision.\n\nTwo different figures are on file. The estimate we hold (3 April 2025, from Alder Compliance) is £1,370.00 and does not include the bedroom carpet replacement. Your email lists Eliza Bennett at £1,370.00 and Kendall at £1,700.00 + VAT. Please confirm which quote you would like us to proceed with, and whether the bedroom carpet replacement should be included.\n\nOn the invoice: we have no paid invoice recorded for this job, so we cannot yet confirm whether the contractor has been paid. We are checking our records and will come back to you.\n\nKind regards,\nNorthbridge Lettings",
+          "ticket_ref": "NBL-008-3466"
+        },
+        "at": 1791632052530
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 5, 55 Lantern Quay, Cedarford, ZZ2 4ZZ",
+        "tenanted": false
+      }
+    ]
+  },
+  "usage": {
+    "input": 10,
+    "output": 6214,
+    "cost": 0.009007845,
+    "turns": 4,
+    "durationMs": 29941,
+    "retries": 0
+  }
+}

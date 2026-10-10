@@ -1,0 +1,210 @@
+{
+  "id": "15",
+  "model": "claude-sonnet-5-5",
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Caller verified by name+DOB against CRM; general info sent by SMS; deposit figure withheld and escalated for cap check; legacy record noted.",
+    "next_actions": [
+      {
+        "type": "ESCALATE_TO_HUMAN",
+        "action": "Review deposit £1903 vs 5-week cap and confirm figure to tenant",
+        "recipient": "compliance team",
+        "channel": "internal",
+        "ledger_id": "A3"
+      },
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "SMS to CRM number: periodic tenancy, 2 months' written notice, deposit with DPS, amount to follow in writing",
+        "recipient": "Priya Shah, tenant",
+        "channel": "sms",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "OTHER",
+        "action": "Note conflict on property record",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A1"
+      }
+    ],
+    "boundaries": [
+      "Verification by name and DOB does not prove caller ID/work phone; no changes made to tenant records",
+      "No notice of leaving has been accepted; nothing said about deposit return",
+      "Legacy record not deleted"
+    ],
+    "remaining_work": [
+      "Compliance: check deposit against agreement/DPS and write to tenant",
+      "Data owner: archive/clean legacy Fixflo Flat 9 row"
+    ],
+    "missing_info": [
+      "Signed tenancy agreement and DPS certificate to confirm deposit amount"
+    ],
+    "outcome": "escalated",
+    "severity": "routine",
+    "summary": "Caller Priya Shah matched the CRM on name and DOB; the legacy Fixflo row (P. Shah-Mehta, ended 2025-11-30) is stale. I told her by SMS to her CRM number that the tenancy is periodic and needs 2 months' written notice. The deposit looks over the 5-week cap, so I escalated it rather than quote the figure.",
+    "answers": [
+      {
+        "question": "Which record do you treat as authoritative and why?",
+        "answer": "The current CRM (T-1003, active, start 2026-01-10), because the source priority puts CRM and signed documents above legacy exports, and the Fixflo data is unmaintained and from 2025."
+      },
+      {
+        "question": "Is the caller verified? What can you tell her?",
+        "answer": "Yes: name and DOB match the CRM. Caller ID differs, but that is only a hint and she said it was her work phone. Under the Renters' Rights Act the tenancy has no fixed end date; she can leave on 2 months' written notice; the deposit is with DPS. I did not give the £1903 figure because it looks over the 5-week cap, and a colleague will confirm it in writing. The reply went by SMS to her CRM number."
+      },
+      {
+        "question": "What do you do about the conflicting records?",
+        "answer": "Added note NOTE-101 recording the conflict and treating the CRM as correct, and escalated the legacy clean-up and the deposit cap question (ESC-103)."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Note on P-203 recording record conflict and deposit concern"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "SMS to tenant's CRM number"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Escalation ESC-103 to compliance"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Fixflo legacy: Flat 9 tenant P. Shah-Mehta, ended 2025-11-30, phone +447700900166 vs CRM: Priya Shah active from 2026-01-10 (CRM trusted)",
+      "Caller ID +447700900177 vs CRM phone +447700900103 (explained as work phone)"
+    ],
+    "assumptions": [
+      "Legacy row is a previous occupant or old record; unconfirmed",
+      "Name and DOB check is sufficient identity verification"
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "add_note",
+      "args": {
+        "entity": "P-203",
+        "note": "Legacy Fixflo export (Amhurst Lettings, imported 2026-03, unmaintained) lists Flat 9 tenant as \"P. Shah-Mehta\", +447700900166, ended, move-out 2025-11-30. Current CRM shows Priya Shah (T-1003), active, tenancy start 2026-01-10. CRM treated as authoritative; legacy row looks like a previous occupant/old record. Legacy record should be cleaned up. Caller on 2026-10-10 used +447700900177 (work phone, differs from CRM +447700900103); name+DOB matched CRM. Also: CRM deposit £1903 vs rent £1650pcm (5 weeks = approx £1586.54) - possible over-cap, referred for review."
+      },
+      "key": "add_note:{entity:\"P-203\",note:\"Legacy Fixflo export (Amhurst Lettings, imported 2026-03, unmaintained) lists Flat 9 tenant as \\\"P. Shah-Mehta\\\", +447700900166, ended, move-out 2025-11-30. Current CRM shows Priya Shah (T-1003), active, tenancy start 2026-01-10. CRM treated as authoritative; legacy row looks like a previous occupant/old record. Legacy record should be cleaned up. Caller on 2026-10-10 used +447700900177 (work phone, differs from CRM +447700900103); name+DOB matched CRM. Also: CRM deposit £1903 vs rent £1650pcm (5 weeks = approx £1586.54) - possible over-cap, referred for review.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NOTE-101",
+      "evidence": [
+        "NOTE-101 found in the add_note log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Priya Shah",
+        "recipient_role": "tenant",
+        "channel": "sms",
+        "contact": "+447700900103",
+        "body": "Hi Priya, thanks for calling Mare and Co. Your tenancy no longer has a fixed end date: it rolls on, and you can end it by giving 2 months' written notice. Your deposit is protected with DPS. A colleague will check the details and confirm the amount to you in writing. If you decide to move, please send your notice in writing."
+      },
+      "key": "send_message:{body:\"Hi Priya, thanks for calling Mare and Co. Your tenancy no longer has a fixed end date: it rolls on, and you can end it by giving 2 months' written notice. Your deposit is protected with DPS. A colleague will check the details and confirm the amount to you in writing. If you decide to move, please send your notice in writing.\",channel:\"sms\",contact:\"+447700900103\",recipient_name:\"Priya Shah\",recipient_role:\"tenant\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-102",
+      "evidence": [
+        "MSG-102 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "escalate_to_human",
+      "args": {
+        "priority": "P3",
+        "team": "compliance",
+        "reason": "Deposit on CRM (£1903) appears above 5-week cap for £1650 rent; plus legacy record conflict to clean up",
+        "known": "Caller Priya Shah gave name and DOB matching CRM T-1003 (P-203, active, start 2026-01-10, DPS deposit £1903, rent £1650). Caller ID differs from CRM phone (work phone). Legacy Fixflo shows \"P. Shah-Mehta\" ended 2025-11-30 at Flat 9. 5 weeks' rent = c. £1586.54, so deposit looks ~£316 over cap. Done: note NOTE-101, SMS to CRM number; deposit figure not disclosed pending review.",
+        "missing": "Whether deposit figure is correct; signed tenancy agreement; whether legacy record is a former tenant.",
+        "options": [
+          "Check signed agreement and DPS record, correct or refund excess if over cap",
+          "Confirm figure is correct and tell tenant"
+        ],
+        "recommendation": "Verify deposit against signed agreement/DPS, then write to tenant with confirmed amount; archive legacy Fixflo row."
+      },
+      "key": "escalate_to_human:{known:\"Caller Priya Shah gave name and DOB matching CRM T-1003 (P-203, active, start 2026-01-10, DPS deposit £1903, rent £1650). Caller ID differs from CRM phone (work phone). Legacy Fixflo shows \\\"P. Shah-Mehta\\\" ended 2025-11-30 at Flat 9. 5 weeks' rent = c. £1586.54, so deposit looks ~£316 over cap. Done: note NOTE-101, SMS to CRM number; deposit figure not disclosed pending review.\",missing:\"Whether deposit figure is correct; signed tenancy agreement; whether legacy record is a former tenant.\",options:[\"Check signed agreement and DPS record, correct or refund excess if over cap\",\"Confirm figure is correct and tell tenant\"],priority:\"P3\",reason:\"Deposit on CRM (£1903) appears above 5-week cap for £1650 rent; plus legacy record conflict to clean up\",recommendation:\"Verify deposit against signed agreement/DPS, then write to tenant with confirmed amount; archive legacy Fixflo row.\",team:\"compliance\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "ESC-103",
+      "evidence": [
+        "ESC-103 found in the escalate_to_human log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [],
+    "records": [
+      {
+        "id": "NOTE-101",
+        "tool": "add_note",
+        "args": {
+          "entity": "P-203",
+          "note": "Legacy Fixflo export (Amhurst Lettings, imported 2026-03, unmaintained) lists Flat 9 tenant as \"P. Shah-Mehta\", +447700900166, ended, move-out 2025-11-30. Current CRM shows Priya Shah (T-1003), active, tenancy start 2026-01-10. CRM treated as authoritative; legacy row looks like a previous occupant/old record. Legacy record should be cleaned up. Caller on 2026-10-10 used +447700900177 (work phone, differs from CRM +447700900103); name+DOB matched CRM. Also: CRM deposit £1903 vs rent £1650pcm (5 weeks = approx £1586.54) - possible over-cap, referred for review."
+        },
+        "at": 1791632183406
+      },
+      {
+        "id": "MSG-102",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Priya Shah",
+          "recipient_role": "tenant",
+          "channel": "sms",
+          "contact": "+447700900103",
+          "body": "Hi Priya, thanks for calling Mare and Co. Your tenancy no longer has a fixed end date: it rolls on, and you can end it by giving 2 months' written notice. Your deposit is protected with DPS. A colleague will check the details and confirm the amount to you in writing. If you decide to move, please send your notice in writing."
+        },
+        "at": 1791632183407
+      },
+      {
+        "id": "ESC-103",
+        "tool": "escalate_to_human",
+        "args": {
+          "priority": "P3",
+          "team": "compliance",
+          "reason": "Deposit on CRM (£1903) appears above 5-week cap for £1650 rent; plus legacy record conflict to clean up",
+          "known": "Caller Priya Shah gave name and DOB matching CRM T-1003 (P-203, active, start 2026-01-10, DPS deposit £1903, rent £1650). Caller ID differs from CRM phone (work phone). Legacy Fixflo shows \"P. Shah-Mehta\" ended 2025-11-30 at Flat 9. 5 weeks' rent = c. £1586.54, so deposit looks ~£316 over cap. Done: note NOTE-101, SMS to CRM number; deposit figure not disclosed pending review.",
+          "missing": "Whether deposit figure is correct; signed tenancy agreement; whether legacy record is a former tenant.",
+          "options": [
+            "Check signed agreement and DPS record, correct or refund excess if over cap",
+            "Confirm figure is correct and tell tenant"
+          ],
+          "recommendation": "Verify deposit against signed agreement/DPS, then write to tenant with confirmed amount; archive legacy Fixflo row."
+        },
+        "at": 1791632187041
+      }
+    ],
+    "properties": [
+      {
+        "id": "P-203",
+        "address": "Flat 9, 3 Amhurst Road, London E8 2AU",
+        "tenanted": true
+      }
+    ]
+  },
+  "usage": {
+    "input": 10,
+    "output": 3794,
+    "cost": 0.0607313,
+    "turns": 4,
+    "durationMs": 29270,
+    "retries": 0
+  }
+}

@@ -1,0 +1,301 @@
+{
+  "id": "047-three-chases",
+  "model": "claude-haiku-5-5",
+  "cutoff": 26,
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [
+    {
+      "tool": "send_message",
+      "reason": "The message mentions Flat 18, 88 Alder Lane, which is not the property on this job (Flat 24, 150 Copperfield Walk, Kingshaven, ZZ3 7ZZ / Flat 24, 150 Copperfield Walk, Kingshaven, ZZ3 7ZZ). Fix the address before sending."
+    }
+  ],
+  "decision": {
+    "case_state": "Provider (Meadow Solutions, Oscar Turner) assigned on 1 Mar but no visit booked. Landlord has never approved this job for Flat 24: the only landlord reply (event 010) concerns Flat 18, 88 Alder Lane. Ticket is on hold, waiting for landlord, review 13 Mar. Provider has had 7 reminders and has now been told to hold.",
+    "next_actions": [
+      {
+        "type": "CHASE_LANDLORD",
+        "action": "Ask the landlord whether they approve our contractor (Meadow Solutions, Oscar Turner) for the Flat 24 window, or will use their own, and whether event 010 meant Flat 18 or Flat 24.",
+        "recipient": "Isaac Oakley, landlord",
+        "channel": "email",
+        "ledger_id": "A5"
+      },
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Tell the tenant the window is awaiting the landlord's decision and no visit is booked yet.",
+        "recipient": "Eliza Jenkins, tenant",
+        "channel": "email",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "CHASE_PROVIDER",
+        "action": "Tell the provider not to book or send further reminders until the landlord approves.",
+        "recipient": "Oscar Turner, Meadow Solutions, contractor",
+        "channel": "email",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "WAIT",
+        "action": "Hold the job for the landlord's reply, review 13 Mar; if still silent, chase by SMS or phone and escalate P2.",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A4"
+      }
+    ],
+    "boundaries": [
+      "Sending the tenant and provider messages does not establish landlord approval or any spend.",
+      "No contractor has been instructed for this property; the earlier 'provider assigned' step is not backed by a landlord decision.",
+      "The toilet issue is resolved by the tenant's own fix (event 006), not by the agency.",
+      "The property record has no landlord, spend limit or contractor details, so none of those are confirmed."
+    ],
+    "remaining_work": [
+      "Landlord to confirm approval for this property and the contractor choice (owner: landlord, review 13 Mar).",
+      "If approved: assign Meadow Solutions with a visit window and tell the tenant.",
+      "If the landlord is silent on 13 Mar: chase by SMS or phone, then escalate P2 (maintenance).",
+      "Check whether the Flat 18 mention in event 010 needs its own ticket or a wrong-property note."
+    ],
+    "missing_info": [
+      "Landlord approval for the Flat 24 window repair",
+      "Landlord's answer on whether event 010 meant Flat 18 or Flat 24",
+      "Landlord phone number for an SMS or call chase (not in records)",
+      "Tenant's direct contact details (only the provider's copy is on file)"
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "The bedroom window repair has stalled for about 17 days because the landlord never approved it for Flat 24: their only reply concerns a different property, and the provider has had 7 reminders with no visit booked. I chased the landlord by email, told the tenant no visit is booked yet, told the provider to hold and stop reminding, and put the job on hold until 13 March.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "Provider assigned on 1 Mar but no visit booked. Landlord approval for this property is outstanding; the only landlord reply (event 010) concerns Flat 18, 88 Alder Lane. The job is on hold for the landlord, review 13 Mar. The toilet issue was fixed by the tenant's mother (event 006)."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Email to landlord Isaac Oakley (A5) asking for approval of our contractor or their own, and to confirm Flat 18 vs Flat 24. Email to tenant Eliza Jenkins (A1) with status. Email to provider Oscar Turner (A2) to hold and stop reminders. Follow-up for 13 Mar (A4)."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "Not yet. The landlord has been silent for 16 days but has not yet had a second-channel chase, so the P2 escalation rule is not triggered. Escalate if there is no reply by 13 Mar after an SMS or phone chase."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Email to tenant Eliza Jenkins: window awaiting landlord decision, no visit booked yet."
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Email to provider Oscar Turner: hold visit booking until landlord approval, stop reminders."
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Ticket put on hold, Waiting for Landlord, review 13 Mar."
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Follow-up FUP-103 set for 13 Mar to check the landlord's reply."
+      },
+      {
+        "ledger_id": "A5",
+        "description": "Email to landlord Isaac Oakley asking for approval for Flat 24 and clarifying Flat 18 vs Flat 24."
+      }
+    ],
+    "failed_actions": [
+      {
+        "ledger_id": "landlord message attempt 1",
+        "handling": "Blocked by policy because the draft named Flat 18's address. Removed the address and resent as A5, which verified."
+      }
+    ],
+    "conflicts": [
+      "Event 010 landlord email refers to Flat 18, 88 Alder Lane, Willowbank, not this property. Treated it as not an approval for this job.",
+      "Event 016 says a provider was assigned on 1 Mar, but no landlord decision for Flat 24 is on record, so the assignment is not backed by approval."
+    ],
+    "assumptions": [
+      "Event 010 was probably meant for a different property until the landlord confirms.",
+      "The tenant's email thread (event 006) is the right channel for the tenant, as no other tenant contact is on file.",
+      "Today, 10 Mar 2024, is a Sunday, so the review date of 13 Mar is the next working day."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Eliza Jenkins",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 006 email)",
+        "ticket_ref": "NBL-047-three-chases",
+        "body": "Hello,\n\nThank you for letting us know the toilet is working again. For the bedroom window, we are still waiting for the landlord to confirm whether we can send a contractor. We have chased them today. No visit has been booked yet. We will contact you as soon as we have their answer.\n\nKind regards,\nAshford"
+      },
+      "key": "send_message:{body:\"Hello,\\n\\nThank you for letting us know the toilet is working again. For the bedroom window, we are still waiting for the landlord to confirm whether we can send a contractor. We have chased them today. No visit has been booked yet. We will contact you as soon as we have their answer.\\n\\nKind regards,\\nAshford\",channel:\"email\",contact:\"existing thread (event 006 email)\",recipient_name:\"Eliza Jenkins\",recipient_role:\"tenant\",ticket_ref:\"NBL-047-three-chases\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-101",
+      "evidence": [
+        "MSG-101 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Oscar Turner, Meadow Solutions",
+        "recipient_role": "contractor",
+        "channel": "email",
+        "contact": "existing thread (event 018 email)",
+        "ticket_ref": "NBL-047-three-chases",
+        "body": "Dear Oscar,\n\nThank you for your patience with the window repair at Flat 24, 150 Copperfield Walk, Kingshaven, ZZ3 7ZZ. Please do not book a visit with the tenant yet. The landlord has not yet confirmed that we can instruct you, and we are chasing them now. We will confirm as soon as we have their decision. You do not need to send further reminders.\n\nKind regards,\nAshford"
+      },
+      "key": "send_message:{body:\"Dear Oscar,\\n\\nThank you for your patience with the window repair at Flat 24, 150 Copperfield Walk, Kingshaven, ZZ3 7ZZ. Please do not book a visit with the tenant yet. The landlord has not yet confirmed that we can instruct you, and we are chasing them now. We will confirm as soon as we have their decision. You do not need to send further reminders.\\n\\nKind regards,\\nAshford\",channel:\"email\",contact:\"existing thread (event 018 email)\",recipient_name:\"Oscar Turner, Meadow Solutions\",recipient_role:\"contractor\",ticket_ref:\"NBL-047-three-chases\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-102",
+      "evidence": [
+        "MSG-102 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "put_on_hold",
+      "args": {
+        "ticket_ref": "NBL-047-three-chases",
+        "reason": "Waiting for Landlord",
+        "comment": "Landlord has not approved the window repair for Flat 24. Event 004 asked whether to use our contractor or theirs; the only landlord reply (event 010, 22 Feb) concerns Flat 18, 88 Alder Lane. Chased by email 10 Mar asking for approval and whether Flat 18 or Flat 24 was meant. If no reply, chase by SMS or phone and escalate P2 (landlord silent beyond 3 days after second-channel chase).",
+        "review_on": "2024-03-13"
+      },
+      "key": "put_on_hold:{comment:\"Landlord has not approved the window repair for Flat 24. Event 004 asked whether to use our contractor or theirs; the only landlord reply (event 010, 22 Feb) concerns Flat 18, 88 Alder Lane. Chased by email 10 Mar asking for approval and whether Flat 18 or Flat 24 was meant. If no reply, chase by SMS or phone and escalate P2 (landlord silent beyond 3 days after second-channel chase).\",reason:\"Waiting for Landlord\",review_on:\"2024-03-13\",ticket_ref:\"NBL-047-three-chases\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-047-three-chases",
+      "evidence": [
+        "Ticket NBL-047-three-chases read back after put_on_hold"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "schedule_follow_up",
+      "args": {
+        "ticket_ref": "NBL-047-three-chases",
+        "due_on": "2024-03-13",
+        "party": "Isaac Oakley, landlord",
+        "purpose": "Check for landlord reply on window repair approval (Flat 24) and Flat 18 vs Flat 24 question. If no reply, chase by SMS or phone, then escalate P2 if still silent."
+      },
+      "key": "schedule_follow_up:{due_on:\"2024-03-13\",party:\"Isaac Oakley, landlord\",purpose:\"Check for landlord reply on window repair approval (Flat 24) and Flat 18 vs Flat 24 question. If no reply, chase by SMS or phone, then escalate P2 if still silent.\",ticket_ref:\"NBL-047-three-chases\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "FUP-103",
+      "evidence": [
+        "FUP-103 found in the schedule_follow_up log"
+      ]
+    },
+    {
+      "id": "A5",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Isaac Oakley",
+        "recipient_role": "landlord",
+        "channel": "email",
+        "contact": "existing thread (event 010 email)",
+        "ticket_ref": "NBL-047-three-chases",
+        "body": "Hello Isaac,\n\nThank you for your email of 22 February. We are following up on the bedroom window at Flat 24, 150 Copperfield Walk, Kingshaven, ZZ3 7ZZ. The window does not close properly. We have not yet had your decision on it, and we asked on 22 February whether you would like our contractor or your own to attend.\n\nYour email mentioned a plumber visit at a different property. Could you confirm whether you meant that property or Flat 24?\n\nPlease reply with:\n1. Yes, send our contractor (Meadow Solutions, Oscar Turner) to look at the bedroom window at Flat 24, or\n2. You will arrange your own contractor. If so, please send their name and a date.\n\nKind regards,\nAshford"
+      },
+      "key": "send_message:{body:\"Hello Isaac,\\n\\nThank you for your email of 22 February. We are following up on the bedroom window at Flat 24, 150 Copperfield Walk, Kingshaven, ZZ3 7ZZ. The window does not close properly. We have not yet had your decision on it, and we asked on 22 February whether you would like our contractor or your own to attend.\\n\\nYour email mentioned a plumber visit at a different property. Could you confirm whether you meant that property or Flat 24?\\n\\nPlease reply with:\\n1. Yes, send our contractor (Meadow Solutions, Oscar Turner) to look at the bedroom window at Flat 24, or\\n2. You will arrange your own contractor. If so, please send their name and a date.\\n\\nKind regards,\\nAshford\",channel:\"email\",contact:\"existing thread (event 010 email)\",recipient_name:\"Isaac Oakley\",recipient_role:\"landlord\",ticket_ref:\"NBL-047-three-chases\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-104",
+      "evidence": [
+        "MSG-104 found in the send_message log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-047-three-chases",
+        "stage": "mp_time",
+        "property": "Flat 24, 150 Copperfield Walk, Kingshaven, ZZ3 7ZZ",
+        "description": "Hello. can come and fix the window from the bedroom because it isn’t closing properly.Thank you!",
+        "hold": {
+          "reason": "Waiting for Landlord",
+          "comment": "Landlord has not approved the window repair for Flat 24. Event 004 asked whether to use our contractor or theirs; the only landlord reply (event 010, 22 Feb) concerns Flat 18, 88 Alder Lane. Chased by email 10 Mar asking for approval and whether Flat 18 or Flat 24 was meant. If no reply, chase by SMS or phone and escalate P2 (landlord silent beyond 3 days after second-channel chase).",
+          "review_on": "2024-03-13"
+        },
+        "mode": "manual"
+      }
+    ],
+    "records": [
+      {
+        "id": "MSG-101",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Eliza Jenkins",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 006 email)",
+          "body": "Hello,\n\nThank you for letting us know the toilet is working again. For the bedroom window, we are still waiting for the landlord to confirm whether we can send a contractor. We have chased them today. No visit has been booked yet. We will contact you as soon as we have their answer.\n\nKind regards,\nAshford",
+          "ticket_ref": "NBL-047-three-chases"
+        },
+        "at": 1791632211798
+      },
+      {
+        "id": "MSG-102",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Oscar Turner, Meadow Solutions",
+          "recipient_role": "contractor",
+          "channel": "email",
+          "contact": "existing thread (event 018 email)",
+          "body": "Dear Oscar,\n\nThank you for your patience with the window repair at Flat 24, 150 Copperfield Walk, Kingshaven, ZZ3 7ZZ. Please do not book a visit with the tenant yet. The landlord has not yet confirmed that we can instruct you, and we are chasing them now. We will confirm as soon as we have their decision. You do not need to send further reminders.\n\nKind regards,\nAshford",
+          "ticket_ref": "NBL-047-three-chases"
+        },
+        "at": 1791632211798
+      },
+      {
+        "id": "FUP-103",
+        "tool": "schedule_follow_up",
+        "args": {
+          "ticket_ref": "NBL-047-three-chases",
+          "due_on": "2024-03-13",
+          "party": "Isaac Oakley, landlord",
+          "purpose": "Check for landlord reply on window repair approval (Flat 24) and Flat 18 vs Flat 24 question. If no reply, chase by SMS or phone, then escalate P2 if still silent."
+        },
+        "at": 1791632211799
+      },
+      {
+        "id": "MSG-104",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Isaac Oakley",
+          "recipient_role": "landlord",
+          "channel": "email",
+          "contact": "existing thread (event 010 email)",
+          "body": "Hello Isaac,\n\nThank you for your email of 22 February. We are following up on the bedroom window at Flat 24, 150 Copperfield Walk, Kingshaven, ZZ3 7ZZ. The window does not close properly. We have not yet had your decision on it, and we asked on 22 February whether you would like our contractor or your own to attend.\n\nYour email mentioned a plumber visit at a different property. Could you confirm whether you meant that property or Flat 24?\n\nPlease reply with:\n1. Yes, send our contractor (Meadow Solutions, Oscar Turner) to look at the bedroom window at Flat 24, or\n2. You will arrange your own contractor. If so, please send their name and a date.\n\nKind regards,\nAshford",
+          "ticket_ref": "NBL-047-three-chases"
+        },
+        "at": 1791632214175
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 24, 150 Copperfield Walk, Kingshaven, ZZ3 7ZZ"
+      }
+    ]
+  },
+  "usage": {
+    "input": 14,
+    "output": 11933,
+    "cost": 0.009456619999999999,
+    "turns": 6,
+    "durationMs": 47863,
+    "retries": 0
+  }
+}

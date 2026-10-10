@@ -1,0 +1,234 @@
+{
+  "id": "037-landlord-thumbs-up",
+  "model": "claude-sonnet-5-5",
+  "cutoff": 7,
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Provider selection; no contractor assigned. Landlord replied only with 👍 (event 007), which is not approval. Ticket on hold awaiting a yes/no answer, review 2024-03-28. Tenant photos outstanding.",
+    "next_actions": [
+      {
+        "type": "REQUEST_LANDLORD_APPROVAL",
+        "action": "Ask landlord one yes/no question: instruct our contractor or arrange their own",
+        "recipient": "Freya, landlord",
+        "channel": "email",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Tell tenant approval is pending, ask again for photos, give electrical safety advice",
+        "recipient": "Eliza, tenant",
+        "channel": "email",
+        "ledger_id": "A4"
+      },
+      {
+        "type": "WAIT",
+        "action": "Hold awaiting landlord, review 2024-03-28",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A3"
+      }
+    ],
+    "boundaries": [
+      "Recording the thumbs-up as unclear does not approve work or assign a contractor",
+      "No visit, cost or date is promised to the tenant"
+    ],
+    "remaining_work": [
+      "Landlord answer (agency chases after review date)",
+      "Tenant photos",
+      "Assign contractor once approved, then visit"
+    ],
+    "missing_info": [
+      "Clear landlord decision",
+      "Photos of the damage"
+    ],
+    "outcome": "action_taken",
+    "severity": "urgent",
+    "summary": "Landlord replied with only a 👍 to the question of who arranges the shower repair. I recorded it as unclear, asked a single yes/no question, held the ticket with a review date, and updated the tenant.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "No provider assigned. The landlord's 👍 is not usable approval. Outstanding: a clear landlord decision and tenant photos."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "A yes/no approval request to Freya, the landlord, by email (A2). The tenant, Eliza, has been updated by email (A4)."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "No. This is a routine ask-and-wait. Escalate only if the landlord stays silent after a chase on a second channel."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Recorded landlord 👍 as unclear"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Requested clear landlord approval"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Put ticket on hold, review 2024-03-28"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Messaged tenant with update"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [],
+    "assumptions": [
+      "Property record has no spend limit or contractor on file, so approval is needed first"
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "record_landlord_decision",
+      "args": {
+        "ticket_ref": "NBL-037-landlord-thumbs-up",
+        "decision": "unclear",
+        "evidence_quote": "👍",
+        "source": "event 007, email"
+      },
+      "key": "record_landlord_decision:{decision:\"unclear\",evidence_quote:\"👍\",source:\"event 007, email\",ticket_ref:\"NBL-037-landlord-thumbs-up\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-037-landlord-thumbs-up",
+      "evidence": [
+        "Ticket NBL-037-landlord-thumbs-up read back after record_landlord_decision"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "request_landlord_approval",
+      "args": {
+        "landlord": "Freya",
+        "ticket_ref": "NBL-037-landlord-thumbs-up",
+        "decision_needed": "Thanks for your 👍, Freya. We can't treat an emoji as approval, so one yes/no question: do you want us to send our contractor to repair the leaking shower cable at Flat 14, 44 Lantern Quay? (Yes = we instruct our contractor; No = you'll arrange your own.)",
+        "options": [
+          "Yes, send your contractor",
+          "No, I will arrange my own contractor"
+        ]
+      },
+      "key": "request_landlord_approval:{decision_needed:\"Thanks for your 👍, Freya. We can't treat an emoji as approval, so one yes/no question: do you want us to send our contractor to repair the leaking shower cable at Flat 14, 44 Lantern Quay? (Yes = we instruct our contractor; No = you'll arrange your own.)\",landlord:\"Freya\",options:[\"Yes, send your contractor\",\"No, I will arrange my own contractor\"],ticket_ref:\"NBL-037-landlord-thumbs-up\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "APR-101",
+      "evidence": [
+        "APR-101 found in the request_landlord_approval log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "put_on_hold",
+      "args": {
+        "ticket_ref": "NBL-037-landlord-thumbs-up",
+        "reason": "Waiting for Landlord",
+        "comment": "Landlord replied only with 👍; asked a yes/no question on whether we instruct our contractor.",
+        "review_on": "2024-03-28"
+      },
+      "key": "put_on_hold:{comment:\"Landlord replied only with 👍; asked a yes/no question on whether we instruct our contractor.\",reason:\"Waiting for Landlord\",review_on:\"2024-03-28\",ticket_ref:\"NBL-037-landlord-thumbs-up\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-037-landlord-thumbs-up",
+      "evidence": [
+        "Ticket NBL-037-landlord-thumbs-up read back after put_on_hold"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Eliza",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 004 email)",
+        "ticket_ref": "NBL-037-landlord-thumbs-up",
+        "body": "Hi Eliza, a quick update on the shower. We're waiting for the landlord to confirm who will carry out the repair, and we've asked them again today. We'll update you as soon as we hear. In the meantime, photos of the damaged cable and the leak would help. If water is getting near any electrics, please switch them off and let us know straight away."
+      },
+      "key": "send_message:{body:\"Hi Eliza, a quick update on the shower. We're waiting for the landlord to confirm who will carry out the repair, and we've asked them again today. We'll update you as soon as we hear. In the meantime, photos of the damaged cable and the leak would help. If water is getting near any electrics, please switch them off and let us know straight away.\",channel:\"email\",contact:\"existing thread (event 004 email)\",recipient_name:\"Eliza\",recipient_role:\"tenant\",ticket_ref:\"NBL-037-landlord-thumbs-up\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-102",
+      "evidence": [
+        "MSG-102 found in the send_message log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-037-landlord-thumbs-up",
+        "stage": "init",
+        "property": "Flat 14, 44 Lantern Quay, Alderwick, ZZ9 8ZZ",
+        "description": "Shower cable leading to the shower handle is damaged and leaking. \nPlease replace",
+        "landlord_decision": {
+          "decision": "unclear",
+          "evidence_quote": "👍",
+          "source": "event 007, email"
+        },
+        "hold": {
+          "reason": "Waiting for Landlord",
+          "comment": "Landlord replied only with 👍; asked a yes/no question on whether we instruct our contractor.",
+          "review_on": "2024-03-28"
+        },
+        "mode": "manual"
+      }
+    ],
+    "records": [
+      {
+        "id": "APR-101",
+        "tool": "request_landlord_approval",
+        "args": {
+          "landlord": "Freya",
+          "decision_needed": "Thanks for your 👍, Freya. We can't treat an emoji as approval, so one yes/no question: do you want us to send our contractor to repair the leaking shower cable at Flat 14, 44 Lantern Quay? (Yes = we instruct our contractor; No = you'll arrange your own.)",
+          "ticket_ref": "NBL-037-landlord-thumbs-up",
+          "options": [
+            "Yes, send your contractor",
+            "No, I will arrange my own contractor"
+          ]
+        },
+        "at": 1791632186997
+      },
+      {
+        "id": "MSG-102",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Eliza",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 004 email)",
+          "body": "Hi Eliza, a quick update on the shower. We're waiting for the landlord to confirm who will carry out the repair, and we've asked them again today. We'll update you as soon as we hear. In the meantime, photos of the damaged cable and the leak would help. If water is getting near any electrics, please switch them off and let us know straight away.",
+          "ticket_ref": "NBL-037-landlord-thumbs-up"
+        },
+        "at": 1791632190417
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 14, 44 Lantern Quay, Alderwick, ZZ9 8ZZ"
+      }
+    ]
+  },
+  "usage": {
+    "input": 10,
+    "output": 2162,
+    "cost": 0.041611300000000004,
+    "turns": 4,
+    "durationMs": 15417,
+    "retries": 0
+  }
+}

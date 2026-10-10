@@ -1,0 +1,205 @@
+{
+  "id": "014-misclassified-door",
+  "model": "claude-haiku-5-5",
+  "cutoff": 2,
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Intake (stage init). The request is a tenant report that the front door slams shut and that a fridge engineer warned it could shatter the glass. The AI intake misclassified it as an appliance issue, routine. The job is on hold waiting for landlord approval, with a review date of 2024-06-07. No landlord contact or spend limit is on the property record.",
+    "next_actions": [
+      {
+        "type": "RECLASSIFY",
+        "action": "Reclassify the job as a door repair (not appliance) with URGENT severity because of the glass-breakage risk; record this on the ticket.",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Tell the tenant the job is logged as an urgent door repair, to avoid slamming the door, to report any cracked or loose glass, to call 999 if glass breaks and someone is at risk, and to suggest a visit time; say the landlord is being asked to approve.",
+        "recipient": "Tenant, Flat 12, 52 Meadow Row",
+        "channel": "email",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "WAIT",
+        "action": "Hold the job awaiting landlord approval, with a review date of 2024-06-07.",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A3"
+      }
+    ],
+    "boundaries": [
+      "Reclassification is a note only; the ticket category and severity fields were not changed by a tool.",
+      "Telling the tenant the job is urgent does not confirm any visit, contractor, cost, or cause.",
+      "No contractor has been assigned and no spend approved.",
+      "Nothing establishes whether the glass is actually cracked or the door is unsafe."
+    ],
+    "remaining_work": [
+      "Identify the landlord for this property (no contact on the property record) and ask them to approve a contractor visit for the front door (owner: ops, landlord approval needed, due 2024-06-07).",
+      "Ask the tenant whether the glass is cracked or loose, and for visit times (owner: ops, when the tenant replies).",
+      "Once approved, assign a contractor, book the visit with the provider's confirmation, and then complete the job."
+    ],
+    "missing_info": [
+      "Landlord name and contact details for Flat 12, 52 Meadow Row.",
+      "Landlord spend limit or preferred contractor.",
+      "Whether the glass is cracked, and whether the door is currently safe to use.",
+      "Tenant's visit availability and contact channel."
+    ],
+    "outcome": "action_taken",
+    "severity": "urgent",
+    "summary": "The intake misclassified a front door that slams and may crack its glass as a routine appliance issue. I reclassified it as an urgent door repair with a note, messaged the tenant with safety advice and next steps, and put the job on hold for landlord approval until 2024-06-07. Nothing was booked or approved, because the landlord is not identified on the property record.",
+    "answers": [
+      {
+        "question": "1. Where does this case stand right now, and what is outstanding?",
+        "answer": "It is at intake, with no provider or spend approved. It is on hold waiting for the landlord, who is not identified on the record. Outstanding: landlord identity and approval, the glass condition, and a visit time."
+      },
+      {
+        "question": "2. What is the next action, who is it for, and through which channel?",
+        "answer": "Reclassify as an urgent door repair (internal note, verified A1). Message the tenant by email on the existing thread with safety advice and next steps (verified A2). Hold for landlord approval with a review date of 2024-06-07 (verified A3). The landlord still needs to be identified and asked, by email or phone, once their contact is found."
+      },
+      {
+        "question": "3. Does anything need a human decision, and why?",
+        "answer": "Not yet. The routine steps are done. A human is needed only if the landlord cannot be identified or does not answer, or if the glass is found to be cracked and the door is unsafe. Those cases would then need a P1/P2 maintenance escalation."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Note added reclassifying the job as a door repair with urgent severity"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Safety and next-steps message sent to the tenant by email"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Job put on hold awaiting landlord approval, review 2024-06-07"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "The intake classified the issue as Appliances/routine. The tenant's report is about the front door itself, and the fridge engineer's comment is a warning, so I trusted the tenant's description over the intake label."
+    ],
+    "assumptions": [
+      "The glass risk justifies urgent severity (72-hour target) until someone inspects it.",
+      "The tenant's email thread (event 001) is the correct contact channel, as no email address is on file."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "add_note",
+      "args": {
+        "entity": "NBL-014-misclassified-door",
+        "note": "Reclassified by ops agent: the AI intake labelled this 'Appliances / routine', but the fault is the front door itself (slams shut, and the fridge engineer warned it could shatter the glass). Category should be door/locks (general repair), severity raised to URGENT because of the risk of broken glass. The fridge engineer's comment is a warning, not an appliance fault. The unanswered fridge and pet questions do not apply. No landlord contact or spend limit is on the property record, so landlord approval is needed before any contractor is booked."
+      },
+      "key": "add_note:{entity:\"NBL-014-misclassified-door\",note:\"Reclassified by ops agent: the AI intake labelled this 'Appliances / routine', but the fault is the front door itself (slams shut, and the fridge engineer warned it could shatter the glass). Category should be door/locks (general repair), severity raised to URGENT because of the risk of broken glass. The fridge engineer's comment is a warning, not an appliance fault. The unanswered fridge and pet questions do not apply. No landlord contact or spend limit is on the property record, so landlord approval is needed before any contractor is booked.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NOTE-101",
+      "evidence": [
+        "NOTE-101 found in the add_note log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Tenant, Flat 12, 52 Meadow Row",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 001 note)",
+        "ticket_ref": "NBL-014-misclassified-door",
+        "body": "Thank you for reporting the front door. We have logged it as a door repair, not an appliance issue, and have treated it as urgent because of the risk to the glass. Until someone has looked at it, please avoid slamming the door and close it gently. If you notice a crack, chip or any glass coming loose, keep clear of the door and let us know straight away. If the glass breaks and anyone is at risk, call 999. We are asking the landlord to approve the repair now, and we will confirm the next steps with you once they reply. Please reply with a good time to visit, and tell us if anything about the door has changed."
+      },
+      "key": "send_message:{body:\"Thank you for reporting the front door. We have logged it as a door repair, not an appliance issue, and have treated it as urgent because of the risk to the glass. Until someone has looked at it, please avoid slamming the door and close it gently. If you notice a crack, chip or any glass coming loose, keep clear of the door and let us know straight away. If the glass breaks and anyone is at risk, call 999. We are asking the landlord to approve the repair now, and we will confirm the next steps with you once they reply. Please reply with a good time to visit, and tell us if anything about the door has changed.\",channel:\"email\",contact:\"existing thread (event 001 note)\",recipient_name:\"Tenant, Flat 12, 52 Meadow Row\",recipient_role:\"tenant\",ticket_ref:\"NBL-014-misclassified-door\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-102",
+      "evidence": [
+        "MSG-102 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "put_on_hold",
+      "args": {
+        "ticket_ref": "NBL-014-misclassified-door",
+        "reason": "Waiting for Landlord",
+        "comment": "Landlord approval needed before a contractor is booked for the front door repair (urgent, glass risk). No landlord contact or spend limit on the property record, so the landlord must be identified and asked. Also ask the tenant whether the glass is cracked.",
+        "review_on": "2024-06-07"
+      },
+      "key": "put_on_hold:{comment:\"Landlord approval needed before a contractor is booked for the front door repair (urgent, glass risk). No landlord contact or spend limit on the property record, so the landlord must be identified and asked. Also ask the tenant whether the glass is cracked.\",reason:\"Waiting for Landlord\",review_on:\"2024-06-07\",ticket_ref:\"NBL-014-misclassified-door\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-014-misclassified-door",
+      "evidence": [
+        "Ticket NBL-014-misclassified-door read back after put_on_hold"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-014-misclassified-door",
+        "stage": "init",
+        "property": "Flat 12, 52 Meadow Row, Kingshaven, ZZ9 5ZZ",
+        "description": "Front door you have to slam to shut like the back. when fridge man arrived he even commented and said it will cause a shatter in glass- he said he was also going to report to you.",
+        "hold": {
+          "reason": "Waiting for Landlord",
+          "comment": "Landlord approval needed before a contractor is booked for the front door repair (urgent, glass risk). No landlord contact or spend limit on the property record, so the landlord must be identified and asked. Also ask the tenant whether the glass is cracked.",
+          "review_on": "2024-06-07"
+        },
+        "mode": "manual"
+      }
+    ],
+    "records": [
+      {
+        "id": "NOTE-101",
+        "tool": "add_note",
+        "args": {
+          "entity": "NBL-014-misclassified-door",
+          "note": "Reclassified by ops agent: the AI intake labelled this 'Appliances / routine', but the fault is the front door itself (slams shut, and the fridge engineer warned it could shatter the glass). Category should be door/locks (general repair), severity raised to URGENT because of the risk of broken glass. The fridge engineer's comment is a warning, not an appliance fault. The unanswered fridge and pet questions do not apply. No landlord contact or spend limit is on the property record, so landlord approval is needed before any contractor is booked."
+        },
+        "at": 1791632169187
+      },
+      {
+        "id": "MSG-102",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Tenant, Flat 12, 52 Meadow Row",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 001 note)",
+          "body": "Thank you for reporting the front door. We have logged it as a door repair, not an appliance issue, and have treated it as urgent because of the risk to the glass. Until someone has looked at it, please avoid slamming the door and close it gently. If you notice a crack, chip or any glass coming loose, keep clear of the door and let us know straight away. If the glass breaks and anyone is at risk, call 999. We are asking the landlord to approve the repair now, and we will confirm the next steps with you once they reply. Please reply with a good time to visit, and tell us if anything about the door has changed.",
+          "ticket_ref": "NBL-014-misclassified-door"
+        },
+        "at": 1791632169187
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 12, 52 Meadow Row, Kingshaven, ZZ9 5ZZ"
+      }
+    ]
+  },
+  "usage": {
+    "input": 8,
+    "output": 3692,
+    "cost": 0.00271842,
+    "turns": 3,
+    "durationMs": 22063,
+    "retries": 0
+  }
+}

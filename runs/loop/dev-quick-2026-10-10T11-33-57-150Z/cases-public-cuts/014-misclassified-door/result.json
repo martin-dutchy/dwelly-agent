@@ -1,0 +1,213 @@
+{
+  "id": "014-misclassified-door",
+  "model": "claude-haiku-5-5",
+  "cutoff": 2,
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Intake. The ticket NBL-014-misclassified-door is at init with no landlord approval and no contractor. The AI intake filed it under Appliances, but the report is about the front door. It has been reclassified to door/glazing and urgent. The tenant has been messaged, and an escalation (ESC-102) is open to identify the landlord and get approval.",
+    "next_actions": [
+      {
+        "type": "OTHER",
+        "action": "Reclassified the ticket to door/glazing, urgent, with a note explaining the misfiling and the glass-breakage risk.",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Told the tenant the door is logged as urgent, to close it gently, to keep clear and report any crack, and that the landlord's approval is being sought before the next steps; asked for access times.",
+        "recipient": "Flat 12 tenant",
+        "channel": "email",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "ESCALATE_TO_HUMAN",
+        "action": "Escalated to maintenance (P3) to identify the landlord and obtain approval, since the property record has no landlord contact or spend limit.",
+        "recipient": "maintenance team",
+        "channel": "internal",
+        "ledger_id": "A3"
+      }
+    ],
+    "boundaries": [
+      "Reclassifying the ticket does not establish the cause of the fault or whether the glass is damaged.",
+      "The tenant message does not confirm any appointment or cost.",
+      "No contractor has been assigned and no spend is approved."
+    ],
+    "remaining_work": [
+      "Identify the landlord and obtain a recorded decision on the door repair (maintenance team, by 2024-06-07).",
+      "Assign a door/glazing contractor within approved spend, then book a visit with the tenant.",
+      "Tenant's contact confirmation and access times are still outstanding."
+    ],
+    "missing_info": [
+      "Landlord identity, contact and spend limit for Flat 12, 52 Meadow Row.",
+      "Tenant's access times and whether the glass is currently cracked."
+    ],
+    "outcome": "escalated",
+    "severity": "urgent",
+    "summary": "The front-door report was misfiled by intake as a routine appliance issue. It has been reclassified as an urgent door/glazing job, the tenant has been advised on safe use and given next steps, and an escalation (ESC-102) is open because no landlord is on record to approve the repair.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "At intake, with no landlord decision and no contractor. Outstanding: identify the landlord, get approval, assign a contractor, book a visit, and confirm the tenant's access times."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Tenant: safety advice and status update by email (MSG-101, ledger A2). Maintenance team: landlord identification and approval request via escalation ESC-102 (ledger A3)."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "Yes. Landlord contact and approval are missing from the property record, so a person must identify the landlord and obtain approval before any repair is booked (ESC-102, P3, due 2024-06-07)."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Ticket NBL-014-misclassified-door read back at init after the reclassification note."
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Message MSG-101 to the tenant about the door and next steps."
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Escalation ESC-102 to maintenance for landlord identification and approval."
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "The AI intake classed the issue as Appliances (routine). The tenant's text describes the front door, so the door report was preferred."
+    ],
+    "assumptions": [
+      "The glass-breakage warning is a credible hazard, so the job is treated as urgent.",
+      "The tenant's contact on the existing note thread is valid, since the tenant wrote in on it."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "update_ticket",
+      "args": {
+        "ref": "NBL-014-misclassified-door",
+        "note": "Reclassified by ops agent: AI intake put this under Appliances (routine, medium confidence), but the report is about the front door itself (slams shut, and a fridge engineer warned it could shatter the glass). Category: door/glazing (locks/door). Severity raised to URGENT as a possible glass-breakage hazard. Landlord not identified on property record; landlord approval needed before any contractor is assigned."
+      },
+      "key": "update_ticket:{note:\"Reclassified by ops agent: AI intake put this under Appliances (routine, medium confidence), but the report is about the front door itself (slams shut, and a fridge engineer warned it could shatter the glass). Category: door/glazing (locks/door). Severity raised to URGENT as a possible glass-breakage hazard. Landlord not identified on property record; landlord approval needed before any contractor is assigned.\",ref:\"NBL-014-misclassified-door\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-014-misclassified-door",
+      "evidence": [
+        "Ticket NBL-014-misclassified-door read back at stage init"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Flat 12 tenant",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 001 note)",
+        "body": "Thank you for letting us know about the front door at Flat 12, 52 Meadow Row. We have logged it as a door repair rather than an appliance issue, and we have marked it as urgent because of the risk to the glass. Until someone has looked at it, please try to close the door gently rather than slamming it. If you see any crack or chip in the glass, keep clear of the door and let us know straight away; if glass breaks or you cannot secure the door, call us on the same thread as soon as possible. We are now asking the landlord to approve the repair. We will confirm the next steps with you once they reply. Please also reply with any access times that suit you."
+      },
+      "key": "send_message:{body:\"Thank you for letting us know about the front door at Flat 12, 52 Meadow Row. We have logged it as a door repair rather than an appliance issue, and we have marked it as urgent because of the risk to the glass. Until someone has looked at it, please try to close the door gently rather than slamming it. If you see any crack or chip in the glass, keep clear of the door and let us know straight away; if glass breaks or you cannot secure the door, call us on the same thread as soon as possible. We are now asking the landlord to approve the repair. We will confirm the next steps with you once they reply. Please also reply with any access times that suit you.\",channel:\"email\",contact:\"existing thread (event 001 note)\",recipient_name:\"Flat 12 tenant\",recipient_role:\"tenant\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-101",
+      "evidence": [
+        "MSG-101 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "escalate_to_human",
+      "args": {
+        "priority": "P3",
+        "team": "maintenance",
+        "reason": "Front door repair at Flat 12, 52 Meadow Row needs landlord approval before a contractor can be booked, but the property record has no landlord contact, spend limit or preferred contractor.",
+        "known": "Tenant reports the front door must be slammed shut and a fridge engineer warned it could shatter the glass (event 001). AI intake misfiled it as Appliances (event 002). Ticket reclassified to door/glazing, urgent, and the tenant was told how to close the door gently and what to do if the glass cracks (MSG-101).",
+        "missing": "Landlord identity and contact details for this property; landlord approval for the repair; tenant's contact confirmation and access times.",
+        "options": [
+          "Identify the landlord and send them the door report for approval (urgent), then assign a glazing/door contractor once approved",
+          "If the landlord cannot be reached, decide whether to make the door safe on the agency's own authority"
+        ],
+        "recommendation": "Identify the landlord today and request approval to repair the door; the glass-breakage risk makes this urgent.",
+        "deadline": "2024-06-07"
+      },
+      "key": "escalate_to_human:{deadline:\"2024-06-07\",known:\"Tenant reports the front door must be slammed shut and a fridge engineer warned it could shatter the glass (event 001). AI intake misfiled it as Appliances (event 002). Ticket reclassified to door/glazing, urgent, and the tenant was told how to close the door gently and what to do if the glass cracks (MSG-101).\",missing:\"Landlord identity and contact details for this property; landlord approval for the repair; tenant's contact confirmation and access times.\",options:[\"Identify the landlord and send them the door report for approval (urgent), then assign a glazing/door contractor once approved\",\"If the landlord cannot be reached, decide whether to make the door safe on the agency's own authority\"],priority:\"P3\",reason:\"Front door repair at Flat 12, 52 Meadow Row needs landlord approval before a contractor can be booked, but the property record has no landlord contact, spend limit or preferred contractor.\",recommendation:\"Identify the landlord today and request approval to repair the door; the glass-breakage risk makes this urgent.\",team:\"maintenance\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "ESC-102",
+      "evidence": [
+        "ESC-102 found in the escalate_to_human log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-014-misclassified-door",
+        "stage": "init",
+        "property": "Flat 12, 52 Meadow Row, Kingshaven, ZZ9 5ZZ",
+        "description": "Front door you have to slam to shut like the back. when fridge man arrived he even commented and said it will cause a shatter in glass- he said he was also going to report to you.",
+        "notes": [
+          "Reclassified by ops agent: AI intake put this under Appliances (routine, medium confidence), but the report is about the front door itself (slams shut, and a fridge engineer warned it could shatter the glass). Category: door/glazing (locks/door). Severity raised to URGENT as a possible glass-breakage hazard. Landlord not identified on property record; landlord approval needed before any contractor is assigned."
+        ]
+      }
+    ],
+    "records": [
+      {
+        "id": "MSG-101",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Flat 12 tenant",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 001 note)",
+          "body": "Thank you for letting us know about the front door at Flat 12, 52 Meadow Row. We have logged it as a door repair rather than an appliance issue, and we have marked it as urgent because of the risk to the glass. Until someone has looked at it, please try to close the door gently rather than slamming it. If you see any crack or chip in the glass, keep clear of the door and let us know straight away; if glass breaks or you cannot secure the door, call us on the same thread as soon as possible. We are now asking the landlord to approve the repair. We will confirm the next steps with you once they reply. Please also reply with any access times that suit you."
+        },
+        "at": 1791632048670
+      },
+      {
+        "id": "ESC-102",
+        "tool": "escalate_to_human",
+        "args": {
+          "priority": "P3",
+          "team": "maintenance",
+          "reason": "Front door repair at Flat 12, 52 Meadow Row needs landlord approval before a contractor can be booked, but the property record has no landlord contact, spend limit or preferred contractor.",
+          "known": "Tenant reports the front door must be slammed shut and a fridge engineer warned it could shatter the glass (event 001). AI intake misfiled it as Appliances (event 002). Ticket reclassified to door/glazing, urgent, and the tenant was told how to close the door gently and what to do if the glass cracks (MSG-101).",
+          "missing": "Landlord identity and contact details for this property; landlord approval for the repair; tenant's contact confirmation and access times.",
+          "options": [
+            "Identify the landlord and send them the door report for approval (urgent), then assign a glazing/door contractor once approved",
+            "If the landlord cannot be reached, decide whether to make the door safe on the agency's own authority"
+          ],
+          "recommendation": "Identify the landlord today and request approval to repair the door; the glass-breakage risk makes this urgent.",
+          "deadline": "2024-06-07"
+        },
+        "at": 1791632052454
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 12, 52 Meadow Row, Kingshaven, ZZ9 5ZZ"
+      }
+    ]
+  },
+  "usage": {
+    "input": 10,
+    "output": 3775,
+    "cost": 0.0031387499999999996,
+    "turns": 4,
+    "durationMs": 21160,
+    "retries": 0
+  }
+}

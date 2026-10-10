@@ -1,0 +1,346 @@
+{
+  "id": "20",
+  "model": "claude-sonnet-5-5",
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "JOB-101 at visit stage; Swift Plumbing assigned 20:00-22:00 tonight for emergency make-safe with OOH key holder; landlord and tenant notified; P1 escalation ESC-105 raised for attendance oversight.",
+    "next_actions": [
+      {
+        "type": "ASSIGN_PROVIDER",
+        "action": "Assign Swift Plumbing & Heating (out-of-hours) to isolate water and make safe tonight",
+        "recipient": "Swift Plumbing & Heating, contractor",
+        "channel": "portal",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "SMS tenant about leak and emergency entry",
+        "recipient": "Amelia Clarke, tenant",
+        "channel": "sms",
+        "ledger_id": "A3"
+      },
+      {
+        "type": "OTHER",
+        "action": "Inform landlord, ask him to notify buildings insurer",
+        "recipient": "Ben Hartley, landlord",
+        "channel": "email",
+        "ledger_id": "A4"
+      },
+      {
+        "type": "ESCALATE_TO_HUMAN",
+        "action": "P1 handover to confirm key holder and plumber attendance",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A6"
+      }
+    ],
+    "boundaries": [
+      "Emergency entry is only to stop water and make safe, not a general inspection",
+      "Nothing here establishes cause or liability for Flat 3's ceiling",
+      "Visit window is a target; attendance not yet confirmed",
+      "Neighbour was not given tenant details"
+    ],
+    "remaining_work": [
+      "Key holder and Swift confirm attendance; record work result (maintenance)",
+      "Update landlord and tenant after visit; leave written note of entry",
+      "Tenant to be reached on return; dried-out/repair follow-up",
+      "Neighbour's damage claim goes to landlord's insurer; no written promise given"
+    ],
+    "missing_info": [
+      "Cause of leak",
+      "Tenant contact (voicemail only)",
+      "Whether Swift/key holder can attend tonight"
+    ],
+    "outcome": "escalated",
+    "severity": "emergency",
+    "summary": "Downstairs neighbour reported water through her ceiling onto a light fitting. Treated as an emergency flood: ticket JOB-101 opened, Swift Plumbing assigned for tonight, tenant (away) texted, landlord emailed, call logged, P1 escalation raised.",
+    "answers": [
+      {
+        "question": "Is this an emergency that justifies entering the upstairs flat without 24 hours' notice? What conditions apply?",
+        "answer": "Yes. Active flooding with electrics at risk is a genuine emergency, so entry without 24h notice is justified, limited to isolating the water (stopcock under kitchen sink) and making safe, using the OOH key holder with the plumber, attempting tenant contact first (done: voicemail, SMS), documenting entry, and informing tenant and landlord. Not a right to general entry."
+      },
+      {
+        "question": "What do you tell the caller (who is not your tenant)?",
+        "answer": "Keep clear of the wet ceiling and light; if safe and dry, switch off the power at the consumer unit and don't use that light; call 999 if sparking, smoke or heavy flooding. A plumber is being sent tonight and we are trying to reach the occupier. We cannot give out the tenant's number (data protection) but can pass on a message. Liability can't be decided on the phone and we won't give written cover; please photograph the damage and contact your own contents insurer, and the landlord's insurer will be involved via the landlord."
+      },
+      {
+        "question": "What actions and notifications do you make, and what must you avoid saying?",
+        "answer": "Created emergency ticket JOB-101, assigned Swift Plumbing, texted tenant, emailed landlord (asking him to notify insurer), logged call, escalated P1. Avoid: admitting fault or promising to pay, giving tenant's number or any personal details, naming the landlord, saying the cause is known, or promising times."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Created emergency ticket JOB-101"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Assigned Swift Plumbing for tonight 20:00-22:00"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "SMS to tenant"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Email to landlord"
+      },
+      {
+        "ledger_id": "A5",
+        "description": "Logged caller call"
+      },
+      {
+        "ledger_id": "A6",
+        "description": "P1 escalation ESC-105"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Caller says the agency is at fault; no evidence of cause or liability, so none accepted."
+    ],
+    "assumptions": [
+      "Safety advice was given to the caller during the live call (not a tool action).",
+      "OOH key holder is available to let the plumber in."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "create_ticket",
+      "args": {
+        "property": "P-201",
+        "category": "plumbing",
+        "severity": "emergency",
+        "description": "Active leak from Flat 4 into Flat 3 below (kitchen ceiling, water dripping onto light fitting), reported 19:35 Sat 10 Oct by downstairs neighbour Olu Adeyemi. Tenant away 9-12 Oct, not answering. Stopcock under kitchen sink. Emergency entry with out-of-hours key holder to isolate water.",
+        "tenant": "T-1001"
+      },
+      "key": "create_ticket:{category:\"plumbing\",description:\"Active leak from Flat 4 into Flat 3 below (kitchen ceiling, water dripping onto light fitting), reported 19:35 Sat 10 Oct by downstairs neighbour Olu Adeyemi. Tenant away 9-12 Oct, not answering. Stopcock under kitchen sink. Emergency entry with out-of-hours key holder to isolate water.\",property:\"P-201\",severity:\"emergency\",tenant:\"T-1001\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "JOB-101",
+      "evidence": [
+        "Ticket JOB-101 read back at stage init"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "assign_contractor",
+      "args": {
+        "ticket_ref": "JOB-101",
+        "contractor": "Swift Plumbing & Heating",
+        "visit_window": "2026-10-10 20:00-22:00"
+      },
+      "key": "assign_contractor:{contractor:\"Swift Plumbing & Heating\",ticket_ref:\"JOB-101\",visit_window:\"2026-10-10 20:00-22:00\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "JOB-101",
+      "evidence": [
+        "Ticket JOB-101 read back at stage visit"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Amelia Clarke",
+        "recipient_role": "tenant",
+        "channel": "sms",
+        "contact": "+447700900101",
+        "ticket_ref": "JOB-101",
+        "body": "Hi Amelia, this is Mare and Co. Water is leaking from your flat into the flat below. We can't reach you, so because it's an emergency we are sending a plumber with our out-of-hours key holder tonight to turn the water off and make it safe. Please call us as soon as you can. If you know of anything we should know (e.g. a washing machine or tap left running), tell us."
+      },
+      "key": "send_message:{body:\"Hi Amelia, this is Mare and Co. Water is leaking from your flat into the flat below. We can't reach you, so because it's an emergency we are sending a plumber with our out-of-hours key holder tonight to turn the water off and make it safe. Please call us as soon as you can. If you know of anything we should know (e.g. a washing machine or tap left running), tell us.\",channel:\"sms\",contact:\"+447700900101\",recipient_name:\"Amelia Clarke\",recipient_role:\"tenant\",ticket_ref:\"JOB-101\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-102",
+      "evidence": [
+        "MSG-102 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Ben Hartley",
+        "recipient_role": "landlord",
+        "channel": "email",
+        "contact": "ben.hartley@hartleyhomes.co.uk",
+        "ticket_ref": "JOB-101",
+        "body": "Hi Ben, emergency at Flat 4, 12 Mare Street: the downstairs neighbour (Flat 3) reports water coming through her kitchen ceiling at 19:35 tonight. Your tenant is away and not answering. We have arranged emergency entry with our out-of-hours key holder and Swift Plumbing & Heating to isolate the water and make safe (within your £300 limit; we will call before anything above). The neighbour is asking about damage to her ceiling; we have made no admission of liability. Please notify your buildings insurer (Hartley Homes block policy). We'll update you after the visit."
+      },
+      "key": "send_message:{body:\"Hi Ben, emergency at Flat 4, 12 Mare Street: the downstairs neighbour (Flat 3) reports water coming through her kitchen ceiling at 19:35 tonight. Your tenant is away and not answering. We have arranged emergency entry with our out-of-hours key holder and Swift Plumbing & Heating to isolate the water and make safe (within your £300 limit; we will call before anything above). The neighbour is asking about damage to her ceiling; we have made no admission of liability. Please notify your buildings insurer (Hartley Homes block policy). We'll update you after the visit.\",channel:\"email\",contact:\"ben.hartley@hartleyhomes.co.uk\",recipient_name:\"Ben Hartley\",recipient_role:\"landlord\",ticket_ref:\"JOB-101\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-103",
+      "evidence": [
+        "MSG-103 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A5",
+      "tool": "log_call",
+      "args": {
+        "party_name": "Olu Adeyemi",
+        "party_role": "neighbour",
+        "direction": "inbound",
+        "outcome": "connected",
+        "ticket_ref": "JOB-101",
+        "summary": "Flat 3 neighbour reported leak through kitchen ceiling onto light fitting. Advised electrical safety (keep away, switch off at consumer unit if safe/dry, 999 if sparking/smoke). Told emergency plumber being sent. Declined to give tenant's number (data protection); offered to pass on message. No liability admitted; insurance query to go via landlord's insurer."
+      },
+      "key": "log_call:{direction:\"inbound\",outcome:\"connected\",party_name:\"Olu Adeyemi\",party_role:\"neighbour\",summary:\"Flat 3 neighbour reported leak through kitchen ceiling onto light fitting. Advised electrical safety (keep away, switch off at consumer unit if safe/dry, 999 if sparking/smoke). Told emergency plumber being sent. Declined to give tenant's number (data protection); offered to pass on message. No liability admitted; insurance query to go via landlord's insurer.\",ticket_ref:\"JOB-101\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "CALL-104",
+      "evidence": [
+        "CALL-104 found in the log_call log"
+      ]
+    },
+    {
+      "id": "A6",
+      "tool": "escalate_to_human",
+      "args": {
+        "priority": "P1",
+        "team": "maintenance",
+        "reason": "Active leak into Flat 3 with electrics at risk; emergency entry to Flat 4 without notice while tenant away and unreachable",
+        "known": "Caller Olu Adeyemi (Flat 3) 19:35 Sat 10 Oct. Tenant Amelia Clarke away 9-12 Oct, phone voicemail, SMS delivered. Stopcock under kitchen sink. Spare keys: office key safe / OOH key holder. JOB-101 created, Swift Plumbing assigned 20:00-22:00. Landlord Ben Hartley emailed.",
+        "missing": "Cause of leak; whether key holder/plumber confirmed attendance; extent of damage; tenant contact; caller's claim for ceiling (liability unestablished).",
+        "options": [
+          "Key holder meets Swift Plumbing tonight, isolate water, document entry with photos, leave written notice for tenant",
+          "If neither can attend, escalate to on-call manager to authorise alternative"
+        ],
+        "recommendation": "Proceed with option 1 now; confirm attendance by phone with key holder and Swift, and update landlord and tenant after the visit. Handle the neighbour's damage claim via landlord's insurer, no admission."
+      },
+      "key": "escalate_to_human:{known:\"Caller Olu Adeyemi (Flat 3) 19:35 Sat 10 Oct. Tenant Amelia Clarke away 9-12 Oct, phone voicemail, SMS delivered. Stopcock under kitchen sink. Spare keys: office key safe / OOH key holder. JOB-101 created, Swift Plumbing assigned 20:00-22:00. Landlord Ben Hartley emailed.\",missing:\"Cause of leak; whether key holder/plumber confirmed attendance; extent of damage; tenant contact; caller's claim for ceiling (liability unestablished).\",options:[\"Key holder meets Swift Plumbing tonight, isolate water, document entry with photos, leave written notice for tenant\",\"If neither can attend, escalate to on-call manager to authorise alternative\"],priority:\"P1\",reason:\"Active leak into Flat 3 with electrics at risk; emergency entry to Flat 4 without notice while tenant away and unreachable\",recommendation:\"Proceed with option 1 now; confirm attendance by phone with key holder and Swift, and update landlord and tenant after the visit. Handle the neighbour's damage claim via landlord's insurer, no admission.\",team:\"maintenance\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "ESC-105",
+      "evidence": [
+        "ESC-105 found in the escalate_to_human log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "JOB-101",
+        "stage": "visit",
+        "property": "P-201",
+        "tenant": "T-1001",
+        "category": "plumbing",
+        "severity": "emergency",
+        "description": "Active leak from Flat 4 into Flat 3 below (kitchen ceiling, water dripping onto light fitting), reported 19:35 Sat 10 Oct by downstairs neighbour Olu Adeyemi. Tenant away 9-12 Oct, not answering. Stopcock under kitchen sink. Emergency entry with out-of-hours key holder to isolate water.",
+        "contractor": "Swift Plumbing & Heating",
+        "visit_window": "2026-10-10 20:00-22:00"
+      }
+    ],
+    "records": [
+      {
+        "id": "MSG-102",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Amelia Clarke",
+          "recipient_role": "tenant",
+          "channel": "sms",
+          "contact": "+447700900101",
+          "body": "Hi Amelia, this is Mare and Co. Water is leaking from your flat into the flat below. We can't reach you, so because it's an emergency we are sending a plumber with our out-of-hours key holder tonight to turn the water off and make it safe. Please call us as soon as you can. If you know of anything we should know (e.g. a washing machine or tap left running), tell us.",
+          "ticket_ref": "JOB-101"
+        },
+        "at": 1791632204853
+      },
+      {
+        "id": "MSG-103",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Ben Hartley",
+          "recipient_role": "landlord",
+          "channel": "email",
+          "contact": "ben.hartley@hartleyhomes.co.uk",
+          "body": "Hi Ben, emergency at Flat 4, 12 Mare Street: the downstairs neighbour (Flat 3) reports water coming through her kitchen ceiling at 19:35 tonight. Your tenant is away and not answering. We have arranged emergency entry with our out-of-hours key holder and Swift Plumbing & Heating to isolate the water and make safe (within your £300 limit; we will call before anything above). The neighbour is asking about damage to her ceiling; we have made no admission of liability. Please notify your buildings insurer (Hartley Homes block policy). We'll update you after the visit.",
+          "ticket_ref": "JOB-101"
+        },
+        "at": 1791632204854
+      },
+      {
+        "id": "CALL-104",
+        "tool": "log_call",
+        "args": {
+          "ticket_ref": "JOB-101",
+          "party_name": "Olu Adeyemi",
+          "party_role": "neighbour",
+          "direction": "inbound",
+          "outcome": "connected",
+          "summary": "Flat 3 neighbour reported leak through kitchen ceiling onto light fitting. Advised electrical safety (keep away, switch off at consumer unit if safe/dry, 999 if sparking/smoke). Told emergency plumber being sent. Declined to give tenant's number (data protection); offered to pass on message. No liability admitted; insurance query to go via landlord's insurer."
+        },
+        "at": 1791632211734
+      },
+      {
+        "id": "ESC-105",
+        "tool": "escalate_to_human",
+        "args": {
+          "priority": "P1",
+          "team": "maintenance",
+          "reason": "Active leak into Flat 3 with electrics at risk; emergency entry to Flat 4 without notice while tenant away and unreachable",
+          "known": "Caller Olu Adeyemi (Flat 3) 19:35 Sat 10 Oct. Tenant Amelia Clarke away 9-12 Oct, phone voicemail, SMS delivered. Stopcock under kitchen sink. Spare keys: office key safe / OOH key holder. JOB-101 created, Swift Plumbing assigned 20:00-22:00. Landlord Ben Hartley emailed.",
+          "missing": "Cause of leak; whether key holder/plumber confirmed attendance; extent of damage; tenant contact; caller's claim for ceiling (liability unestablished).",
+          "options": [
+            "Key holder meets Swift Plumbing tonight, isolate water, document entry with photos, leave written notice for tenant",
+            "If neither can attend, escalate to on-call manager to authorise alternative"
+          ],
+          "recommendation": "Proceed with option 1 now; confirm attendance by phone with key holder and Swift, and update landlord and tenant after the visit. Handle the neighbour's damage claim via landlord's insurer, no admission."
+        },
+        "at": 1791632216136
+      }
+    ],
+    "properties": [
+      {
+        "id": "P-201",
+        "address": "Flat 4, 12 Mare Street, London E8 1HL",
+        "tenanted": true,
+        "landlord": {
+          "name": "Benjamin Hartley",
+          "email": "ben.hartley@hartleyhomes.co.uk",
+          "phone": "+447700900201",
+          "spend_limit_gbp": 300,
+          "notes": [
+            "Prefers Ben (not Benjamin).",
+            "Call before anything over £300 (inc VAT).",
+            "Use HeatRight Ltd for boilers if possible."
+          ]
+        },
+        "contractors": [
+          {
+            "contractor_id": "C-12",
+            "name": "Swift Plumbing & Heating",
+            "trades": [
+              "plumbing",
+              "heating",
+              "gas"
+            ],
+            "gas_safe_no": "551987",
+            "phone": "+447700900312",
+            "out_of_hours": true
+          }
+        ]
+      }
+    ]
+  },
+  "usage": {
+    "input": 14,
+    "output": 4599,
+    "cost": 0.07951570000000001,
+    "turns": 6,
+    "durationMs": 37163,
+    "retries": 0
+  }
+}

@@ -1,0 +1,247 @@
+{
+  "id": "019-landlord-own-contractor",
+  "model": "claude-sonnet-5-5",
+  "cutoff": 18,
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Stage init, on hold (Waiting for Landlord, review 2025-03-20). No contractor assigned, no visit booked, no recorded landlord decision. Waiting on Jenkins.",
+    "next_actions": [
+      {
+        "type": "REQUEST_LANDLORD_APPROVAL",
+        "action": "Written request to landlord to approve the £500+VAT quote, arrange their own contractor, or decline",
+        "recipient": "Jenkins, landlord",
+        "channel": "email",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Update tenant on the chase, with no date promised",
+        "recipient": "Tenant",
+        "channel": "email",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "WAIT",
+        "action": "Hold and follow-up until 20 March, then chase and escalate if still silent",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A4"
+      }
+    ],
+    "boundaries": [
+      "The approval request does not mean the landlord has approved anything or agreed to pay.",
+      "The tenant message does not commit to a date or cost.",
+      "No contractor has been assigned or visit booked."
+    ],
+    "remaining_work": [
+      "Landlord decision (owner: Maya Palmer/property manager)",
+      "Confirm contractor, since the notes name Harbour Compliance, which seems an odd choice for garden work",
+      "Confirm up-front funding for invoices",
+      "Chase on 20 March; escalate to management if no reply"
+    ],
+    "missing_info": [
+      "No landlord contact details on the property record",
+      "Garden photos unavailable",
+      "No written landlord approval; the £500+VAT approval only appears in an internal note",
+      "No documented quote"
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "Garden clearance request has been stuck since January awaiting the landlord, who has not answered calls. I sent a written approval request to the landlord, updated the tenant, and set the hold and a follow-up for 20 March.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "Routine job at intake stage and on hold. The landlord decision is not formally recorded. An internal note says a £500+VAT quote was approved, but there is no written proof, and the landlord has not called back. Funding up front is also unresolved."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Written approval request to the landlord (Jenkins) by email, plus a tenant update by email on the existing thread. Chase on 20 March."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "Not yet. The decision belongs to the landlord. If the landlord is still silent on 20 March, escalate to management for an alternative contact route."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Landlord approval request APR-101"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Tenant update MSG-102"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Hold, waiting for landlord, review 2025-03-20"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Follow-up FUP-103 for 2025-03-20"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Note says the landlord approved the £500+VAT quote, but the hold notes say the landlord is still not reachable and funds are needed first. I treated approval as unconfirmed.",
+      "Contractor named is Harbour Compliance, which does not obviously match garden work. Unverified."
+    ],
+    "assumptions": [
+      "The landlord email address is available through the existing thread.",
+      "The £600 figure is the £500 quote plus 20% VAT."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "request_landlord_approval",
+      "args": {
+        "landlord": "Jenkins",
+        "ticket_ref": "NBL-019-landlord-own-contractor",
+        "decision_needed": "Please confirm in writing how you want the back garden at Flat 25 dealt with (rubbish removal, levelling, gravel). Our notes say a £500+VAT quote was approved on 31 Jan, but we have no written confirmation and have not been able to reach you by phone. We also need to know whether you will fund the invoice up front.",
+        "amount_gbp": 600,
+        "options": [
+          "Approve the £500 + VAT quote (£600 incl. VAT) and we instruct the contractor",
+          "You arrange your own contractor and tell us when and how the tenant gives access",
+          "Decline the work, and we tell the tenant",
+          "Reply by email or give us a call-back number and time"
+        ],
+        "deadline": "2025-03-20"
+      },
+      "key": "request_landlord_approval:{amount_gbp:600,deadline:\"2025-03-20\",decision_needed:\"Please confirm in writing how you want the back garden at Flat 25 dealt with (rubbish removal, levelling, gravel). Our notes say a £500+VAT quote was approved on 31 Jan, but we have no written confirmation and have not been able to reach you by phone. We also need to know whether you will fund the invoice up front.\",landlord:\"Jenkins\",options:[\"Approve the £500 + VAT quote (£600 incl. VAT) and we instruct the contractor\",\"You arrange your own contractor and tell us when and how the tenant gives access\",\"Decline the work, and we tell the tenant\",\"Reply by email or give us a call-back number and time\"],ticket_ref:\"NBL-019-landlord-own-contractor\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "APR-101",
+      "evidence": [
+        "APR-101 found in the request_landlord_approval log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Tenant",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 004 email)",
+        "body": "Hello, thanks for calling today about the back garden. We're sorry for the wait. We've asked the landlord again, in writing, to confirm the work and how it will be arranged, as we can't book anything until they do. We'll update you as soon as we hear, and we're reviewing this again on 20 March. We can't promise a date yet. Thanks, Northbridge Lettings",
+        "ticket_ref": "NBL-019-landlord-own-contractor"
+      },
+      "key": "send_message:{body:\"Hello, thanks for calling today about the back garden. We're sorry for the wait. We've asked the landlord again, in writing, to confirm the work and how it will be arranged, as we can't book anything until they do. We'll update you as soon as we hear, and we're reviewing this again on 20 March. We can't promise a date yet. Thanks, Northbridge Lettings\",channel:\"email\",contact:\"existing thread (event 004 email)\",recipient_name:\"Tenant\",recipient_role:\"tenant\",ticket_ref:\"NBL-019-landlord-own-contractor\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-102",
+      "evidence": [
+        "MSG-102 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "put_on_hold",
+      "args": {
+        "ticket_ref": "NBL-019-landlord-own-contractor",
+        "reason": "Waiting for Landlord",
+        "comment": "Written approval/decision requested from Jenkins on 13 Mar; phone contact has failed since Feb. No contractor assigned.",
+        "review_on": "2025-03-20"
+      },
+      "key": "put_on_hold:{comment:\"Written approval/decision requested from Jenkins on 13 Mar; phone contact has failed since Feb. No contractor assigned.\",reason:\"Waiting for Landlord\",review_on:\"2025-03-20\",ticket_ref:\"NBL-019-landlord-own-contractor\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-019-landlord-own-contractor",
+      "evidence": [
+        "Ticket NBL-019-landlord-own-contractor read back after put_on_hold"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "schedule_follow_up",
+      "args": {
+        "ticket_ref": "NBL-019-landlord-own-contractor",
+        "due_on": "2025-03-20",
+        "party": "Jenkins, landlord",
+        "purpose": "Chase landlord decision on garden works; escalate to management if still silent"
+      },
+      "key": "schedule_follow_up:{due_on:\"2025-03-20\",party:\"Jenkins, landlord\",purpose:\"Chase landlord decision on garden works; escalate to management if still silent\",ticket_ref:\"NBL-019-landlord-own-contractor\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "FUP-103",
+      "evidence": [
+        "FUP-103 found in the schedule_follow_up log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-019-landlord-own-contractor",
+        "stage": "init",
+        "property": "Flat 25, 185 Copperfield Walk, Alderwick, ZZ4 0ZZ",
+        "description": "Hi dear Maintenance team,\nAs this garden is part of the house included in our tenancy, we would like it to be cleaned and finished properly. The ground also needs to be levelled and covered with stones (gravel) so that we can use the space safely. We would like to sit there in the afternoon, but at the moment it is not possible due to the condition.\n\nI have attached pictures for your reference. Could you please arrange:\n• Removal of all rubbish and construction waste\n• Levelling of the ground\n• Proper gravel/stone covering\n• Making the garden safe and usable",
+        "landlord_approval": "required",
+        "hold": {
+          "reason": "Waiting for Landlord",
+          "comment": "Written approval/decision requested from Jenkins on 13 Mar; phone contact has failed since Feb. No contractor assigned.",
+          "review_on": "2025-03-20"
+        },
+        "mode": "manual"
+      }
+    ],
+    "records": [
+      {
+        "id": "APR-101",
+        "tool": "request_landlord_approval",
+        "args": {
+          "landlord": "Jenkins",
+          "decision_needed": "Please confirm in writing how you want the back garden at Flat 25 dealt with (rubbish removal, levelling, gravel). Our notes say a £500+VAT quote was approved on 31 Jan, but we have no written confirmation and have not been able to reach you by phone. We also need to know whether you will fund the invoice up front.",
+          "amount_gbp": 600,
+          "ticket_ref": "NBL-019-landlord-own-contractor",
+          "options": [
+            "Approve the £500 + VAT quote (£600 incl. VAT) and we instruct the contractor",
+            "You arrange your own contractor and tell us when and how the tenant gives access",
+            "Decline the work, and we tell the tenant",
+            "Reply by email or give us a call-back number and time"
+          ],
+          "deadline": "2025-03-20"
+        },
+        "at": 1791629054566
+      },
+      {
+        "id": "MSG-102",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Tenant",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 004 email)",
+          "body": "Hello, thanks for calling today about the back garden. We're sorry for the wait. We've asked the landlord again, in writing, to confirm the work and how it will be arranged, as we can't book anything until they do. We'll update you as soon as we hear, and we're reviewing this again on 20 March. We can't promise a date yet. Thanks, Northbridge Lettings",
+          "ticket_ref": "NBL-019-landlord-own-contractor"
+        },
+        "at": 1791629054566
+      },
+      {
+        "id": "FUP-103",
+        "tool": "schedule_follow_up",
+        "args": {
+          "ticket_ref": "NBL-019-landlord-own-contractor",
+          "due_on": "2025-03-20",
+          "party": "Jenkins, landlord",
+          "purpose": "Chase landlord decision on garden works; escalate to management if still silent"
+        },
+        "at": 1791629054567
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 25, 185 Copperfield Walk, Alderwick, ZZ4 0ZZ"
+      }
+    ]
+  },
+  "usage": {
+    "input": 8,
+    "output": 2775,
+    "cost": 0.0485548,
+    "turns": 3,
+    "durationMs": 19336
+  }
+}

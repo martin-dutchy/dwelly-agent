@@ -1,0 +1,175 @@
+{
+  "id": "003",
+  "model": "claude-sonnet-5-5",
+  "cutoff": 19,
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Final checks stage (documents). Job marked completed 24 Jul. Invoice reportedly sent by provider but its amount and issuer are not visible to me; no estimate figure in the record. On hold, waiting for provider, review 2025-07-28.",
+    "next_actions": [
+      {
+        "type": "REQUEST_INFORMATION",
+        "action": "Ask the provider to resend the invoice as a PDF with total, company and date, and confirm the estimate figure",
+        "recipient": "Bennett, contractor",
+        "channel": "email",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "WAIT",
+        "action": "Hold for provider reply, review 2025-07-28",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A2"
+      }
+    ],
+    "boundaries": [
+      "Nothing here confirms the invoice amount, that it matches the estimate, or who pays.",
+      "The ticket is not closed.",
+      "No landlord decision or spend limit is on file."
+    ],
+    "remaining_work": [
+      "Record the invoice and check it against the estimate and assigned contractor",
+      "Confirm work completion with tenant or evidence",
+      "Inform landlord and establish who pays (deposit deduction is a separate decision)",
+      "Then close the ticket"
+    ],
+    "missing_info": [
+      "Invoice contents (attachment-02 not visible to me)",
+      "Estimate figure",
+      "Landlord approval record (only a note 'Estimate approved')",
+      "Property tenancy status and landlord details not on file"
+    ],
+    "outcome": "needs_info",
+    "severity": "routine",
+    "summary": "The checkout cleaning job is marked completed and is at final checks. I could not read the invoice or the estimate, so I asked the provider to resend the invoice as a PDF and confirm the estimate. The ticket is on hold with a review on 28 July.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "At final checks. Work is marked complete. The invoice figure is unverified and the estimate figure is unknown. Landlord informed and closing checks are outstanding."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Ask Bennett (provider) by email on the existing thread for a readable invoice PDF and the estimate figure. Hold until 2025-07-28."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "Not now. A human is needed only if the invoice is above the estimate or from another company, or if the cost is to be deducted from the tenant's deposit."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Requested readable invoice and estimate figure from provider"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Put ticket on hold, waiting for provider, review 2025-07-28"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Inspection report is dated 16 March 2026 and signed 22 July 2025, which is inconsistent with the case dates; it was treated as context only."
+    ],
+    "assumptions": [
+      "The 'Estimate approved' note reflects an agency decision, but it is not a recorded landlord decision."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "request_information",
+      "args": {
+        "recipient_name": "Bennett",
+        "recipient_role": "contractor",
+        "channel": "email",
+        "contact": "existing thread (event 017 email)",
+        "questions": [
+          "Please resend your invoice for the checkout clean, dumped-item removal and carpet clean at Flat 30, 30 Harbour View as a PDF to this thread, showing the company name, invoice date and total including VAT.",
+          "Please confirm the estimate figure you gave, so we can check the invoice matches it."
+        ],
+        "why": "The invoice amount and the approved estimate are not readable in the case record, so the invoice cannot be recorded or checked yet."
+      },
+      "key": "request_information:{channel:\"email\",contact:\"existing thread (event 017 email)\",questions:[\"Please resend your invoice for the checkout clean, dumped-item removal and carpet clean at Flat 30, 30 Harbour View as a PDF to this thread, showing the company name, invoice date and total including VAT.\",\"Please confirm the estimate figure you gave, so we can check the invoice matches it.\"],recipient_name:\"Bennett\",recipient_role:\"contractor\",why:\"The invoice amount and the approved estimate are not readable in the case record, so the invoice cannot be recorded or checked yet.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "REQ-101",
+      "evidence": [
+        "REQ-101 found in the request_information log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "put_on_hold",
+      "args": {
+        "ticket_ref": "NBL-003-2766",
+        "reason": "Waiting for Provider",
+        "comment": "Waiting for readable invoice (PDF with total, company, date) and confirmation of estimate figure before final checks.",
+        "review_on": "2025-07-28"
+      },
+      "key": "put_on_hold:{comment:\"Waiting for readable invoice (PDF with total, company, date) and confirmation of estimate figure before final checks.\",reason:\"Waiting for Provider\",review_on:\"2025-07-28\",ticket_ref:\"NBL-003-2766\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-003-2766",
+      "evidence": [
+        "Ticket NBL-003-2766 read back after put_on_hold"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-003-2766",
+        "stage": "documents",
+        "property": "Flat 30, 30 Harbour View, Northbridge, ZZ9 0ZZ",
+        "description": "Please provide an estimate to clean property as per check out to include the removal of dumped items left in the property and a carpet clean.",
+        "hold": {
+          "reason": "Waiting for Provider",
+          "comment": "Waiting for readable invoice (PDF with total, company, date) and confirmation of estimate figure before final checks.",
+          "review_on": "2025-07-28"
+        },
+        "mode": "manual"
+      }
+    ],
+    "records": [
+      {
+        "id": "REQ-101",
+        "tool": "request_information",
+        "args": {
+          "recipient_name": "Bennett",
+          "recipient_role": "contractor",
+          "channel": "email",
+          "contact": "existing thread (event 017 email)",
+          "questions": [
+            "Please resend your invoice for the checkout clean, dumped-item removal and carpet clean at Flat 30, 30 Harbour View as a PDF to this thread, showing the company name, invoice date and total including VAT.",
+            "Please confirm the estimate figure you gave, so we can check the invoice matches it."
+          ],
+          "why": "The invoice amount and the approved estimate are not readable in the case record, so the invoice cannot be recorded or checked yet."
+        },
+        "at": 1791632150998
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 30, 30 Harbour View, Northbridge, ZZ9 0ZZ"
+      }
+    ]
+  },
+  "usage": {
+    "input": 8,
+    "output": 2044,
+    "cost": 0.03842720000000001,
+    "turns": 3,
+    "durationMs": 15347,
+    "retries": 0
+  }
+}

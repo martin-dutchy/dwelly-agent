@@ -1,0 +1,191 @@
+{
+  "id": "014-misclassified-door",
+  "model": "claude-sonnet-5-5",
+  "cutoff": 2,
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Ticket at init, on hold waiting for tenant (review 2024-06-10). Misclassified as Appliances; actually a door/locks repair. No contractor, landlord approval or visit yet.",
+    "next_actions": [
+      {
+        "type": "REQUEST_INFORMATION",
+        "action": "Apologise for fridge mix-up, confirm door issue and ask about glass, security, access, pets",
+        "recipient": "Tenant, Flat 12",
+        "channel": "email",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "WAIT",
+        "action": "Hold ticket until tenant replies; review 10 June",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A3"
+      }
+    ],
+    "boundaries": [
+      "Does not confirm the cause, glass risk or who pays",
+      "No contractor assigned or visit booked",
+      "Reclassification is a ticket note only; category field not changed",
+      "Tenant was not given an appointment, only a target timescale"
+    ],
+    "remaining_work": [
+      "Review tenant reply, then assign door/locks contractor and book visit (target 14 days; urgent if glass cracked or door won't secure)",
+      "Check landlord spend limit/preferences (none on record)",
+      "Ops to correct category from Appliances to Locks/door"
+    ],
+    "missing_info": [
+      "Tenant contact details not on file; used existing thread",
+      "Landlord and spend limit not on property record",
+      "Which doors, glass type and condition, access arrangements"
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "The intake wrongly classed a sticking front/back door as a fridge problem. I noted the correct category on the ticket, asked the tenant to confirm the door details, glass condition, security and access, and put the ticket on hold until 10 June.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "Ticket is at init, misclassified as an appliance issue. It is really a door repair. Outstanding: tenant clarification, contractor, landlord/spend check, visit."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Information request REQ-101 to the tenant by email on the existing thread; ticket on hold, review 10 June."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "No. It is routine and nothing needs authority now. A human should only be involved if the tenant reports cracked glass or an insecure door, or if spend exceeds the limit."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Ticket note reclassifying as door/locks repair"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Information request sent to tenant"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Ticket put on hold awaiting tenant, review 2024-06-10"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Intake classified the issue as Appliances/fridge, but the tenant's text describes doors that need slamming. I trusted the tenant's words. The fridge engineer was only a visitor who commented."
+    ],
+    "assumptions": [
+      "Severity routine until glass damage or an insecure door is reported",
+      "The tenant is reachable on the existing thread"
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "update_ticket",
+      "args": {
+        "ref": "NBL-014-misclassified-door",
+        "note": "Reclassify: this is a DOOR/LOCKS repair (front and back doors need slamming to shut; possible glass breakage risk), NOT an appliance/fridge job. Fridge Q&A is irrelevant. Needs: which door(s) and glass type, any cracks, does door lock securely, access details, pets. Target: routine (14 days), upgrade to urgent if glass cracked or door won't secure."
+      },
+      "key": "update_ticket:{note:\"Reclassify: this is a DOOR/LOCKS repair (front and back doors need slamming to shut; possible glass breakage risk), NOT an appliance/fridge job. Fridge Q&A is irrelevant. Needs: which door(s) and glass type, any cracks, does door lock securely, access details, pets. Target: routine (14 days), upgrade to urgent if glass cracked or door won't secure.\",ref:\"NBL-014-misclassified-door\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-014-misclassified-door",
+      "evidence": [
+        "Ticket NBL-014-misclassified-door read back at stage init"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "request_information",
+      "args": {
+        "recipient_name": "Tenant, Flat 12",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 001 request)",
+        "questions": [
+          "Sorry, we first logged this as a fridge problem by mistake. We now have it as a front and back door that need slamming to close. Is that right?",
+          "Is there any glass in the doors, and is any of it cracked or loose?",
+          "Do both doors still lock securely when closed? If not, please tell us today.",
+          "What times suit for a contractor to visit, and are there any pets or alarm/entry codes we should know about?"
+        ],
+        "why": "Ticket was misclassified as an appliance; we need door details and access to book the right contractor. Target is a visit within 14 days, sooner if the door can't be secured."
+      },
+      "key": "request_information:{channel:\"email\",contact:\"existing thread (event 001 request)\",questions:[\"Sorry, we first logged this as a fridge problem by mistake. We now have it as a front and back door that need slamming to close. Is that right?\",\"Is there any glass in the doors, and is any of it cracked or loose?\",\"Do both doors still lock securely when closed? If not, please tell us today.\",\"What times suit for a contractor to visit, and are there any pets or alarm/entry codes we should know about?\"],recipient_name:\"Tenant, Flat 12\",recipient_role:\"tenant\",why:\"Ticket was misclassified as an appliance; we need door details and access to book the right contractor. Target is a visit within 14 days, sooner if the door can't be secured.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "REQ-101",
+      "evidence": [
+        "REQ-101 found in the request_information log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "put_on_hold",
+      "args": {
+        "ticket_ref": "NBL-014-misclassified-door",
+        "reason": "Waiting for Tenant",
+        "comment": "Awaiting tenant answers on door/glass condition, security and access (REQ-101).",
+        "review_on": "2024-06-10"
+      },
+      "key": "put_on_hold:{comment:\"Awaiting tenant answers on door/glass condition, security and access (REQ-101).\",reason:\"Waiting for Tenant\",review_on:\"2024-06-10\",ticket_ref:\"NBL-014-misclassified-door\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-014-misclassified-door",
+      "evidence": [
+        "Ticket NBL-014-misclassified-door read back after put_on_hold"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-014-misclassified-door",
+        "stage": "init",
+        "property": "Flat 12, 52 Meadow Row, Kingshaven, ZZ9 5ZZ",
+        "description": "Front door you have to slam to shut like the back. when fridge man arrived he even commented and said it will cause a shatter in glass- he said he was also going to report to you.",
+        "notes": [
+          "Reclassify: this is a DOOR/LOCKS repair (front and back doors need slamming to shut; possible glass breakage risk), NOT an appliance/fridge job. Fridge Q&A is irrelevant. Needs: which door(s) and glass type, any cracks, does door lock securely, access details, pets. Target: routine (14 days), upgrade to urgent if glass cracked or door won't secure."
+        ],
+        "hold": {
+          "reason": "Waiting for Tenant",
+          "comment": "Awaiting tenant answers on door/glass condition, security and access (REQ-101).",
+          "review_on": "2024-06-10"
+        },
+        "mode": "manual"
+      }
+    ],
+    "records": [
+      {
+        "id": "REQ-101",
+        "tool": "request_information",
+        "args": {
+          "recipient_name": "Tenant, Flat 12",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 001 request)",
+          "questions": [
+            "Sorry, we first logged this as a fridge problem by mistake. We now have it as a front and back door that need slamming to close. Is that right?",
+            "Is there any glass in the doors, and is any of it cracked or loose?",
+            "Do both doors still lock securely when closed? If not, please tell us today.",
+            "What times suit for a contractor to visit, and are there any pets or alarm/entry codes we should know about?"
+          ],
+          "why": "Ticket was misclassified as an appliance; we need door details and access to book the right contractor. Target is a visit within 14 days, sooner if the door can't be secured."
+        },
+        "at": 1791629054045
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 12, 52 Meadow Row, Kingshaven, ZZ9 5ZZ"
+      }
+    ]
+  },
+  "usage": {
+    "input": 10,
+    "output": 2377,
+    "cost": 0.040875800000000004,
+    "turns": 4,
+    "durationMs": 20649
+  }
+}

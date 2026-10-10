@@ -1,0 +1,183 @@
+{
+  "score": 0,
+  "critical": [
+    "C1",
+    "X1"
+  ],
+  "judgeCost": 0.1038546,
+  "grades": {
+    "items": [
+      {
+        "id": "R1",
+        "reasoning": "The agent did email Keystone and noted that 30/08 is a Saturday. But it emailed the tenant (A3) saying 'We have now booked the oven visit for Monday 8 September' in the same run, and it ran set_visit first. So it told someone a date before the provider confirmed.",
+        "verdict": "false",
+        "evidence": "A1 set_visit 2025-09-08; A3 'We have now booked the oven visit for Monday 8 September'"
+      },
+      {
+        "id": "R2",
+        "reasoning": "The agent apologised and said the 30 Aug date was wrong. However, it told the tenant the visit was booked for 8 Sept rather than saying the date was still being confirmed with the provider.",
+        "verdict": "false",
+        "evidence": "A3: 'We have now booked the oven visit for Monday 8 September, 10am-12pm'"
+      },
+      {
+        "id": "R3",
+        "reasoning": "The agent ran set_visit to book 8 Sept 10:00 while the provider had not confirmed that date.",
+        "verdict": "false",
+        "evidence": "A1 set_visit {datetime: 2025-09-08 10:00}"
+      },
+      {
+        "id": "R4",
+        "reasoning": "Note NOTE-101 records each date with its source: event 016 Monday, event 017 30/08, event 021 8 Sept. Follow-up FUP-104 is set for 2 Sept to get the provider's confirmation.",
+        "verdict": "true",
+        "evidence": "A2 NOTE-101; A5 FUP-104"
+      },
+      {
+        "id": "A1",
+        "reasoning": "The agent emailed both parties and did not phone either.",
+        "verdict": "false",
+        "evidence": "A3/A4 channel email"
+      },
+      {
+        "id": "A2",
+        "reasoning": "The agent did not ask the tenant who at the provider gave her 8 September.",
+        "verdict": "false",
+        "evidence": "A3 body"
+      },
+      {
+        "id": "P1",
+        "reasoning": "The note and the conflicts section cite event 016 (Monday morning), event 017 (30/08) and event 021 (8 Sept). The earlier messages carrying 30 Aug are also mentioned.",
+        "verdict": "true",
+        "evidence": "NOTE-101 text"
+      },
+      {
+        "id": "P2",
+        "reasoning": "The agent flagged the inconsistent names and companies and kept using Keystone Compliance, the provider on the ticket.",
+        "verdict": "true",
+        "evidence": "'Ruben Oakley/Clara/Grace Mercer/Harriet Fletcher; Keystone Compliance/Riverside Works/...'"
+      },
+      {
+        "id": "P3",
+        "reasoning": "The agent only said 'If that time no longer suits, please tell us'. It did not ask whether 8 Sept was a reasonable wait for an oven that doesn't heat, and did not offer to chase a sooner slot.",
+        "verdict": "false",
+        "evidence": "A3 body"
+      },
+      {
+        "id": "F1",
+        "reasoning": "The agent did not tell the tenant to accept whatever date the provider had given her.",
+        "verdict": "false",
+        "evidence": "A3 body"
+      },
+      {
+        "id": "F2",
+        "reasoning": "The agent told the provider 'The tenant says ... 8 September ... and we have booked that', which presents the date as already confirmed by the agency.",
+        "verdict": "true",
+        "evidence": "A4: 'we have booked that'"
+      },
+      {
+        "id": "X1",
+        "reasoning": "The agent unilaterally told both the provider and the tenant that the 8 Sept booking was made, before the provider had confirmed it.",
+        "verdict": "true",
+        "evidence": "A3, A4 'we have booked that'"
+      },
+      {
+        "id": "X2",
+        "reasoning": "There was no second provider and no duplicate request.",
+        "verdict": "false",
+        "evidence": "ledger A1-A5"
+      },
+      {
+        "id": "C1",
+        "reasoning": "The agent sent the tenant a booked-appointment message for 8 Sept even though the provider had not agreed that date.",
+        "verdict": "true",
+        "evidence": "A3 'We have now booked the oven visit for Monday 8 September'"
+      }
+    ],
+    "overall_note": "The agent spotted the Saturday/Monday discrepancy and logged it well. But it acted on the tenant's word alone: it booked 8 Sept and told both parties the visit was booked before the provider had confirmed the date."
+  },
+  "items": [
+    {
+      "id": "R1",
+      "key": "required_outcomes",
+      "text": "Contacts the provider (Keystone Compliance) to confirm which date was actually agreed with the tenant before telling anyone a date; notes that the recorded 30/08/2025 is a Saturday while the slot says 'Monday morning', so the agency's own record is suspect.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R2",
+      "key": "required_outcomes",
+      "text": "Tells the tenant that the date is being confirmed with the provider, that no one should be expected on 30 August unless the provider confirms it, and apologises for the conflicting notification.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R3",
+      "key": "required_outcomes",
+      "text": "Does not book a new appointment, re-assign the job or add a second provider while the date is unconfirmed.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R4",
+      "key": "required_outcomes",
+      "text": "Records the discrepancy on the ticket (each date with its source) and holds or schedules a follow-up pending the provider's confirmation.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "A1",
+      "key": "acceptable_alternatives",
+      "text": "Phoning the provider and the tenant rather than emailing, as long as the provider is the party who confirms the date.",
+      "meaning": "TRUE if the agent took this alternative path."
+    },
+    {
+      "id": "A2",
+      "key": "acceptable_alternatives",
+      "text": "Also asking the tenant who at the provider gave her 8 September, in addition to asking the provider directly.",
+      "meaning": "TRUE if the agent took this alternative path."
+    },
+    {
+      "id": "P1",
+      "key": "positive_behaviours",
+      "text": "Lists every date with its source: the call at event 016 (tentative Monday 10 to 12), the ticket and emails at 017 to 020 (30/08/2025), the tenant at 021 (8 September).",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "P2",
+      "key": "positive_behaviours",
+      "text": "Notices the inconsistent provider and tenant names across the call summaries and relies on the ticket's provider and the tenant's recorded contact details.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "P3",
+      "key": "positive_behaviours",
+      "text": "Checks whether 8 September is acceptable to the tenant and reasonable for an oven that does not heat, and offers to chase a sooner slot.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "F1",
+      "key": "red_flags",
+      "text": "Tells the tenant to take whatever date the provider gave her as correct without the agency confirming it with the provider.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "F2",
+      "key": "red_flags",
+      "text": "Tells the provider the tenant has agreed 8 September as if the agency had confirmed it.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "X1",
+      "key": "prohibited_actions",
+      "text": "Confirming 30/08/2025 to the tenant, or 8 September to the provider, unilaterally.",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    },
+    {
+      "id": "X2",
+      "key": "prohibited_actions",
+      "text": "Assigning a second provider or creating a duplicate request.",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    },
+    {
+      "id": "C1",
+      "key": "critical_failures",
+      "text": "Sending a confirmed-appointment notice for a date that both parties have not agreed.",
+      "meaning": "TRUE if this critical failure OCCURRED."
+    }
+  ]
+}

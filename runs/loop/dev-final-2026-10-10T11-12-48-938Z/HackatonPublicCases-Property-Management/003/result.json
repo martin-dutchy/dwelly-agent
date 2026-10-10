@@ -1,0 +1,166 @@
+{
+  "id": "003",
+  "model": "claude-sonnet-5-5",
+  "cutoff": 19,
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Ticket at documents/final checks stage, marked completed by system. Contractor says invoice was sent to Theo, but no invoice, amount or completion evidence is on the record. On hold waiting for the provider, review 2025-07-28.",
+    "next_actions": [
+      {
+        "type": "REQUEST_INFORMATION",
+        "action": "Ask contractor for the invoice as PDF/plain text, completion confirmation and photos",
+        "recipient": "Bennett, contractor",
+        "channel": "email",
+        "ledger_id": "A1"
+      },
+      {
+        "type": "WAIT",
+        "action": "Hold until 2025-07-28 for the invoice and completion evidence",
+        "recipient": "internal",
+        "channel": "internal",
+        "ledger_id": "A2"
+      }
+    ],
+    "boundaries": [
+      "Asking for the invoice does not approve payment or confirm the work was done.",
+      "Not closed: no invoice recorded, no landlord notification, no tenant confirmation."
+    ],
+    "remaining_work": [
+      "Receive and record invoice, check against approved estimate and the assigned contractor",
+      "Attach or skip the invoice and any photos",
+      "Tell the landlord the outcome",
+      "Close ticket once checks are met"
+    ],
+    "missing_info": [
+      "Invoice document and amount",
+      "Approved estimate amount (the history only says 'Estimate approved')",
+      "Contractor's completion confirmation",
+      "Tenancy status (void or tenanted) and landlord details; the property record returned only the address"
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "The checkout clean job is at final checks, but the invoice and completion evidence are not on the record. I asked the contractor for the invoice and a completion confirmation, and put the job on hold until 28 July.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "The estimate was approved, the work is marked completed and the job is at documents/final checks. The invoice (said to have been sent to Theo) has not been seen, and there is no recorded amount, completion evidence or landlord notification."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Email to Bennett, the contractor, on the existing thread, asking for the invoice, completion confirmation and photos. The job is on hold, review 2025-07-28."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "No. This is routine. A human is needed only if the invoice differs from the approved estimate or comes from a different company."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Requested invoice and completion confirmation from contractor"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Put job on hold, waiting for provider, review 2025-07-28"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "The inspection report is dated 16 March 2026 but was signed 22 July 2025, and the case is dated July 2025. I treated the report as context only."
+    ],
+    "assumptions": [
+      "The invoice mentioned in event 017 went to a mailbox that is not visible to me."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "request_information",
+      "args": {
+        "recipient_name": "Bennett",
+        "recipient_role": "contractor",
+        "channel": "email",
+        "contact": "existing thread (event 017 email)",
+        "questions": [
+          "Please send the invoice for NBL-003-2766 (Flat 30, 30 Harbour View) as a PDF or plain-text reply here; we have not received it on the job.",
+          "Please confirm the cleaning, removal of dumped items and carpet clean are all complete, and the date you finished.",
+          "Please confirm the invoice total matches your approved estimate, and if you can, send before/after photos."
+        ],
+        "why": "Job is at final checks but no invoice, amount or completion evidence is on the record."
+      },
+      "key": "request_information:{channel:\"email\",contact:\"existing thread (event 017 email)\",questions:[\"Please send the invoice for NBL-003-2766 (Flat 30, 30 Harbour View) as a PDF or plain-text reply here; we have not received it on the job.\",\"Please confirm the cleaning, removal of dumped items and carpet clean are all complete, and the date you finished.\",\"Please confirm the invoice total matches your approved estimate, and if you can, send before/after photos.\"],recipient_name:\"Bennett\",recipient_role:\"contractor\",why:\"Job is at final checks but no invoice, amount or completion evidence is on the record.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "REQ-101",
+      "evidence": [
+        "REQ-101 found in the request_information log"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "put_on_hold",
+      "args": {
+        "ticket_ref": "NBL-003-2766",
+        "reason": "Waiting for Provider",
+        "comment": "Waiting for contractor invoice (PDF), completion confirmation and photos before final checks.",
+        "review_on": "2025-07-28"
+      },
+      "key": "put_on_hold:{comment:\"Waiting for contractor invoice (PDF), completion confirmation and photos before final checks.\",reason:\"Waiting for Provider\",review_on:\"2025-07-28\",ticket_ref:\"NBL-003-2766\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-003-2766",
+      "evidence": [
+        "Ticket NBL-003-2766 read back after put_on_hold"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-003-2766",
+        "stage": "documents",
+        "property": "Flat 30, 30 Harbour View, Northbridge, ZZ9 0ZZ",
+        "description": "Please provide an estimate to clean property as per check out to include the removal of dumped items left in the property and a carpet clean.",
+        "hold": {
+          "reason": "Waiting for Provider",
+          "comment": "Waiting for contractor invoice (PDF), completion confirmation and photos before final checks.",
+          "review_on": "2025-07-28"
+        },
+        "mode": "manual"
+      }
+    ],
+    "records": [
+      {
+        "id": "REQ-101",
+        "tool": "request_information",
+        "args": {
+          "recipient_name": "Bennett",
+          "recipient_role": "contractor",
+          "channel": "email",
+          "contact": "existing thread (event 017 email)",
+          "questions": [
+            "Please send the invoice for NBL-003-2766 (Flat 30, 30 Harbour View) as a PDF or plain-text reply here; we have not received it on the job.",
+            "Please confirm the cleaning, removal of dumped items and carpet clean are all complete, and the date you finished.",
+            "Please confirm the invoice total matches your approved estimate, and if you can, send before/after photos."
+          ],
+          "why": "Job is at final checks but no invoice, amount or completion evidence is on the record."
+        },
+        "at": 1791630778784
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 30, 30 Harbour View, Northbridge, ZZ9 0ZZ"
+      }
+    ]
+  },
+  "usage": {
+    "input": 8,
+    "output": 1966,
+    "cost": 0.0366543,
+    "turns": 3,
+    "durationMs": 26100
+  }
+}

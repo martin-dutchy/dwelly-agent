@@ -1,0 +1,284 @@
+{
+  "id": "008-second-quote",
+  "model": "claude-sonnet-5-5",
+  "cutoff": 9,
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {
+    "create_ticket": [
+      {
+        "call": 1,
+        "mode": "error"
+      }
+    ],
+    "put_on_hold": [
+      {
+        "call": 2,
+        "mode": "timeout"
+      }
+    ],
+    "record_invoice": [
+      {
+        "call": 1,
+        "mode": "error"
+      }
+    ],
+    "schedule_follow_up": [
+      {
+        "call": 1,
+        "mode": "timeout"
+      }
+    ],
+    "send_message": [
+      {
+        "call": 1,
+        "mode": "silent_drop"
+      }
+    ],
+    "request_information": [
+      {
+        "call": 2,
+        "mode": "silent_drop"
+      }
+    ],
+    "add_note": [
+      {
+        "call": 2,
+        "mode": "timeout"
+      }
+    ]
+  },
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Quote loop. Alder Compliance estimate of £1,370 (no VAT shown) recorded as Q-101 and sent to the landlord, not approved. The landlord asked for a second quote. The ticket is on hold until 2025-04-09 waiting for the landlord to name a contractor.",
+    "next_actions": [
+      {
+        "type": "REQUEST_INFORMATION",
+        "action": "Ask the landlord whether they have a preferred contractor for a second quote, otherwise we source one",
+        "recipient": "Langley, landlord",
+        "channel": "email",
+        "ledger_id": "A2"
+      },
+      {
+        "type": "WAIT",
+        "action": "Hold until 2025-04-09 for the landlord's answer",
+        "recipient": "Langley, landlord",
+        "channel": "internal",
+        "ledger_id": "A4"
+      }
+    ],
+    "boundaries": [
+      "Nothing is approved and no second contractor has been instructed.",
+      "Recording the quote does not mean it is accepted.",
+      "Nothing here decides who pays, e.g. deposit deductions."
+    ],
+    "remaining_work": [
+      "Get a second quote once the landlord names a contractor, or send the scope to a contractor we find.",
+      "Send both quotes to the landlord for a decision.",
+      "Clarify the first quote's scope: it leaves the burnt carpet, includes a tap replacement, and shows no VAT.",
+      "Check the attachments: the inspection report is dated January 2026 but signed April 2025, and an invoice file is present with no matching event."
+    ],
+    "missing_info": [
+      "Landlord's preferred contractor.",
+      "Whether the estimate includes VAT.",
+      "The provider has never replied on the thread."
+    ],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "The landlord asked for a comparison quote after receiving the first estimate. I recorded the first quote, asked the landlord for a preferred contractor, returned the ticket to auto mode and put it on hold until 9 April.",
+    "answers": [
+      {
+        "question": "Where does this case stand right now, and what is outstanding?",
+        "answer": "The first estimate (£1,370) is with the landlord and unapproved. The landlord wants a second quote, which is outstanding. The ticket is on hold until 2025-04-09."
+      },
+      {
+        "question": "What is the next action, who is it for, and through which channel?",
+        "answer": "Email the landlord asking for a preferred contractor for the second quote (done, A2), then wait with a review on 2025-04-09 (A4)."
+      },
+      {
+        "question": "Does anything need a human decision, and why?",
+        "answer": "No. A second quote is routine, and the landlord keeps the approval decision."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Recorded Alder Compliance quote £1,370"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Asked landlord for preferred second contractor"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Returned ticket to auto mode"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Put on hold until 2025-04-09"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "The inspection report is dated 5 January 2026 but was signed 3 April 2025.",
+      "The report says the carpet burn pre-existed, while the request treats it as damage to replace.",
+      "The estimate leaves the carpet in place and replaces the tap, which differs from the request."
+    ],
+    "assumptions": [
+      "The property is void after check-out, so there is no tenant to message.",
+      "The estimate came from Alder Compliance and the landlord has seen it (event 006)."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "record_quote",
+      "args": {
+        "ticket_ref": "NBL-008-3466",
+        "provider": "Alder Compliance",
+        "amount_gbp": 1370,
+        "vat": "none",
+        "items": [
+          "Sand, fill and paint bathroom with damp paint",
+          "Paint all walls and ceiling in main room",
+          "Replace bathroom lino",
+          "Repair plug socket and shelf",
+          "Replace bathroom tap",
+          "Main-room carpet can stay"
+        ],
+        "source": "attachment-02-estimate.pdf, issued 3 April 2025"
+      },
+      "key": "record_quote:{amount_gbp:1370,items:[\"Sand, fill and paint bathroom with damp paint\",\"Paint all walls and ceiling in main room\",\"Replace bathroom lino\",\"Repair plug socket and shelf\",\"Replace bathroom tap\",\"Main-room carpet can stay\"],provider:\"Alder Compliance\",source:\"attachment-02-estimate.pdf, issued 3 April 2025\",ticket_ref:\"NBL-008-3466\",vat:\"none\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-008-3466",
+      "evidence": [
+        "Ticket NBL-008-3466 read back after record_quote"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "request_information",
+      "args": {
+        "recipient_name": "Langley",
+        "recipient_role": "landlord",
+        "channel": "email",
+        "contact": "existing thread (event 009 email)",
+        "questions": [
+          "Happy to get a second quote. Do you have a preferred contractor you'd like us to send the scope to? If not, please say so and we will look for another contractor ourselves."
+        ],
+        "why": "Landlord asked for a comparison quote; no other contractor is on file. The first estimate (£1,370, no VAT shown) stays on hold, not approved. Note it leaves the burnt bedroom carpet in place, unlike the original request."
+      },
+      "key": "request_information:{channel:\"email\",contact:\"existing thread (event 009 email)\",questions:[\"Happy to get a second quote. Do you have a preferred contractor you'd like us to send the scope to? If not, please say so and we will look for another contractor ourselves.\"],recipient_name:\"Langley\",recipient_role:\"landlord\",why:\"Landlord asked for a comparison quote; no other contractor is on file. The first estimate (£1,370, no VAT shown) stays on hold, not approved. Note it leaves the burnt bedroom carpet in place, unlike the original request.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "REQ-102",
+      "evidence": [
+        "REQ-102 found in the request_information log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "resume_auto",
+      "args": {
+        "ticket_ref": "NBL-008-3466"
+      },
+      "key": "resume_auto:{ticket_ref:\"NBL-008-3466\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-008-3466",
+      "evidence": [
+        "Ticket NBL-008-3466 read back after resume_auto"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "put_on_hold",
+      "args": {
+        "ticket_ref": "NBL-008-3466",
+        "reason": "Waiting for Landlord",
+        "comment": "Waiting for landlord to name a preferred contractor for a second quote; first quote Q-101 (£1,370) not approved.",
+        "review_on": "2025-04-09"
+      },
+      "key": "put_on_hold:{comment:\"Waiting for landlord to name a preferred contractor for a second quote; first quote Q-101 (£1,370) not approved.\",reason:\"Waiting for Landlord\",review_on:\"2025-04-09\",ticket_ref:\"NBL-008-3466\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-008-3466",
+      "evidence": [
+        "Ticket NBL-008-3466 read back after put_on_hold"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-008-3466",
+        "stage": "mp_time",
+        "property": "Flat 5, 55 Lantern Quay, Cedarford, ZZ2 4ZZ",
+        "description": "Following the tenant vacating please provide an estimate to; \nRepaint bedroom any other rooms if needed\nReplace bedroom carpet that is burnt\nReplace bathroom flooring \nRepair broken plug \nRepair dripping bath tap \nRepair damaged shelf in bathroom",
+        "quotes": [
+          {
+            "id": "Q-101",
+            "provider": "Alder Compliance",
+            "amount_gbp": 1370,
+            "vat": "none",
+            "total_gbp": 1370,
+            "items": [
+              "Sand, fill and paint bathroom with damp paint",
+              "Paint all walls and ceiling in main room",
+              "Replace bathroom lino",
+              "Repair plug socket and shelf",
+              "Replace bathroom tap",
+              "Main-room carpet can stay"
+            ],
+            "source": "attachment-02-estimate.pdf, issued 3 April 2025"
+          }
+        ],
+        "mode": "manual",
+        "hold": {
+          "reason": "Waiting for Landlord",
+          "comment": "Waiting for landlord to name a preferred contractor for a second quote; first quote Q-101 (£1,370) not approved.",
+          "review_on": "2025-04-09"
+        }
+      }
+    ],
+    "records": [
+      {
+        "id": "REQ-102",
+        "tool": "request_information",
+        "args": {
+          "recipient_name": "Langley",
+          "recipient_role": "landlord",
+          "channel": "email",
+          "contact": "existing thread (event 009 email)",
+          "questions": [
+            "Happy to get a second quote. Do you have a preferred contractor you'd like us to send the scope to? If not, please say so and we will look for another contractor ourselves."
+          ],
+          "why": "Landlord asked for a comparison quote; no other contractor is on file. The first estimate (£1,370, no VAT shown) stays on hold, not approved. Note it leaves the burnt bedroom carpet in place, unlike the original request."
+        },
+        "at": 1791632325479
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 5, 55 Lantern Quay, Cedarford, ZZ2 4ZZ"
+      }
+    ]
+  },
+  "usage": {
+    "input": 12,
+    "output": 2482,
+    "cost": 0.05949810000000001,
+    "turns": 5,
+    "durationMs": 18337,
+    "retries": 0
+  }
+}
