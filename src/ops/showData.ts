@@ -35,6 +35,23 @@ function subtitles(turns: { role: string; text: string; t?: number }[]) {
   return out;
 }
 
+/** Real calls we can feature (data/private/calls), in order of preference, with the moments to play. */
+const CALLS: Record<string, { name: string; context: string; result: string; ask: string; clips?: { from: number; to: number }[] }> = {
+  conv_3701m4jznz2sejdtm7t74r99vdh8: {
+    name: 'Mr Ingram',
+    context: 'The tenant wants to fit her own washing machine. Who pays to fit it and to remove the old one?',
+    result: '✓ Landlord approved: the tenant fits her own machine and pays to fit and remove. Read back and confirmed.',
+    ask: 'Goal: the landlord’s decision, read back and recorded.',
+    clips: [{ from: 175, to: 184 }, { from: 208, to: 214 }],
+  },
+  conv_3201m4k0h0f0f8k8x455asj8ywqj: {
+    name: 'Mr Langley',
+    context: 'Two quotes in: Eliza Bennett £1,370 (no VAT) or Kendall £2,040 inc VAT.',
+    result: '✓ Landlord chose Eliza Bennett, £1,370. Read back and confirmed.',
+    ask: 'Goal: get the landlord’s choice between two contractor quotes, read back and recorded.',
+  },
+};
+
 /** Builds the show from real data: the latest graded eval run plus the Flat 9 case. */
 
 /** The person's reply in the demo (their words, pre-filled so a 60-second video needn't wait on typing). */
@@ -108,7 +125,10 @@ export async function showData(store: OpsStore): Promise<ShowData | undefined> {
   if (person) cards.splice(Math.min(5, cards.length), 0, { ...asCard(person), person: { question: short(person.task!.question, 90), href: `/ops/tasks/${person.task!.id}?from=show&draft=${encodeURIComponent(DRAFT)}` } });
 
   // Preferred: a real call with a real person (a voice case), its real recording and the case worker's real follow-ups.
-  const voice = (await store.listCases(200)).filter((c) => c.source === 'voice' && c.source_ref?.startsWith('conv_'));
+  // Which real call to feature, best first (OPS_SHOW_CALL overrides): the positive landlord approval, then the VAT one.
+  const prefer = [process.env.OPS_SHOW_CALL, ...Object.keys(CALLS)].filter(Boolean) as string[];
+  const rank = (ref?: string | null) => { const i = prefer.indexOf(ref ?? ''); return i < 0 ? 99 : i; };
+  const voice = (await store.listCases(200)).filter((c) => c.source === 'voice' && c.source_ref?.startsWith('conv_')).sort((a, b) => rank(a.source_ref) - rank(b.source_ref));
   for (const vc of voice) {
     const ve = await store.events(vc.id);
     const callEv = ve.find((e) => e.kind === 'call');
@@ -138,18 +158,18 @@ export async function showData(store: OpsStore): Promise<ShowData | undefined> {
     const q = find(/We have a quote from/), dodgy = find(/sounds dodgy/), choose = find(/choose Eliza/), recorded = find(/That's recorded|I'll record that/);
     const yes = find(/Yes, of course/);
     const env = process.env.OPS_SHOW_CLIPS?.split(',').map((p) => p.split('-').map(Number)).filter((p) => p.length === 2 && p.every(Number.isFinite)).map(([from, to]) => ({ from, to }));
-    // 60-second cut: the doubt about VAT and the reassurance, then the yes and the read-back.
-    // One 12-second window: a real person pushes back ("That sounds dodgy") and the agent answers calmly and correctly.
-    const clips = env?.length ? env : dodgy !== undefined ? [{ from: dodgy - 0.5, to: dodgy + 12 }] : undefined;
+    const cfg = CALLS[vc.source_ref!];
+    // One short window per call, chosen for the video; the VAT call falls back to its "That sounds dodgy" moment.
+    const clips = env?.length ? env : cfg?.clips ?? (dodgy !== undefined ? [{ from: dodgy - 0.5, to: dodgy + 12 }] : undefined);
     void yes; void recorded;
     void q; void choose;
     const call = {
-      name: 'Mr Langley',
+      name: cfg?.name ?? 'Mr Langley',
       role: 'Landlord (volunteer)',
-      ask: 'Goal: get the landlord’s choice between two contractor quotes, read back and recorded.',
+      ask: cfg?.ask ?? 'Goal: get the landlord’s choice between two contractor quotes, read back and recorded.',
       lines: subtitles(turns),
-      context: 'Two quotes in: Eliza Bennett £1,370 (no VAT) or Kendall £2,040 inc VAT.',
-      result: '✓ Landlord chose Eliza Bennett, £1,370. Read back and confirmed.',
+      context: cfg?.context ?? 'Two quotes in: Eliza Bennett £1,370 (no VAT) or Kendall £2,040 inc VAT.',
+      result: cfg?.result ?? '✓ Landlord chose Eliza Bennett, £1,370. Read back and confirmed.',
       audioUrl: `/ops/show/audio/${conv}`,
       clips,
       real: { who: 'Real call with a real person, trimmed', note: 'A random person who joined from my LinkedIn post played the landlord.', when: `Recorded ${at}` },
