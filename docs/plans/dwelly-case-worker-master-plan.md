@@ -224,7 +224,8 @@ Create each as a default plan (not ExecPlan) in a `plans/` folder next to the co
 - [ ] M5 Reality Test readiness + 15:15 rehearsal
 - [ ] M6 Voice (gated)
   - [x] (2026-10-10 11:40 BST) Inbound tenant-line agent on ElevenLabs, `src/voice/**`: shared tools via webhooks, swappable brain (`VOICE_BRAIN=native|pi`), per-call ledger, post-call `CALL.md`, test console at `/voice/console` with 6 graded scenarios. Text-mode runs of routine-repair and gas-emergency both PASS.
-  - [ ] Landlord-approval outbound call (the original M6 scope) on the same plumbing.
+  - [x] (2026-10-10 12:05 BST) Hosted on Fly (dwelly-voice.fly.dev) with Neon; invites with "Call me now"; 10 case-grounded scenarios (tenant, landlord, contractor) from non-holdout cases incl. the landlord-approval call; calls export into case histories for `pnpm cases`/`pnpm eval`. Plan: `src/voice/plans/voice-dataset-plan.md`.
+  - [ ] Dataset waves W0–W2 per the sub-plan.
 - [ ] M7 Submission package
 - [ ] M8 Reality Test run, freeze, submit
 
@@ -240,6 +241,7 @@ Create each as a default plan (not ExecPlan) in a `plans/` folder next to the co
 - Observation: the GitHub repo is private and `SUBMISSION.md` pointed at a non-existent `dwelly-hackathon` repo name. Evidence: `gh repo view --json isPrivate` → `true`. Fixed the URL; visibility flips in M7.
 - Observation: ElevenLabs gives no ASR confidence anywhere (transcript, webhook or API), so bad audio can only be caught by protocol: read-back + explicit yes before writes (enforced server-side by `caller_confirmed_readback`), exact DOB match after server-side spoken-date normalisation, fuzzy names. Evidence: research subagent report 10 Oct, `research/voice-agent-stack.md` "Update 10 Oct".
 - Observation: in the gas test the agent escalated P1 before learning who or where the caller was, and did not update the handover when it later heard the name and address. Evidence: console run 11:39 BST, escalation E-4902 has no tenant or address.
+- Observation: on the first exported voice case (008 + landlord call) the case worker approved and held payment but did not instruct the contractor, citing "no contact details on file"; the public format carries no contacts, so the core agent may under-act on the Reality Test too. Evidence: runs/voice/V008-landlord-two-quotes-*/ANSWER.md, eval score 30.
 
 ## Decision log
 
