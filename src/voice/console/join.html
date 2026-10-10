@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>Test an AI Phone Assistant</title>
+<style>
+  :root { --bg:#f6f5f2; --panel:#fff; --ink:#1c1b19; --muted:#6b6860; --line:#e4e1da; --accent:#2f5d50; --accent-ink:#fff; --fail:#b3261e; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#151514; --panel:#1f1e1c; --ink:#ecebe7; --muted:#a29f96; --line:#33312d; --accent:#7fb8a4; --accent-ink:#10201b; --fail:#ff8a80; } }
+  :root[data-theme="dark"] { --bg:#151514; --panel:#1f1e1c; --ink:#ecebe7; --muted:#a29f96; --line:#33312d; --accent:#7fb8a4; --accent-ink:#10201b; --fail:#ff8a80; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  main { max-width: 520px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 26px; margin: 8px 0 6px; line-height: 1.2; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin: 14px 0; }
+  .muted { color: var(--muted); }
+  ol { padding-left: 22px; margin: 6px 0; } li { margin: 6px 0; }
+  label { display: block; font-weight: 600; margin: 12px 0 4px; }
+  input[type=text], input[type=tel] { width: 100%; font: inherit; padding: 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
+  .hint { font-size: 14px; color: var(--muted); margin: 4px 0 0; }
+  .check { display: flex; gap: 10px; align-items: flex-start; font-weight: 400; margin-top: 16px; }
+  .check input { margin-top: 5px; width: 20px; height: 20px; flex: none; }
+  .btn { display: block; width: 100%; font: inherit; font-weight: 700; font-size: 17px; padding: 14px; border-radius: 12px; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); cursor: pointer; margin-top: 16px; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .err { color: var(--fail); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Help test an AI phone assistant 📞</h1>
+  <p class="muted">A 3-minute role-play call for a hackathon project: an AI assistant for a lettings agency, tested by real people on real phone lines.</p>
+  <div class="panel">
+    <ol>
+      <li>Enter your phone number.</li>
+      <li>You get a character card: who you are and what to say.</li>
+      <li>Press <b>Call me now</b> and the assistant rings you. Play your part in your own words.</li>
+    </ol>
+  </div>
+  <form class="panel" id="f">
+    <label for="phone">Mobile number</label>
+    <input type="tel" id="phone" autocomplete="tel" placeholder="+44 7700 900123" />
+    <p class="hint">UK numbers get a phone call. Leave it blank, or use a non-UK number, to talk from your browser instead.</p>
+    <label class="check"><input type="checkbox" id="consent" /> <span>I understand the call is with an AI and is <b>recorded</b> (stored by ElevenLabs, the voice provider, and by the project) only to improve the assistant, and I'll only use the made-up details on my card.</span></label>
+    <button class="btn" id="go" disabled>Get my character</button>
+    <p class="err" id="err"></p>
+  </form>
+  <p class="muted" style="font-size:14px">Your number is used only to ring you when you press the button: at most 3 calls a day. Nothing is sold or shared.</p>
+</main>
+<script type="module">
+const $ = (id) => document.getElementById(id);
+const base = location.pathname.replace(/\/$/, '');
+const ready = () => ($('go').disabled = !$('consent').checked);
+$('consent').addEventListener('change', ready);
+$('f').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  $('err').textContent = '';
+  $('go').disabled = true; $('go').textContent = 'Setting up…';
+  try {
+    const r = await fetch(`${base}/api`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ phone: $('phone').value || null, consent: $('consent').checked }) });
+    const out = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(out.error || 'Something went wrong. Try again.');
+    try { localStorage.setItem('voice-consent', '1'); } catch {}
+    location.href = out.link;
+  } catch (err) {
+    $('err').textContent = err.message;
+    $('go').textContent = 'Get my character'; ready();
+  }
+});
+</script>
+</body>
+</html>

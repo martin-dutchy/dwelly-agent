@@ -377,3 +377,50 @@ describe('admin pages', () => {
     }
   });
 });
+
+describe('public sign-up', () => {
+  const env = { ADMIN_PASSWORD: 'pw', VOICE_TOOL_SECRET: 's', PUBLIC_JOIN_CODE: 'open-sesame' } as NodeJS.ProcessEnv;
+  const withServer = async (fn: (base: string, store: ReturnType<typeof memoryStore>) => Promise<void>) => {
+    const store = memoryStore();
+    const server = createVoiceServer(env, store).listen(0);
+    await new Promise((r) => server.once('listening', r));
+    try {
+      await fn(`http://127.0.0.1:${(server.address() as AddressInfo).port}`, store);
+    } finally {
+      server.close();
+    }
+  };
+  const join = (base: string, body: unknown, code = 'open-sesame') =>
+    fetch(`${base}/join/${code}/api`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+
+  it('needs the right code and consent', async () => {
+    await withServer(async (base) => {
+      expect((await (await fetch(`${base}/join/wrong-code`)).text())).toContain("isn't active");
+      expect((await join(base, { consent: true }, 'wrong-code')).status).toBe(200); // the closed page, not an API
+      expect((await join(base, { consent: false })).status).toBe(400);
+    });
+  });
+
+  it('rings UK numbers, gives everyone else a browser invite, and reuses an invite for the same number', async () => {
+    await withServer(async (base, store) => {
+      const uk = await (await join(base, { name: 'Sam', phone: '07700 900777', consent: true })).json();
+      expect(uk.link).toMatch(/^\/t\//);
+      const t = await store.testerByToken(uk.link.slice(3));
+      expect(t).toMatchObject({ phone: '+447700900777', daily_cap: 3, name: 'Public ·0777' });
+      expect(scenarios.find((s) => s.id === t!.scenario_id)?.source).toBeTruthy();
+      const nl = await (await join(base, { name: 'Anna', phone: '+31 6 12345678', consent: true })).json();
+      expect(nl).toMatchObject({ browserOnly: true, foreign: true });
+      expect((await store.testerByToken(nl.link.slice(3)))?.phone).toBeNull();
+      const again = await (await join(base, { name: 'Sam', phone: '+447700900777', consent: true })).json();
+      expect(again).toMatchObject({ link: uk.link, existing: true });
+    });
+  });
+
+  it('limits sign-ups per client', async () => {
+    await withServer(async (base) => {
+      const codes: number[] = [];
+      for (let i = 0; i < 11; i++) codes.push((await join(base, { name: `P${i}`, consent: true })).status);
+      expect(codes.at(-1)).toBe(429);
+    });
+  });
+});
