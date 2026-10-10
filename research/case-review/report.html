@@ -1,0 +1,338 @@
+<title>Northbridge Case Review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,600&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a single-column consulting memo, findings first, with wide evidence tables and one live ROI model. */
+:root{
+  --bg:#f5f6f3; --surface:#ffffff; --ink:#16201c; --muted:#5a6560; --line:#dde2de;
+  --accent:#0d6b58; --accent-soft:#d9ece6; --wait:#a8660f; --wait-soft:#f6e7cf; --bar-dim:#b9c6c0;
+  --f-display:"Newsreader",Georgia,"Times New Roman",serif;
+  --f-body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111715; --surface:#19211e; --ink:#e4eae7; --muted:#9aa7a1; --line:#2b3531;
+  --accent:#4cbfa2; --accent-soft:#16352d; --wait:#e2a64c; --wait-soft:#3a2c15; --bar-dim:#4a5752; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111715; --surface:#19211e; --ink:#e4eae7; --muted:#9aa7a1; --line:#2b3531;
+  --accent:#4cbfa2; --accent-soft:#16352d; --wait:#e2a64c; --wait-soft:#3a2c15; --bar-dim:#4a5752; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.6;padding-inline:20px;padding-block:40px 80px}
+.wrap{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:56px}
+.prose{max-width:680px}
+h1,h2,h3{font-family:var(--f-display);font-weight:600;text-wrap:balance;margin:0;line-height:1.15}
+h1{font-size:clamp(2.2rem,5vw,3.4rem);letter-spacing:-.01em}
+h2{font-size:1.9rem}
+h3{font-size:1.25rem}
+p{margin:0}
+.eyebrow{font-family:var(--f-mono);font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.lede{font-size:1.2rem;color:var(--ink);max-width:680px}
+section{display:flex;flex-direction:column;gap:20px}
+.sec-head{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:24px}
+.muted{color:var(--muted)}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.case{font-family:var(--f-mono);font-size:.85em;color:var(--accent);white-space:nowrap}
+/* hero answer */
+.answer{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:24px;display:flex;flex-direction:column;gap:14px}
+.answer ol{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:10px}
+.answer strong{font-weight:600}
+.pitch{font-family:var(--f-display);font-size:1.45rem;line-height:1.3;border-left:3px solid var(--accent);padding-left:16px}
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.stat{background:var(--surface);padding:18px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.stat .n{font-family:var(--f-display);font-size:2.4rem;line-height:1;font-variant-numeric:tabular-nums}
+.stat .n.wait{color:var(--wait)}
+.stat .l{font-size:.88rem;color:var(--muted);line-height:1.4}
+/* bar charts */
+.chart{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:20px;display:flex;flex-direction:column;gap:12px}
+.chart-title{font-weight:600}
+.bars{display:flex;flex-direction:column;gap:8px}
+.bar-row{display:grid;grid-template-columns:150px 1fr 70px;gap:12px;align-items:center;font-size:.92rem}
+.bar-track{height:18px;position:relative}
+.bar{height:100%;border-radius:0 4px 4px 0;background:var(--bar-dim);min-width:2px}
+.bar.hi{background:var(--wait)}
+.bar.ac{background:var(--accent)}
+.bar-row .v{font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right}
+.bar-row[title]{cursor:default}
+.note{font-size:.85rem;color:var(--muted)}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.split>*{min-width:0}
+/* stacked lifetime bar */
+.life{display:flex;height:34px;border-radius:4px;overflow:hidden;gap:2px}
+.life div{display:flex;align-items:center;padding-inline:10px;font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden}
+.life .silent{background:var(--wait-soft);color:var(--ink);border-left:4px solid var(--wait)}
+.life .moving{background:var(--accent-soft);color:var(--ink)}
+/* tables */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--bg)}
+tr:last-child td{border-bottom:none}
+td.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.pill{display:inline-block;font-size:.75rem;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.pill.go{background:var(--accent-soft);color:var(--accent)}
+.pill.mid{background:var(--wait-soft);color:var(--wait)}
+.rank{font-family:var(--f-display);font-size:1.6rem;color:var(--accent);line-height:1}
+/* story timeline */
+.story{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.story>div{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:20px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.tl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;font-size:.92rem}
+.tl li{display:grid;grid-template-columns:62px 1fr;gap:10px}
+.tl .d{font-family:var(--f-mono);color:var(--muted);font-size:.85rem}
+.tl .bad{color:var(--wait);font-weight:600}
+.tl .good{color:var(--accent);font-weight:600}
+.big{font-family:var(--f-display);font-size:2.6rem;line-height:1}
+blockquote{margin:0;font-family:var(--f-display);font-style:italic;font-size:1.1rem;color:var(--muted)}
+/* calculator */
+.calc{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:28px}
+.calc>*{min-width:0}
+.inputs{display:flex;flex-direction:column;gap:16px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:.9rem;font-weight:500;display:flex;justify-content:space-between;gap:8px}
+.field output{font-family:var(--f-mono);color:var(--accent);font-weight:600}
+.field small{color:var(--muted);font-size:.8rem}
+input[type=range]{width:100%;accent-color:var(--accent)}
+input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.outs{display:flex;flex-direction:column;gap:18px;border-left:1px solid var(--line);padding-left:28px}
+.out .n{font-family:var(--f-display);font-size:2.2rem;line-height:1.1;font-variant-numeric:tabular-nums}
+.out .l{font-size:.88rem;color:var(--muted)}
+/* build list */
+.build{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.build>div{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:18px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.build .tag{font-family:var(--f-mono);font-size:.75rem;color:var(--muted)}
+ul.tight{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:6px}
+footer{font-size:.85rem;color:var(--muted);border-top:1px solid var(--line);padding-top:20px;display:flex;flex-direction:column;gap:8px}
+@media (max-width:720px){
+  .split,.story,.calc{grid-template-columns:1fr}
+  .outs{border-left:none;padding-left:0;border-top:1px solid var(--line);padding-top:20px}
+  .bar-row{grid-template-columns:110px 1fr 56px}
+}
+@media (prefers-reduced-motion:no-preference){.bar{transition:width .5s ease-out}}
+</style>
+
+<div class="wrap">
+
+<header style="display:flex;flex-direction:column;gap:16px">
+  <span class="eyebrow">Case review · 50 Northbridge Lettings maintenance cases · 1,505 events · 10 Oct 2026</span>
+  <h1>Your maintenance jobs aren't slow because of the work. They're slow because nobody owns the next move.</h1>
+  <p class="lede">We read every event in all 50 public maintenance cases and measured where the time, the human effort and the errors go. Then we ranked what to build by return on effort.</p>
+</header>
+
+<div class="answer">
+  <span class="eyebrow">The answer</span>
+  <ol>
+    <li><strong>73% of a case's life is silence.</strong> Gaps of 3 days or more with no event add up to 1,029 of the 1,405 case-days. Most of that is unanswered contractors (524 days) and the agency itself not chasing (265 days). Landlords answer within hours when asked a clear question.</li>
+    <li><strong>79% of human touches are mechanical.</strong> Of 353 human actions logged, 278 are relays, reminders, hold notes and status toggles an agent can do outright. 72 need a human decision that can be prepared for them. Only 3 truly needed a person from start to finish.</li>
+    <li><strong>The errors are the risk, not the speed.</strong> 11 of 50 cases sent the wrong property, address or document to someone. 28 contain a wrong or contradictory date. Money is approved without a price in at least 5 cases and invoices are never checked against quotes.</li>
+  </ol>
+  <p class="pitch">What to build: a case worker that always knows who owes the next move, chases on a clock, checks every message before it leaves, and hands a human a decision, never a chase.</p>
+</div>
+
+<section>
+  <div class="stats">
+    <div class="stat"><span class="n">18.1</span><span class="l">median days open per case (mean 28, longest 136)</span></div>
+    <div class="stat"><span class="n wait">73%</span><span class="l">of case lifetime spent in silent gaps of 3+ days</span></div>
+    <div class="stat"><span class="n">79%</span><span class="l">of 353 human touches fully automatable, 20% more partly</span></div>
+    <div class="stat"><span class="n wait">22%</span><span class="l">of cases sent the wrong property, address or document</span></div>
+    <div class="stat"><span class="n">1.9</span><span class="l">messages a contractor needs before replying (median wait 22 h)</span></div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head">
+    <span class="eyebrow">Finding 1 · Time</span>
+    <h2>The clock runs while everyone waits</h2>
+  </div>
+  <p class="prose">Across 50 cases the median job needed one visit, yet stayed open 18 days. Landlords are rarely the bottleneck: case <span class="case">049</span> got approval in 5 minutes, <span class="case">050</span> in 30, <span class="case">042</span> in an hour. The days disappear between messages, when a contractor has gone quiet or a hold note is re-filed without anyone being chased.</p>
+
+  <div class="chart">
+    <span class="chart-title">Where a case's life goes (all 50 cases, 1,405 case-days)</span>
+    <div class="life" role="img" aria-label="73 percent silent gaps of 3 or more days, 27 percent active">
+      <div class="silent" style="flex:73">73% silent gaps ≥ 3 days</div>
+      <div class="moving" style="flex:27">27% moving</div>
+    </div>
+    <span class="note">135 gaps of 3+ days with no event of any kind. Computed from event timestamps.</span>
+  </div>
+
+  <div class="split">
+    <div class="chart">
+      <span class="chart-title">Delay days, by who the case was waiting on</span>
+      <div class="bars" id="delayBars"></div>
+      <span class="note">Sum of delay stretches identified by case analysts across all 50 cases. "Agency" means the agency had the next move and didn't make it.</span>
+    </div>
+    <div class="chart">
+      <span class="chart-title">Reply time after the agency writes</span>
+      <div class="tbl-wrap" style="border:none">
+      <table>
+        <thead><tr><th>Party</th><th>Median</th><th>Mean</th><th>Never replied</th></tr></thead>
+        <tbody>
+          <tr><td>Landlord</td><td class="num">3.5 h</td><td class="num">94 h</td><td class="num">15 threads</td></tr>
+          <tr><td>Contractor</td><td class="num">22 h</td><td class="num">60 h</td><td class="num">12 threads</td></tr>
+          <tr><td>Tenant</td><td class="num">3.1 h</td><td class="num">171 h</td><td class="num">32 threads</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <span class="note">The gap between median and mean is the story: most replies are quick, and a few threads go quiet for weeks with nobody escalating. The system's own "3+ reminders" alert fired 6 times and handed the case to a human, who usually filed another hold.</span>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head">
+    <span class="eyebrow">Case 047 · what this looks like</span>
+    <h2>111 days for a window that wouldn't shut</h2>
+  </div>
+  <div class="story">
+    <div>
+      <span class="eyebrow">What happened</span>
+      <span class="big" style="color:var(--wait)">111 days</span>
+      <ol class="tl">
+        <li><span class="d">Day 1</span><span>Tenant reports bedroom window. Landlord emailed about the toilet the tenant had already fixed.</span></li>
+        <li><span class="d">Day 9</span><span>Provider assigned without a recorded approval.</span></li>
+        <li><span class="d">Day 10–13</span><span class="bad">3 emails and 3 SMS to the contractor. No reply.</span></li>
+        <li><span class="d">Day 14–107</span><span class="bad">Eight identical holds: "awaiting update". No message sent to anyone for 93 days.</span></li>
+        <li><span class="d">Day 111</span><span>Landlord's own contractor fixed it. Closed without asking the tenant.</span></li>
+      </ol>
+    </div>
+    <div>
+      <span class="eyebrow">With a case worker that owns the next move</span>
+      <span class="big" style="color:var(--accent)">≈ 5 days</span>
+      <ol class="tl">
+        <li><span class="d">Day 0</span><span>Reads the tenant's update first, asks the landlord only about the window, with a price cap.</span></li>
+        <li><span class="d">Day 2</span><span>Landlord silent for 48 h: SMS, then proceed under standing authority or escalate one clear question.</span></li>
+        <li><span class="d">Day 3</span><span class="good">Contractor silent for 48 h: re-dispatch to the next provider on the list.</span></li>
+        <li><span class="d">Weekly</span><span>Status update to tenant and landlord, so nobody has to chase.</span></li>
+        <li><span class="d">Day 5</span><span class="good">Visit, invoice checked against quote, tenant confirms it closes. Closed.</span></li>
+      </ol>
+    </div>
+  </div>
+  <p class="note">The right column is our estimate of what the same events would allow, not a measured result.</p>
+</section>
+
+<section>
+  <div class="sec-head">
+    <span class="eyebrow">Finding 2 · Human effort</span>
+    <h2>People are doing a router's job</h2>
+  </div>
+  <p class="prose">We classified every human action in the 50 histories. The work is relaying a quote, forwarding an approval, sending a reminder, re-filing a hold, toggling a state the system got wrong. Dwelly already reports about 5 escalations and 15–20 minutes of human time per task. Most of what is left looks like this.</p>
+  <div class="chart">
+    <span class="chart-title">353 human touches, by whether an agent could take them</span>
+    <div class="bars" id="touchBars"></div>
+    <span class="note">Partly: the agent prepares the decision and a human approves it. Examples: a spend approval above a landlord's cap, tenant-vs-landlord liability, an unapproved alteration such as a dog flap (case <span class="case">020</span>).</span>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head">
+    <span class="eyebrow">Finding 3 · Trust and money</span>
+    <h2>The errors that cost landlords</h2>
+  </div>
+  <p class="prose">A slow job annoys a tenant. A wrong one costs a landlord. These are counted from the analysts' per-case notes.</p>
+  <div class="tbl-wrap">
+  <table>
+    <thead><tr><th>Error</th><th>Cases</th><th>Examples</th><th>Why it matters</th></tr></thead>
+    <tbody>
+      <tr><td>Wrong property, address or document sent</td><td class="num">11 / 50</td><td><span class="case">008</span> chasers carry another tenancy's address five times; landlord got the checkout report instead of the estimate. <span class="case">015</span> Flat 10 instead of Flat 16.</td><td>Personal data sent to the wrong person. Landlord loses trust.</td></tr>
+      <tr><td>Wrong or contradictory dates</td><td class="num">28 / 50</td><td><span class="case">039</span> "Monday" 13 Sep 2025 is a Saturday. <span class="case">036</span> agency says 3 Nov, contractor says 4 Nov.</td><td>Missed visits, wasted call-outs, tenant takes a day off for nothing.</td></tr>
+      <tr><td>Money approved blind or not reconciled</td><td class="num">≥ 8 / 50</td><td><span class="case">050</span> landlord told £49.40 inc VAT against quotes of £35 or £90 + VAT. <span class="case">013</span> £162.85 invoiced with no quote. <span class="case">019</span> £500 + VAT shown as a "revised" £600.</td><td>Landlord disputes, write-offs, chargebacks.</td></tr>
+      <tr><td>Warranty or recharge missed</td><td class="num">several</td><td><span class="case">025</span> oven covered by a 2-year manufacturer warranty after the installer said no. <span class="case">008</span> £670 spread between quotes; burnt carpet not recharged to deposit.</td><td>Landlord pays for something they shouldn't.</td></tr>
+      <tr><td>Missing evidence</td><td class="num">22 / 50</td><td>Invoices, photos and quotes "unavailable". Before/after photos skipped on checkout works.</td><td>Deposit deductions can't be defended.</td></tr>
+      <tr><td>Ghost alerts and wrong gates</td><td class="num">≥ 11 / 50</td><td>"No work results" after work was reported done (<span class="case">044</span>, <span class="case">048</span>). Key-return check forced on oven and window jobs.</td><td>Staff clear noise instead of doing work.</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head">
+    <span class="eyebrow">Recommendations, ranked by return on effort</span>
+    <h2>Six things to build, in order</h2>
+  </div>
+  <div class="tbl-wrap">
+  <table>
+    <thead><tr><th></th><th>Build</th><th>What it fixes</th><th>Impact</th><th>Effort</th><th>Live tomorrow?</th></tr></thead>
+    <tbody>
+      <tr><td><span class="rank">1</span></td><td><strong>Next-move owner and chase clock</strong><br><span class="muted">Every case always records who owes the next move and by when. 24 h nudge, 48 h switch channel, 72 h re-dispatch to the next contractor or ask one clear question. 24 h after a visit, confirm with contractor and tenant.</span></td><td>The 73% silence. 524 contractor days and 265 agency days.</td><td>Mean case from about 28 to 20 days</td><td>Low</td><td><span class="pill go">Yes, reads existing holds</span></td></tr>
+      <tr><td><span class="rank">2</span></td><td><strong>Send guard</strong><br><span class="muted">Every outbound message is checked before sending: right property, right person, the date is real and in the future, the weekday matches, the amount matches the quote.</span></td><td>Wrong-flat emails (22% of cases) and bad dates (56%).</td><td>Removes a whole class of data-leak and missed-visit errors</td><td>Low, mostly rules</td><td><span class="pill go">Yes</span></td></tr>
+      <tr><td><span class="rank">3</span></td><td><strong>Decision cards instead of escalations</strong><br><span class="muted">When a human is needed, they get one question, the evidence and 2–3 options with the emails already drafted. One tap and the agent carries it out and confirms it happened.</span></td><td>The 20% of touches that need judgement, and Dwelly's ~5 escalations per task.</td><td>Human time per task from 15–20 min toward 5</td><td>Medium</td><td><span class="pill go">Yes, on top of 1</span></td></tr>
+      <tr><td><span class="rank">4</span></td><td><strong>Money guard</strong><br><span class="muted">Ask approval with a price and a cap. Compare quotes VAT-normalised. Check every invoice against its quote. Check warranty and tenant liability on day 1.</span></td><td>Blind approvals, unreconciled invoices, missed warranties and recharges.</td><td>Fewer landlord disputes and write-offs</td><td>Medium</td><td><span class="pill mid">Pilot on one branch</span></td></tr>
+      <tr><td><span class="rank">5</span></td><td><strong>Close-out that fits the job</strong><br><span class="muted">Only ask for keys when keys were handed over. Always get the tenant to confirm it works. Split second issues into their own case. Open a follow-up for every risk raised.</span></td><td>Ghost alerts, forced gates, the leaking roof left open in <span class="case">024</span>.</td><td>Fewer reopenings and dropped issues</td><td>Low</td><td><span class="pill go">Yes</span></td></tr>
+      <tr><td><span class="rank">6</span></td><td><strong>Escalation analytics</strong><br><span class="muted">For every escalation, log what information was missing, what blocked the agent and how long the human took. Repeated, low-judgement escalations become the next capability to build.</span></td><td>Dwelly's own stated next step for its agent platform.</td><td>Shows which automation to build next</td><td>Low once 1–3 exist</td><td><span class="pill mid">Week 2</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head">
+    <span class="eyebrow">Return model</span>
+    <h2>What it's worth at Dwelly's volume</h2>
+  </div>
+  <p class="prose">Starting point: Dwelly's published figures, 1,000+ maintenance tasks a month and 15–20 minutes of human time per task. Every other input is an assumption you can move.</p>
+  <div class="calc">
+    <div class="inputs">
+      <div class="field"><label for="tasks">Maintenance tasks per month <output id="o-tasks"></output></label><input type="range" id="tasks" min="500" max="5000" step="100" value="1000"><small>Dwelly reported 1,000+ in Aug 2026; grows with each acquired agency.</small></div>
+      <div class="field"><label for="minsNow">Human minutes per task today <output id="o-minsNow"></output></label><input type="range" id="minsNow" min="10" max="30" step="0.5" value="17.5"><small>Dwelly's published figure is 15–20.</small></div>
+      <div class="field"><label for="minsAfter">Human minutes per task with decision cards <output id="o-minsAfter"></output></label><input type="range" id="minsAfter" min="2" max="15" step="0.5" value="6"><small>Assumption: about 1.5 decisions at 3 min, plus a check.</small></div>
+      <div class="field"><label for="rate">Loaded cost of an hour of staff time <output id="o-rate"></output></label><input type="range" id="rate" min="15" max="45" step="1" value="25"><small>Assumption.</small></div>
+      <div class="field"><label for="cut">Share of contractor and agency waiting removed <output id="o-cut"></output></label><input type="range" id="cut" min="10" max="80" step="5" value="50"><small>The sample has 15.8 days of such waiting per case.</small></div>
+    </div>
+    <div class="outs" aria-live="polite">
+      <div class="out"><div class="n mono" id="r-hours"></div><div class="l">staff hours freed per year</div></div>
+      <div class="out"><div class="n mono" id="r-cost"></div><div class="l">per year in staff time, or the same team running more properties</div></div>
+      <div class="out"><div class="n mono" id="r-days"></div><div class="l">fewer days open per case on average</div></div>
+      <div class="out"><div class="n mono" id="r-tdays"></div><div class="l">fewer tenant-days with something broken, per year</div></div>
+    </div>
+  </div>
+  <p class="note prose">Staff time is the smallest part of the prize. The bigger ones are harder to price and we haven't tried: landlords who stay because jobs close in days, not months; no wrong-flat data incidents; disputes that don't happen; and newly acquired agencies onboarded without hiring more property managers.</p>
+</section>
+
+<section>
+  <div class="sec-head">
+    <span class="eyebrow">What we're building today</span>
+    <h2>From review to a working case worker</h2>
+  </div>
+  <p class="prose">Our hackathon entry already takes a case at any point in its history, decides the next action, performs it with tools, reads back that it happened, and escalates with a handover packet. Today we add the top three recommendations to it, so the review and the product tell one story.</p>
+  <div class="build">
+    <div><span class="tag">Recommendation 1</span><h3>Next-move owner</h3><ul class="tight"><li>Every decision records who owes the next move and the deadline.</li><li>Chase, switch channel or re-dispatch instead of filing another hold.</li></ul></div>
+    <div><span class="tag">Recommendation 2</span><h3>Send guard</h3><ul class="tight"><li>A check on every outbound message for property, person, date and amount.</li><li>A blocked send is logged and fixed, never silently sent.</li></ul></div>
+    <div><span class="tag">Recommendation 3</span><h3>Decision cards</h3><ul class="tight"><li>Escalations become one question with options and drafted messages.</li><li>Paired with voice: a call becomes one more way to answer a card.</li></ul></div>
+  </div>
+</section>
+
+<footer>
+  <span><strong>Method.</strong> Event timing, reply times, silent gaps and system prompts were computed by script from all 1,505 events in the 50 public Property Management cases. Human-touch classification, delay attribution, error categories and the case 047 counterfactual come from a full read of every case by five analysts working from the same template, and are estimates. The cases are synthetic exports provided by the hackathon organisers, so counts describe this sample, not Dwelly's live book. Dwelly volumes and minutes per task are from Dwelly's 3 Sep 2026 operations blog.</span>
+</footer>
+</div>
+
+<script>
+(function(){
+  var delay=[["Contractor",524,"hi"],["Agency",265,"hi"],["Landlord",205,""],["Other or unclear",113,""],["Tenant",72,""]];
+  var touch=[["Fully automatable",278,"ac"],["Partly: prepare, human approves",72,""],["Needs a human",3,""]];
+  function draw(id,rows,unit){
+    var el=document.getElementById(id),max=Math.max.apply(null,rows.map(function(r){return r[1]}));
+    rows.forEach(function(r){
+      var row=document.createElement("div");row.className="bar-row";row.title=r[0]+": "+r[1]+" "+unit;
+      row.innerHTML='<span>'+r[0]+'</span><div class="bar-track"><div class="bar '+r[2]+'" style="width:'+(r[1]/max*100)+'%"></div></div><span class="v">'+r[1]+'</span>';
+      el.appendChild(row);
+    });
+  }
+  draw("delayBars",delay,"days");draw("touchBars",touch,"touches");
+  var f=function(n){return Math.round(n).toLocaleString("en-GB")};
+  var ids=["tasks","minsNow","minsAfter","rate","cut"];
+  function calc(){
+    var v={};ids.forEach(function(i){v[i]=parseFloat(document.getElementById(i).value)});
+    document.getElementById("o-tasks").textContent=f(v.tasks);
+    document.getElementById("o-minsNow").textContent=v.minsNow+" min";
+    document.getElementById("o-minsAfter").textContent=v.minsAfter+" min";
+    document.getElementById("o-rate").textContent="£"+v.rate;
+    document.getElementById("o-cut").textContent=v.cut+"%";
+    var yearly=v.tasks*12, hours=Math.max(0,v.minsNow-v.minsAfter)*yearly/60, days=15.8*v.cut/100;
+    document.getElementById("r-hours").textContent=f(hours);
+    document.getElementById("r-cost").textContent="£"+f(hours*v.rate);
+    document.getElementById("r-days").textContent=days.toFixed(1);
+    document.getElementById("r-tdays").textContent=f(days*yearly);
+  }
+  ids.forEach(function(i){document.getElementById(i).addEventListener("input",calc)});calc();
+})();
+</script>
