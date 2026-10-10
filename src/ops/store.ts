@@ -8,7 +8,7 @@ import postgres from 'postgres';
  * its organiser-format index.md and history.md, so the case worker can be re-run from the latest state.
  */
 
-export type CaseStatus = 'agent_working' | 'waiting_on_human' | 'waiting_on_party' | 'closed' | 'failed';
+export type CaseStatus = 'queued' | 'agent_working' | 'waiting_on_human' | 'waiting_on_party' | 'closed' | 'failed';
 export type OpsCase = {
   id: string;
   title: string;
@@ -21,6 +21,10 @@ export type OpsCase = {
   history_md: string;
   /** Cases in another layout (our practice cases): every file by relative path. Takes precedence over index/history. */
   files?: Record<string, string> | null;
+  /** Set when the case belongs to an eval run; such cases stay out of the live decisions inbox. */
+  batch_id?: string | null;
+  /** The judge's grade for an eval-run case. */
+  grade?: CaseGrade | null;
   created_at: string;
   updated_at: string;
 };
@@ -52,6 +56,19 @@ export type OpsEvent = {
   status: string | null;
   run_id: string | null;
   data: Record<string, unknown> | null;
+};
+
+export type CaseGrade = { score: number; critical: string[]; failed_required: string[]; red_flags: string[]; note: string };
+export type Batch = {
+  id: string;
+  name: string;
+  case_set: string;
+  total: number;
+  /** Where ANSWER.md / REASONING.md / result.json are written for the judge. */
+  answers_dir: string;
+  cases_dir: string;
+  grading: 'not_started' | 'running' | 'done' | 'failed';
+  created_at: string;
 };
 
 export type TaskContext = {
@@ -107,6 +124,12 @@ export interface OpsStore {
   setStatus(id: string, status: CaseStatus): Promise<void>;
   setHistory(id: string, history_md: string): Promise<void>;
   setFiles(id: string, files: Record<string, string>): Promise<void>;
+  setGrade(id: string, grade: CaseGrade): Promise<void>;
+  addBatch(b: Omit<Batch, 'created_at'>): Promise<Batch>;
+  getBatch(id: string): Promise<Batch | undefined>;
+  listBatches(): Promise<Batch[]>;
+  setGrading(id: string, grading: Batch['grading']): Promise<void>;
+  batchCases(batchId: string): Promise<OpsCase[]>;
   addEvents(events: OpsEvent[]): Promise<void>;
   events(caseId: string): Promise<OpsEvent[]>;
   addTask(t: Omit<HumanTask, 'id' | 'created_at' | 'resolved_at' | 'decision' | 'status'>): Promise<HumanTask>;
@@ -127,6 +150,7 @@ export function memoryOpsStore(): OpsStore {
   const events: OpsEvent[] = [];
   const tasks = new Map<string, HumanTask>();
   const runs = new Map<string, OpsRun>();
+  const batches = new Map<string, Batch>();
   let seq = 0;
   const touch = (id: string) => {
     const c = cases.get(id);
@@ -141,7 +165,11 @@ export function memoryOpsStore(): OpsStore {
       return row;
     },
     getCase: async (id) => cases.get(id),
-    listCases: async (limit = 200) => [...cases.values()].sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, limit),
+    listCases: async (limit = 200) =>
+      [...cases.values()]
+        .filter((c) => !c.batch_id)
+        .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
+        .slice(0, limit),
     async setStatus(id, status) {
       const c = cases.get(id);
       if (c) Object.assign(c, { status, updated_at: now() });
@@ -154,6 +182,22 @@ export function memoryOpsStore(): OpsStore {
       const c = cases.get(id);
       if (c) Object.assign(c, { files, updated_at: now() });
     },
+    async setGrade(id, grade) {
+      const c = cases.get(id);
+      if (c) c.grade = grade;
+    },
+    async addBatch(b) {
+      const row = { ...b, created_at: now() };
+      batches.set(b.id, row);
+      return row;
+    },
+    getBatch: async (id) => batches.get(id),
+    listBatches: async () => [...batches.values()].sort((a, b) => b.created_at.localeCompare(a.created_at)),
+    async setGrading(id, grading) {
+      const b = batches.get(id);
+      if (b) b.grading = grading;
+    },
+    batchCases: async (batchId) => [...cases.values()].filter((c) => c.batch_id === batchId).sort((a, b) => a.id.localeCompare(b.id)),
     async addEvents(es) {
       for (const e of es) events.push({ ...e, id: ++seq });
       for (const id of new Set(es.map((e) => e.case_id))) touch(id);
@@ -195,6 +239,12 @@ const SCHEMA = [
     status text not null, index_md text not null, history_md text not null,
     created_at timestamptz not null default now(), updated_at timestamptz not null default now())`,
   `alter table ops_cases add column if not exists files jsonb`,
+  `alter table ops_cases add column if not exists batch_id text`,
+  `alter table ops_cases add column if not exists grade jsonb`,
+  `create index if not exists ops_cases_batch_idx on ops_cases (batch_id)`,
+  `create table if not exists ops_batches (
+    id text primary key, name text not null, case_set text not null, total int not null, answers_dir text not null,
+    cases_dir text not null, grading text not null default 'not_started', created_at timestamptz not null default now())`,
   `create table if not exists ops_events (
     id bigserial primary key, case_id text not null, ts timestamptz not null, kind text not null, actor text not null,
     title text not null, detail text, status text, run_id text, data jsonb)`,
@@ -222,8 +272,8 @@ export function pgOpsStore(url: string): OpsStore {
       for (const s of SCHEMA) await sql.unsafe(s);
     },
     async upsertCase(c) {
-      const [r] = await sql`insert into ops_cases (id, title, property, source, source_ref, status, index_md, history_md, files)
-        values (${c.id}, ${c.title}, ${c.property}, ${c.source}, ${c.source_ref}, ${c.status}, ${c.index_md}, ${c.history_md}, ${json(c.files ?? null)})
+      const [r] = await sql`insert into ops_cases (id, title, property, source, source_ref, status, index_md, history_md, files, batch_id)
+        values (${c.id}, ${c.title}, ${c.property}, ${c.source}, ${c.source_ref}, ${c.status}, ${c.index_md}, ${c.history_md}, ${json(c.files ?? null)}, ${c.batch_id ?? null})
         on conflict (id) do update set title = excluded.title, property = excluded.property, status = excluded.status,
           index_md = excluded.index_md, history_md = excluded.history_md, files = excluded.files, updated_at = now()
         returning *`;
@@ -233,7 +283,7 @@ export function pgOpsStore(url: string): OpsStore {
       const [r] = await sql`select * from ops_cases where id = ${id}`;
       return r ? caseRow(r) : undefined;
     },
-    listCases: async (limit = 200) => (await sql`select * from ops_cases order by updated_at desc limit ${limit}`).map(caseRow),
+    listCases: async (limit = 200) => (await sql`select * from ops_cases where batch_id is null order by updated_at desc limit ${limit}`).map(caseRow),
     async setStatus(id, status) {
       await sql`update ops_cases set status = ${status}, updated_at = now() where id = ${id}`;
     },
@@ -243,6 +293,23 @@ export function pgOpsStore(url: string): OpsStore {
     async setFiles(id, files) {
       await sql`update ops_cases set files = ${json(files)}, updated_at = now() where id = ${id}`;
     },
+    async setGrade(id, grade) {
+      await sql`update ops_cases set grade = ${json(grade)} where id = ${id}`;
+    },
+    async addBatch(b) {
+      const [r] = await sql`insert into ops_batches (id, name, case_set, total, answers_dir, cases_dir, grading)
+        values (${b.id}, ${b.name}, ${b.case_set}, ${b.total}, ${b.answers_dir}, ${b.cases_dir}, ${b.grading}) returning *`;
+      return dates<Batch>(r, ['created_at']);
+    },
+    getBatch: async (id) => {
+      const [r] = await sql`select * from ops_batches where id = ${id}`;
+      return r ? dates<Batch>(r, ['created_at']) : undefined;
+    },
+    listBatches: async () => (await sql`select * from ops_batches order by created_at desc`).map((r) => dates<Batch>(r, ['created_at'])),
+    async setGrading(id, grading) {
+      await sql`update ops_batches set grading = ${grading} where id = ${id}`;
+    },
+    batchCases: async (batchId) => (await sql`select * from ops_cases where batch_id = ${batchId} order by id`).map(caseRow),
     async addEvents(es) {
       for (const e of es)
         await sql`insert into ops_events (case_id, ts, kind, actor, title, detail, status, run_id, data)

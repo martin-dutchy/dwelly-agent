@@ -33,6 +33,8 @@ export function appendHistoryEvent(historyMd: string, e: { channel: string; from
 }
 
 export type WorkerOptions = {
+  /** Case-worker runs in parallel across cases (runs on one case never overlap). */
+  concurrency?: number;
   model?: string;
   timeoutMs?: number;
   /** Test seam: replace the real case worker. */
@@ -43,7 +45,7 @@ export function createWorker(store: OpsStore, opts: WorkerOptions = {}) {
   const chains = new Map<string, Promise<void>>();
   let active = 0;
   const waiting: (() => void)[] = [];
-  const MAX = Number(process.env.OPS_CONCURRENCY ?? 2);
+  const MAX = opts.concurrency ?? Number(process.env.OPS_CONCURRENCY ?? 2);
   const slot = async () => {
     if (active < MAX) return void active++;
     await new Promise<void>((r) => waiting.push(r));
@@ -98,12 +100,19 @@ export function createWorker(store: OpsStore, opts: WorkerOptions = {}) {
       for (const t of tasks) await store.addTask(t);
       await store.setStatus(caseId, status);
       const usage = { input: 0, output: 0, cost: out.cost ?? 0, turns: 0, durationMs: 0 };
-      await store.finishRun(runId, {
-        outcome: out.decision?.outcome ?? 'no_decision',
-        cost: out.cost ?? null,
-        answer_md: renderAnswer(loaded, out.decision, out.ledger, out.error),
-        reasoning_md: renderReasoning(loaded, out.decision, out.ledger, out.messages ?? [], usage, out.error, { policyLog: out.policyLog }),
-      });
+      const answer_md = renderAnswer(loaded, out.decision, out.ledger, out.error);
+      const reasoning_md = renderReasoning(loaded, out.decision, out.ledger, out.messages ?? [], usage, out.error, { policyLog: out.policyLog });
+      await store.finishRun(runId, { outcome: out.decision?.outcome ?? 'no_decision', cost: out.cost ?? null, answer_md, reasoning_md });
+      // Eval-run cases also land on disk in the batch runner's layout, so `pnpm eval` can grade them.
+      const batch = c.batch_id ? await store.getBatch(c.batch_id) : undefined;
+      if (batch && c.source_ref) {
+        const [caseNo, cut] = c.source_ref.split('@');
+        const outDir = join(batch.answers_dir, caseNo);
+        mkdirSync(outDir, { recursive: true });
+        writeFileSync(join(outDir, 'ANSWER.md'), answer_md);
+        writeFileSync(join(outDir, 'REASONING.md'), reasoning_md);
+        writeFileSync(join(outDir, 'result.json'), JSON.stringify({ id: caseNo, cutoff: Number(cut), decision: out.decision, ledger: out.ledger, policyLog: out.policyLog, error: out.error, cost: out.cost }, null, 2));
+      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       console.error(`[ops] run ${runId} on ${caseId}`, e);

@@ -12,9 +12,9 @@ import type { HumanTask, OpsCase, OpsEvent, OpsRun } from './store.js';
 export const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
 const LONDON = { timeZone: 'Europe/London' } as const;
-const time = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { ...LONDON, hour: '2-digit', minute: '2-digit' });
+export const time = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { ...LONDON, hour: '2-digit', minute: '2-digit' });
 const day = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { ...LONDON, weekday: 'short', day: 'numeric', month: 'short' });
-const ago = (iso: string) => {
+export const ago = (iso: string) => {
   const m = Math.round((Date.now() - Date.parse(iso)) / 60_000);
   return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`;
 };
@@ -176,10 +176,10 @@ button.primary { font:inherit; font-weight:600; padding:10px 18px; border-radius
 }
 `;
 
-function layout(title: string, body: string, o: { openTasks?: number; refresh?: boolean } = {}) {
+export function layout(title: string, body: string, o: { openTasks?: number; refresh?: boolean } = {}) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>${o.refresh ? '<meta http-equiv="refresh" content="6">' : ''}${FONTS}<style>${STYLE}</style></head>
-<body><nav class="top" aria-label="Main"><a class="brand" href="/ops">Dwelly operations</a><a class="nav" href="/ops">Decisions${o.openTasks ? `<span class="count">${o.openTasks}</span>` : ''}</a><a class="nav" href="/admin">Voice calls</a></nav>
+<body><nav class="top" aria-label="Main"><a class="brand" href="/ops">Dwelly operations</a><a class="nav" href="/ops">Decisions${o.openTasks ? `<span class="count">${o.openTasks}</span>` : ''}</a><a class="nav" href="/ops/evals">Eval runs</a><a class="nav" href="/admin">Voice calls</a></nav>
 <main>${body}</main></body></html>`;
 }
 
@@ -199,6 +199,7 @@ export function summarise(c: OpsCase, events: OpsEvent[], openTasks: HumanTask[]
   if (failedActs) flags.push({ label: `${failedActs} failed`, tone: 'alert' });
   const base = { flags, live: c.status === 'agent_working', done: acts.length, confirmed: acts.filter((e) => e.status === 'verified').length, denied };
 
+  if (c.status === 'queued') return { ...base, ball: 'Queued for the case worker.' };
   if (c.status === 'agent_working') return { ...base, ball: 'The case worker is on it.' };
   if (c.status === 'failed') return { ...base, flags: [{ label: 'agent failed', tone: 'alert' }, ...flags], ball: 'The case worker could not finish. Someone needs to pick this up.' };
   const task = openTasks[0];
@@ -331,7 +332,7 @@ export function casePage(o: { c: OpsCase; events: OpsEvent[]; tasks: HumanTask[]
   ].join('');
   return layout(
     `${c.title}: Dwelly operations`,
-    `<div class="crumbs"><a href="/ops">Decisions</a> / ${esc(c.title)}</div>
+    `<div class="crumbs">${c.batch_id ? `<a href="/ops/evals/${esc(c.batch_id)}">Eval run</a>` : '<a href="/ops">Decisions</a>'} / ${esc(c.title)}</div>
 <div class="case-head"><div class="measure">
 <p class="case-title">${esc(c.title)}${c.property ? `, ${esc(c.property)}` : ''}</p>
 <h1 class="ball">${s.live ? '<span class="live" aria-hidden="true"></span>' : ''}${esc(s.ball)}</h1>

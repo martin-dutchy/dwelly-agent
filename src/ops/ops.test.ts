@@ -183,3 +183,48 @@ describe('portal routes', () => {
     }
   });
 });
+
+describe('eval runs', () => {
+  it('runs a case set through the worker and summarises why cases stopped short', async () => {
+    const { startBatch } = await import('./batch.js');
+    const { batchView } = await import('./batchView.js');
+    const store = memoryOpsStore();
+    let n = 0;
+    const worker = createWorker(store, {
+      concurrency: 3,
+      runner: async () => {
+        n++;
+        // Case 1 escalates, case 2 has a policy denial and a failed write, case 3 acts cleanly.
+        if (n === 1) return { decision: decision(), ledger: [entry('A1', 'escalate_to_human', escalation)] };
+        if (n === 2)
+          return {
+            decision: decision({ outcome: 'action_taken', next_actions: [{ type: 'CHASE_PROVIDER', action: 'Chase', recipient: 'Swift, contractor', channel: 'email', ledger_id: 'A1' }] }),
+            ledger: [entry('A1', 'send_message', { recipient_name: 'Swift', recipient_role: 'contractor', channel: 'email', body: 'Date?' }), entry('A2', 'assign_contractor', { contractor: 'Swift' }, 'failed')],
+            policyLog: [{ tool: 'approve_quote', reason: 'No recorded landlord approval covers £640. Send it to the landlord.' }],
+          };
+        return { decision: decision({ outcome: 'action_taken', next_actions: [{ type: 'ASSIGN_PROVIDER', action: 'Assign', recipient: 'Swift, contractor', channel: 'email', ledger_id: 'A1' }] }), ledger: [entry('A1', 'assign_contractor', { contractor: 'Swift' })] };
+      },
+    });
+    const b = await startBatch(store, worker, 'pm-public', ['003', '021', '032']);
+    expect(b.total).toBe(3);
+    // Eval-run cases stay out of the live inbox.
+    expect(await store.listCases()).toHaveLength(0);
+    await new Promise((r) => setTimeout(r, 100));
+    const cs = await store.batchCases(b.id);
+    const events: Record<string, Awaited<ReturnType<typeof store.events>>> = {};
+    for (const c of cs) events[c.id] = await store.events(c.id);
+    const v = batchView(cs, events, await store.listTasks(), {});
+    expect(v.done).toBe(3);
+    expect(v.needed).toHaveLength(1);
+    expect(v.denials).toMatchObject([{ tool: 'approve_quote', cases: [expect.anything()] }]);
+    expect(v.notThrough).toMatchObject([{ tool: 'assign_contractor' }]);
+    expect(v.tools.find((t) => t.tool === 'assign_contractor')).toMatchObject({ requested: 2, confirmed: 1, notThrough: 1 });
+    expect(v.tools.find((t) => t.tool === 'approve_quote')).toMatchObject({ requested: 1, denied: 1 });
+    expect(Object.fromEntries(v.outcomes)).toEqual({ escalated: 1, action_taken: 2 });
+    // The judge's files are on disk in the batch runner's layout.
+    const { existsSync, rmSync } = await import('node:fs');
+    expect(existsSync(`${b.answers_dir}/021/ANSWER.md`)).toBe(true);
+    expect(JSON.parse((await import('node:fs')).readFileSync(`${b.answers_dir}/021/result.json`, 'utf8')).cutoff).toBeGreaterThan(0);
+    rmSync(b.answers_dir, { recursive: true, force: true });
+  });
+});

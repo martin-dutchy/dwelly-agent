@@ -1,5 +1,10 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { CallRow, EventRow } from '../voice/store.js';
+import { readdirSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+import { CASE_SETS, gradeBatch, startBatch } from './batch.js';
+import { batchView } from './batchView.js';
+import { evalRunPage, evalsPage } from './evalPages.js';
 import { decideTask, ingestCall, ingestPracticeCase, ingestPublicCase } from './ingest.js';
 import { casePage, inboxPage, taskPage, textPage } from './pages.js';
 import { type OpsStore, createOpsStore } from './store.js';
@@ -13,14 +18,17 @@ import { type Worker, createWorker } from './worker.js';
  *   /ops/api/...             the same data as JSON
  */
 
-export type Ops = { store: OpsStore; worker: Worker; onCallFinalized: (call: CallRow, events: EventRow[]) => Promise<void> };
+export type Ops = { store: OpsStore; worker: Worker; evalWorker: Worker; onCallFinalized: (call: CallRow, events: EventRow[]) => Promise<void> };
 
 export async function createOps(store: OpsStore = createOpsStore()): Promise<Ops> {
   await store.init();
   const worker = createWorker(store);
+  // Eval runs get their own pool so a 50-case run never delays live follow-ups after calls.
+  const evalWorker = createWorker(store, { concurrency: Number(process.env.OPS_EVAL_CONCURRENCY ?? 6) });
   return {
     store,
     worker,
+    evalWorker,
     // Never let a follow-up failure reach the voice server: it is logged and shown on the case instead.
     onCallFinalized: async (call, events) => {
       if (process.env.OPS_AUTO_FOLLOW_UP === '0') return;
@@ -55,11 +63,17 @@ async function eventsOf(store: OpsStore, ids: string[]) {
 
 export async function opsRoutes(path: string, req: IncomingMessage, res: ServerResponse, ops: Ops) {
   const { store, worker } = ops;
-  const openTasks = async () => (await store.listTasks({ status: 'open' })).length;
+  // The decisions inbox is for live work: tasks raised inside eval runs are shown on the run instead.
+  const liveTasks = async () => {
+    const out = [];
+    for (const t of await store.listTasks({ status: 'open' })) if (!(await store.getCase(t.case_id))?.batch_id) out.push(t);
+    return out;
+  };
+  const openTasks = async () => (await liveTasks()).length;
 
   if (path === '/ops' || path === '/ops/') {
     const cases = await store.listCases(100);
-    return html(res, inboxPage({ tasks: await store.listTasks({ status: 'open' }), cases, events: await eventsOf(store, cases.map((c) => c.id)) }));
+    return html(res, inboxPage({ tasks: await liveTasks(), cases, events: await eventsOf(store, cases.map((c) => c.id)) }));
   }
   const caseId = path.match(/^\/ops\/cases\/([\w.-]+)$/)?.[1];
   if (caseId) {
@@ -89,6 +103,52 @@ export async function opsRoutes(path: string, req: IncomingMessage, res: ServerR
     const r = await store.getRun(runFile[1]);
     const text = runFile[2] === 'answer' ? r?.answer_md : r?.reasoning_md;
     return text ? html(res, textPage(`${runFile[2].toUpperCase()}.md`, text)) : html(res, textPage('Not found', 'No such file yet'), 404);
+  }
+
+  // Eval runs
+  if (path === '/ops/evals' || path === '/ops/evals/') {
+    const runs = [];
+    for (const b of await store.listBatches()) {
+      const cs = await store.batchCases(b.id);
+      const tasks = (await store.listTasks()).filter((t) => cs.some((c) => c.id === t.case_id));
+      runs.push({ b, done: cs.filter((c) => !['queued', 'agent_working'].includes(c.status)).length, running: cs.filter((c) => c.status === 'agent_working').length, needed: new Set(tasks.map((t) => t.case_id)).size });
+    }
+    const sets = Object.entries(CASE_SETS).map(([id, s]) => {
+      const dir = s.dir();
+      let count = 0;
+      try {
+        count = readdirSync(dir).filter((f) => statSync(join(dir, f)).isDirectory()).length;
+      } catch {}
+      return { id, name: s.name, count };
+    });
+    return html(res, evalsPage({ runs, openTasks: await openTasks(), sets: sets.filter((x) => x.count) }));
+  }
+  if (path === '/ops/api/batches' && req.method === 'POST') {
+    const f = await readForm(req);
+    const set = String(f.set ?? 'pm-public');
+    if (!CASE_SETS[set]) return html(res, textPage('Unknown case set', set), 400);
+    const only = f.only ? String(f.only).split(',').map((x) => x.trim()) : undefined;
+    const b = await startBatch(store, ops.evalWorker, set, only);
+    return (req.headers.accept ?? '').includes('application/json') ? json(res, b) : redirect(res, `/ops/evals/${encodeURIComponent(b.id)}`);
+  }
+  const evalId = path.match(/^\/ops\/(?:api\/)?evals\/([\w-]+)$/)?.[1];
+  if (evalId) {
+    const b = await store.getBatch(evalId);
+    if (!b) return html(res, textPage('Not found', `No eval run ${evalId}`), 404);
+    const cs = await store.batchCases(b.id);
+    const ids = new Set(cs.map((c) => c.id));
+    const runs: Record<string, Awaited<ReturnType<OpsStore['runs']>>> = {};
+    for (const c of cs) runs[c.id] = await store.runs(c.id);
+    const v = batchView(cs, await eventsOf(store, [...ids]), (await store.listTasks()).filter((t) => ids.has(t.case_id)), runs);
+    if (path.startsWith('/ops/api/')) return json(res, { batch: b, done: v.done, running: v.running, queued: v.queued, outcomes: v.outcomes, needed: v.needed.length, tools: v.tools, nextSteps: v.nextSteps, meanScore: v.meanScore, critical: v.critical, cost: v.cost });
+    return html(res, evalRunPage({ b, v, openTasks: await openTasks() }));
+  }
+  const grade = path.match(/^\/ops\/evals\/([\w-]+)\/grade$/)?.[1];
+  if (grade && req.method === 'POST') {
+    const b = await store.getBatch(grade);
+    if (!b) return html(res, textPage('Not found', `No eval run ${grade}`), 404);
+    if (b.grading !== 'running') void gradeBatch(store, b).catch((e) => console.error('[ops] grade', b.id, e));
+    return redirect(res, `/ops/evals/${encodeURIComponent(b.id)}`);
   }
 
   // JSON API
