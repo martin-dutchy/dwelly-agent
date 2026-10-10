@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
@@ -14,11 +13,11 @@ const known = [...tools.map((t) => `${t.name} ${JSON.stringify(z.toJSONSchema(t.
 const unknownNames = (text: string) => [...new Set([...text.matchAll(/\b[a-z]+(?:_[a-z]+)+\b/g)].map((m) => m[0]))].filter((n) => !known.includes(n));
 
 describe('case system prompt (flags off)', () => {
-  // Pinned to the prompt on `main` after the M5 merge; when `main` changes the maintenance policy, refresh
-  // skills/legacy/maintenance-policy-v1.md from it and update the pin.
-  it('is byte-identical to the prompt on main', () => {
-    expect(CASE_SYSTEM_PROMPT.length).toBe(42155);
-    expect(createHash('sha256').update(CASE_SYSTEM_PROMPT).digest('hex')).toBe('319c98da58568b037b8ebe1df96f5cb0a818a74aa76e5b2890260ea780d80aee');
+  it('carries the shared policy and the full maintenance policy, as written in their files', () => {
+    const read = (p: string) => readFileSync(fileURLToPath(new URL(p, import.meta.url)), 'utf8');
+    expect(CASE_SYSTEM_PROMPT).toContain(read('../core/policy.md'));
+    expect(CASE_SYSTEM_PROMPT).toContain(read('./maintenance/maintenance-policy.md'));
+    expect(CASE_SYSTEM_PROMPT).not.toContain(read('./maintenance/maintenance-core.md'));
   });
 
   it('carries the maintenance policy after the shared policy', () => {

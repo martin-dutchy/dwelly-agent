@@ -7,7 +7,7 @@ Each `<id>.md` here is a playbook for one kind of situation, written to the oper
 3. `renderSkills(skills, tags?)` appends them to the case message; with the tags it also names matching skills left out by the cap.
 4. `load_skill(id)` (registered in `caseAgent.ts`) returns any other playbook mid-run; it accepts an id or a tag, and an unknown id lists the ids.
 
-The always-on prompt is then `CASE_SYSTEM_PROMPT_V2` in `../systemPrompt.ts`: the slim constitution, `src/core/policy.md` (also used by voice, unchanged) and the core `../maintenance/maintenance-policy.md`. With the flag off, `CASE_SYSTEM_PROMPT` is byte-identical to the prompt before harness v2; it reads the frozen full policy in `legacy/maintenance-policy-v1.md`. Edit the core policy and the skills, not the legacy copy; retire both `CASE_SYSTEM_PROMPT` and the legacy file once the flag defaults to on.
+The live prompt is `CASE_SYSTEM_PROMPT` in `../systemPrompt.ts`: `src/core/policy.md` (also used by voice) and the full `../maintenance/maintenance-policy.md`, which is the file to edit. Skills are added on top of it when the `skills` flag is on. `CASE_SYSTEM_PROMPT_V2` (the slim constitution, `src/core/policy.md` and `../maintenance/maintenance-core.md`) is not wired in; give it its own flag and port the full policy's later changes into it before using it.
 
 ## Format
 
@@ -17,7 +17,7 @@ Content comes from the old maintenance policy, `research/uk-lettings-rules.md`, 
 
 ## Where the moved procedure went
 
-Sections of the pre-v2 `maintenance-policy.md` (kept verbatim in `legacy/maintenance-policy-v1.md`):
+Sections of the full `../maintenance/maintenance-policy.md`:
 
 | Old section | Now in |
 |---|---|
