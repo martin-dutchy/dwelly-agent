@@ -8,14 +8,13 @@ import { type IncomingMessage, type ServerResponse, createServer } from 'node:ht
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { claude, streamFn } from '../agent/models.js';
 import { onAudit } from '../core/audit.js';
-import { OUTBOUND_FIRST_MESSAGE } from './elevenlabs/config.js';
 import { verifySignature } from './elevenlabs/postCall.js';
 import { fetchAudio, finalizeCall } from './finalize.js';
 import { adminCallPage, adminHomePage } from './http/adminPages.js';
 import { type ChatRequest, createPiBrain } from './pi/brain.js';
-import { buildCallLog, grade, publicScenarios, scenarios, testerCard } from './scenarios.js';
+import { buildCallLog, callBrief, firstMessage, grade, publicScenarios, scenarioById, scenarios, testerCard, worldFor } from './scenarios.js';
 import { type VoiceStore, createStore } from './store.js';
-import { handleVoiceToolCall } from './toolCall.js';
+import { handleVoiceToolCall, registerScenario, setWorldSeeder } from './toolCall.js';
 
 type Env = NodeJS.ProcessEnv;
 
@@ -130,11 +129,15 @@ async function placePhoneCall(env: Env, store: VoiceStore, o: { to: string; scen
       agent_id: env.ELEVENLABS_AGENT_ID,
       agent_phone_number_id: env.ELEVENLABS_PHONE_NUMBER_ID,
       to_number: o.to,
-      conversation_initiation_client_data: { conversation_config_override: { agent: { first_message: OUTBOUND_FIRST_MESSAGE } } },
+      conversation_initiation_client_data: {
+        dynamic_variables: { call_brief: callBrief(scenarioById(o.scenarioId)!), scenario_id: o.scenarioId },
+        conversation_config_override: { agent: { first_message: firstMessage(scenarioById(o.scenarioId)!, true) } },
+      },
     }),
   });
   const out = (await r.json().catch(() => ({}))) as { conversation_id?: string; detail?: unknown };
   if (!r.ok || !out.conversation_id) throw new Error(`ElevenLabs: ${JSON.stringify(out.detail ?? out).slice(0, 300)}`);
+  registerScenario(out.conversation_id, o.scenarioId);
   await store.registerCall({ conversationId: out.conversation_id, testerId: o.testerId, scenarioId: o.scenarioId, brain: brainName(env) });
   // Phone calls run longer than browser ones: keep checking for up to 20 minutes.
   void finalizeCall(store, out.conversation_id, { attempts: 120, delayMs: 10_000 });
@@ -161,7 +164,7 @@ async function testerRoutes(token: string, rest: string, req: IncomingMessage, r
     const s = fixed ?? (await nextScenario(store, tester.id, url.searchParams.get('skip') ?? undefined));
     // Only the last digits, so a forwarded link doesn't reveal the whole number.
     const phone = tester.phone && env.ELEVENLABS_PHONE_NUMBER_ID ? `•••• ${tester.phone.slice(-4)}` : null;
-    return send(res, 200, { name: tester.name, card: testerCard(s), phone, fixed: !!fixed });
+    return send(res, 200, { name: tester.name, card: testerCard(s), phone, fixed: !!fixed, agent: { callBrief: callBrief(s), firstMessage: firstMessage(s, false) } });
   }
   if (rest === 'api/phone-call' && req.method === 'POST') {
     const { scenarioId } = await readJson(req);
@@ -182,6 +185,7 @@ async function testerRoutes(token: string, rest: string, req: IncomingMessage, r
   if (rest === 'api/calls' && req.method === 'POST') {
     const { conversationId, scenarioId } = await readJson(req);
     if (typeof conversationId !== 'string' || !scenarios.some((s) => s.id === scenarioId)) return send(res, 400, { error: 'bad request' });
+    registerScenario(conversationId, scenarioId);
     await store.registerCall({ conversationId, testerId: tester.id, scenarioId, brain: brainName(env) });
     return send(res, 200, { ok: true });
   }
@@ -252,6 +256,7 @@ async function adminRoutes(path: string, req: IncomingMessage, res: ServerRespon
   if (api === 'signed-url') return send(res, 200, await elevenlabs(`/v1/convai/conversation/get-signed-url?agent_id=${env.ELEVENLABS_AGENT_ID}`, env));
   if (api === 'calls' && req.method === 'POST') {
     const { conversationId, scenarioId } = await readJson(req);
+    registerScenario(conversationId, scenarioId);
     await store.registerCall({ conversationId, testerId: null, scenarioId, brain: brainName(env) });
     return send(res, 200, { ok: true });
   }
@@ -270,6 +275,8 @@ async function adminRoutes(path: string, req: IncomingMessage, res: ServerRespon
 const publicBase = (req: IncomingMessage, env: Env) => env.PUBLIC_BASE_URL || `http://${req.headers.host}`;
 
 export function createVoiceServer(env: Env = process.env, store: VoiceStore = createStore(env.DATABASE_URL)) {
+  // Each call's tools work on a copy of its case: tenant, property, open job.
+  setWorldSeeder(worldFor);
   // Every tool event also goes to the durable event log.
   onAudit((id, e) => void store.appendEvent(id, e as never).catch((err) => console.error('[voice] event', err)));
 
@@ -326,6 +333,10 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const port = Number(process.env.PORT ?? 3000);
   const store = createStore();
   await store.init();
+  // Grading waits in memory, so a restart or deploy would drop it: pick up calls from the last day.
+  const unfinished = (await store.listCalls(200)).filter((c) => (c.status === 'live' || c.status === 'ended') && Date.now() - Date.parse(c.started_at) < 86_400_000);
+  for (const c of unfinished) void finalizeCall(store, c.conversation_id, { attempts: 120, delayMs: 10_000 });
+  if (unfinished.length) console.log(`[voice] resuming grading for ${unfinished.length} call(s)`);
   createVoiceServer(process.env, store).listen(port, () =>
     console.log(`[voice] listening on :${port} (${process.env.DATABASE_URL ? 'postgres' : 'in-memory'} store). Admin: /admin`),
   );

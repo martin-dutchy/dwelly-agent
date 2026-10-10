@@ -57,6 +57,7 @@
     <h1 id="title">Your situation</h1>
     <div class="panel"><h2>What's going on</h2><p class="situation" id="situation"></p></div>
     <div class="panel"><h2>What you know</h2><ul id="know"></ul><p class="muted">Only give details when they're asked for, the way you would on a normal call.</p></div>
+    <div class="panel" id="twistbox"><h2>Your twist</h2><p id="twist"></p></div>
     <div class="panel"><h2>To make it realistic</h2><ul id="tips"></ul><p class="muted">Use your own words. Hesitations, mistakes and background noise are welcome.</p></div>
     <div id="phonebox" hidden>
       <button class="btn" id="callme">📞 Call me now</button>
@@ -113,7 +114,7 @@ const api = async (p, opts = {}) => {
 const show = (id) => ['consent', 'brief', 'call', 'ringing', 'done'].forEach((s) => ($(s).hidden = s !== id));
 const store = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
 
-let card, conversation, conversationId, muted = false, testStream, levelTimer;
+let card, agentSetup, conversation, conversationId, muted = false, testStream, levelTimer;
 
 let phoneMode = false;
 function setMode(phone) {
@@ -123,15 +124,19 @@ function setMode(phone) {
   $('start').hidden = phone;
 }
 async function loadCard(skip) {
-  const { name, card: c, phone, fixed } = await api(`card${skip ? `?skip=${encodeURIComponent(skip)}` : ''}`);
+  const { name, card: c, phone, fixed, agent } = await api(`card${skip ? `?skip=${encodeURIComponent(skip)}` : ''}`);
   card = c;
+  agentSetup = agent;
   $('swap').hidden = fixed;
   if (phone) $('phonenote').textContent = `We'll ring your phone ending ${phone.replace(/\D/g, '')}.`;
   setMode(!!phone);
   $('ringsituation').textContent = c.situation;
   $('ringknow').innerHTML = c.youKnow.map((k) => `<li>${esc(k)}</li>`).join('');
   $('hello').textContent = `Hi ${name}, thanks for helping!`;
-  $('title').textContent = `You are ${c.persona}`;
+  const roleLabel = { tenant: 'the tenant', landlord: 'the landlord', contractor: 'the contractor' }[c.role] ?? c.role;
+  $('title').textContent = `You are ${c.persona} (${roleLabel})`;
+  $('twistbox').hidden = !c.twist;
+  $('twist').textContent = c.twist ?? '';
   $('situation').textContent = c.situation;
   $('know').innerHTML = c.youKnow.map((k) => `<li>${esc(k)}</li>`).join('');
   $('tips').innerHTML = c.tips.map((k) => `<li>${esc(k)}</li>`).join('');
@@ -195,6 +200,8 @@ async function startCall() {
     conversation = await Conversation.startSession({
       conversationToken: token,
       connectionType: 'webrtc',
+      dynamicVariables: { call_brief: agentSetup.callBrief, scenario_id: card.id },
+      overrides: { agent: { firstMessage: agentSetup.firstMessage } },
       ...($('device').value ? { inputDeviceId: $('device').value } : {}),
       onConnect: () => { $('callstatus').textContent = 'Connected: start talking'; },
       onModeChange: ({ mode }) => {

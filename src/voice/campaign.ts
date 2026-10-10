@@ -19,12 +19,13 @@ export function whatsappMessage(card: Card | undefined, o: { name?: string; from
     '',
     ...(card
       ? [
-          `🎭 Pretend you're a tenant called ${card.persona}:`,
+          `🎭 You are ${card.persona} (${card.role === 'tenant' ? 'a tenant' : card.role === 'landlord' ? 'the landlord' : 'the contractor'}):`,
           card.situation,
           '',
           '📝 What you know:',
           ...card.youKnow.map((k) => `• ${k}`),
           '',
+          ...(card.twist ? ['🤫 Your twist (bring it up naturally, don\'t lead with it):', card.twist, ''] : []),
           '💡 To make it realistic:',
           ...card.tips.map((k) => `• ${k}`),
           '',

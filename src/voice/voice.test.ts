@@ -264,3 +264,44 @@ describe('WhatsApp heads-up', () => {
     expect(whatsappLink(m, '+44 7877 094577')).toMatch(/^https:\/\/wa\.me\/447877094577\?text=/);
   });
 });
+
+describe('case-grounded scenarios', () => {
+  const store = memoryStore();
+  onAudit((id, e) => void store.appendEvent(id, e as never));
+  const holdout = new Set(['031', '036', '041', '045', '048', '050']);
+
+  it('never draws on a holdout case', () => {
+    for (const s of scenarios) if (s.source) expect(holdout.has(s.source.case)).toBe(false);
+  });
+
+  it('seeds the call world from its case so inbound tenants can be verified', async () => {
+    const { setWorldSeeder, registerScenario } = await import('./toolCall.js');
+    const { worldFor } = await import('./scenarios.js');
+    setWorldSeeder(worldFor);
+    const id = conv('seed');
+    registerScenario(id, 'tenant-conflicting-appointment');
+    const r = await handleVoiceToolCall('verify_identity', { conversation_id: id, tenant_id: 'T-026', full_name: 'Clara Hughes', date_of_birth: '11th of February 1994' });
+    expect(r).toMatchObject({ verified: true });
+  });
+
+  it('grades a landlord call that records the right quote and splits the roof leak', async () => {
+    const id = conv('landlord');
+    const t = (name: string, args: Record<string, unknown>) => handleVoiceToolCall(name, { conversation_id: id, scenario_id: 'landlord-two-quotes', [READBACK_FIELD]: true, ...args });
+    expect(await t('record_landlord_decision', { decision: 'approve', amount_gbp: 1370, notes: 'Eliza Bennett, no VAT' })).toMatchObject({ verified: true });
+    expect(await t('add_case_note', { kind: 'new_issue', note: 'Roof leak at the landlord\'s other flat: separate request.' })).toMatchObject({ verified: true });
+    const g = grade('landlord-two-quotes', buildCallLog(await store.events(id)));
+    expect(g.results.filter((r) => !r.pass)).toEqual([]);
+  });
+
+  it('refuses a case write without read-back, like every other write', async () => {
+    const r = await handleVoiceToolCall('record_landlord_decision', { conversation_id: conv('nrb'), decision: 'approve', amount_gbp: 95 });
+    expect(r).toMatchObject({ ok: false, error: 'readback_required' });
+  });
+
+  it('briefs the agent with facts, goal and the case date, and opens outbound calls by name', async () => {
+    const { callBrief, firstMessage, scenarioById } = await import('./scenarios.js');
+    const s = scenarioById('landlord-two-quotes')!;
+    expect(callBrief(s)).toMatch(/Mr Langley[\s\S]*£1,370[\s\S]*2025-05-14[\s\S]*Goal of this call/);
+    expect(firstMessage(s, true)).toContain('Am I speaking with Mr Langley?');
+  });
+});

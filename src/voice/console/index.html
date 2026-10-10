@@ -235,6 +235,8 @@ $('start').addEventListener('click', async () => {
       : { conversationToken: (await api('token')).token, connectionType: 'webrtc', ...($('device').value ? { inputDeviceId: $('device').value } : {}) };
     conversation = await Conversation.startSession({
       ...session,
+      dynamicVariables: { call_brief: current.callBrief, scenario_id: current.id },
+      overrides: { agent: { firstMessage: current.firstMessage }, ...(textOnly ? { conversation: { textOnly: true } } : {}) },
       onConnect: () => { $('callinfo').textContent = $('textonly').checked ? 'Connected (text only). Type or click "type it".' : 'Connected. Start with the first line.'; },
       onDisconnect: () => {
         setCallUi(false); clearInterval(poll); stopLevel(); conversation = undefined;

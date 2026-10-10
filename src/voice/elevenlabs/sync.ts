@@ -1,7 +1,7 @@
 // Create or update the ElevenLabs agent and its webhook tools from our code: `pnpm voice:sync`.
 // Idempotent: tools are matched by name, the agent by ELEVENLABS_AGENT_ID. Prints the agent id to put in .env.
 import 'dotenv/config';
-import { tools } from '../../core/tools.js';
+import { voiceTools as tools } from '../toolCall.js';
 import { type Brain, agentConfig, webhookTool } from './config.js';
 
 const API = process.env.ELEVENLABS_API_BASE ?? 'https://api.elevenlabs.io';

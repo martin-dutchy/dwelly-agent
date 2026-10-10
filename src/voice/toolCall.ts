@@ -1,8 +1,10 @@
 import { ActionLedger } from '../agent/ledger.js';
 import { verify } from '../agent/verify.js';
 import { audit } from '../core/audit.js';
-import { type Data, newWorld } from '../core/store.js';
-import { type Channel, type ToolResult, executeTool, getTool } from '../core/tools.js';
+import { executeWith } from '../core/executor.js';
+import { newWorld } from '../core/store.js';
+import { type Channel, type ToolDef, type ToolResult, isVerified, tools as coreTools } from '../core/tools.js';
+import { type VoiceWorld, caseTools, verifyCaseTool } from './caseTools.js';
 import { normaliseDate, normalisePostcode } from './spoken.js';
 
 /**
@@ -11,14 +13,26 @@ import { normaliseDate, normalisePostcode } from './spoken.js';
  */
 export const READBACK_FIELD = 'caller_confirmed_readback';
 
-// Per call: its own copy of the fixture world (concurrent testers never see each other's tickets)
-// and its own ledger (the same read-back discipline as batch cases). Dropped after CALL_TTL_MS.
+/** Everything a voice call can do: the tenant-line tools plus the maintenance-case tools. */
+export const voiceTools: ToolDef[] = [...coreTools, ...caseTools];
+const getVoiceTool = (name: string) => voiceTools.find((t) => t.name === name);
+
+// Which scenario each conversation plays, so its world can be seeded from that case.
+// Set on registration (server) or from the scenario_id dynamic variable on the first tool call.
+type Seeder = (scenarioId: string | undefined) => VoiceWorld;
+let seedWorld: Seeder = () => ({ ...newWorld(), case_log: [] });
+export const setWorldSeeder = (s: Seeder) => (seedWorld = s);
+const scenarioOf = new Map<string, string>();
+export const registerScenario = (conversationId: string, scenarioId: string) => scenarioOf.set(conversationId, scenarioId);
+
+// Per call: its own world (concurrent testers never see each other's tickets) and its own ledger
+// (the same read-back discipline as batch cases). Dropped after CALL_TTL_MS.
 const CALL_TTL_MS = 3 * 60 * 60_000;
-const calls = new Map<string, { world: Data; ledger: ActionLedger; seen: number }>();
+const calls = new Map<string, { world: VoiceWorld; ledger: ActionLedger; seen: number }>();
 function callState(conversationId: string) {
   const now = Date.now();
-  for (const [id, c] of calls) if (now - c.seen > CALL_TTL_MS) calls.delete(id);
-  const c = calls.get(conversationId) ?? { world: newWorld(), ledger: new ActionLedger(), seen: now };
+  for (const [id, c] of calls) if (now - c.seen > CALL_TTL_MS) (calls.delete(id), scenarioOf.delete(id));
+  const c = calls.get(conversationId) ?? { world: seedWorld(scenarioOf.get(conversationId)), ledger: new ActionLedger(), seen: now };
   c.seen = now;
   calls.set(conversationId, c);
   return c;
@@ -27,9 +41,10 @@ export const ledgerFor = (conversationId: string) => callState(conversationId).l
 
 /** Handle one webhook tool call from a voice platform. Never throws: the caller always hears something. */
 export async function handleVoiceToolCall(name: string, body: Record<string, unknown>, channel: Channel = 'voice:elevenlabs'): Promise<ToolResult> {
-  const { conversation_id, [READBACK_FIELD]: confirmed, ...args } = body;
+  const { conversation_id, scenario_id, [READBACK_FIELD]: confirmed, ...args } = body;
   const conversationId = typeof conversation_id === 'string' && conversation_id ? conversation_id : 'voice-unknown';
-  const tool = getTool(name);
+  if (typeof scenario_id === 'string' && scenario_id && !scenarioOf.has(conversationId)) registerScenario(conversationId, scenario_id);
+  const tool = getVoiceTool(name);
   const started = Date.now();
 
   if (tool?.kind === 'write' && confirmed !== true) {
@@ -39,13 +54,28 @@ export async function handleVoiceToolCall(name: string, body: Record<string, unk
   }
   if (typeof args.date_of_birth === 'string') args.date_of_birth = normaliseDate(args.date_of_birth);
   if (typeof args.postcode === 'string') args.postcode = normalisePostcode(args.postcode);
+  if (typeof args.date === 'string') args.date = normaliseDate(args.date);
+  if (typeof args.next_date === 'string') args.next_date = normaliseDate(args.next_date);
 
   const { world } = callState(conversationId);
-  const result = await executeTool(name, args, { conversationId, channel, world });
+  const ctx = { conversationId, channel, world };
+  const result = await executeWith(
+    {
+      tools: voiceTools,
+      state: world,
+      guard: (t, a, c) =>
+        t.requiresVerification && !isVerified(c.conversationId, a.tenant_id as string | undefined)
+          ? { ok: false, error: 'not_verified', say: 'Identity must be verified with verify_identity first.' }
+          : undefined,
+    },
+    name,
+    args,
+    ctx,
+  );
   if (tool?.kind !== 'write') return { ...result, latency_ms: Date.now() - started };
 
   // Read back every write independently, like the case agent, and only report what verified.
-  const v = verify(name, args, result.ok ? result : undefined, { conversationId, channel, world });
+  const v = verifyCaseTool(name, result.ok ? result : undefined, ctx) ?? verify(name, args, result.ok ? result : undefined, ctx);
   const entry = ledgerFor(conversationId).record(name, args, result.ok ? undefined : String(result.details ?? result.error), v);
   audit(conversationId, { type: 'ledger', channel, entry, latency_ms: Date.now() - started });
   if (v.status === 'verified') return { ...result, verified: true, ref: v.ref };

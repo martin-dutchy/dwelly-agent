@@ -1,5 +1,5 @@
 import { whatsappLink, whatsappMessage } from '../campaign.js';
-import type { CallLog, Scenario } from '../scenarios.js';
+import type { CallLog, Scenario, testerCard } from '../scenarios.js';
 import type { CallRow, Tester } from '../store.js';
 
 // Server-rendered admin views. Everything user-supplied (names, transcripts, tool args) goes through esc().
@@ -42,7 +42,7 @@ const shell = (title: string, body: string, script = '') => `<!doctype html><htm
 const verdict = (c: Pick<CallRow, 'passed' | 'status'>) =>
   c.passed === true ? '<span class="pass">PASS</span>' : c.passed === false ? '<span class="fail">FAIL</span>' : `<span class="muted">${esc(c.status)}</span>`;
 
-type Card = { id: string; title: string; persona: string; situation: string; youKnow: string[]; tips: string[] };
+type Card = ReturnType<typeof testerCard>;
 
 export function adminHomePage(testers: Tester[], calls: CallRow[], base: string, cards: Card[] = [], phoneReady = false, callerId = '') {
   const testerRows = testers

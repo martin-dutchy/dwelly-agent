@@ -2,8 +2,7 @@ import { createHash } from 'node:crypto';
 import { Agent, type AgentTool, type StreamFn } from '@earendil-works/pi-agent-core';
 import type { Api, AssistantMessage, Model, TSchema } from '@earendil-works/pi-ai';
 import { audit } from '../../core/audit.js';
-import { tools } from '../../core/tools.js';
-import { handleVoiceToolCall } from '../toolCall.js';
+import { handleVoiceToolCall, voiceTools as tools } from '../toolCall.js';
 import { voiceToolSchema } from '../voiceTools.js';
 
 /**
