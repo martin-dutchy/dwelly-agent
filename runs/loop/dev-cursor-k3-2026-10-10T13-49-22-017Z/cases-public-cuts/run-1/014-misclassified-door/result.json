@@ -1,0 +1,314 @@
+{
+  "id": "014-misclassified-door",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "cutoff": 2,
+  "totalEvents": 16,
+  "inputs": [
+    {
+      "name": "history.md",
+      "method": "derived",
+      "bytes": 1283,
+      "chars": 1279,
+      "note": "events 1–2 of 16 from history.md"
+    }
+  ],
+  "withheld": [
+    {
+      "name": "history.md",
+      "reason": "events 3–16 come after the decision point"
+    },
+    {
+      "name": "index.md",
+      "reason": "sections that reveal the ending: Overview, Outcome, Next action at escalation, History, Attachments"
+    },
+    {
+      "name": "rubric.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    }
+  ],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "Intake, on hold. Reclassified from appliance/routine to door/security urgent. Landlord approval (APR-102) and tenant details (REQ-101) pending; no contractor assigned. Review 2024-06-07.",
+    "next_actions": [
+      {
+        "type": "REQUEST_LANDLORD_APPROVAL",
+        "action": "Ask landlord whether our contractor or their own should repair the doors",
+        "recipient": "Landlord",
+        "channel": "internal",
+        "ledger_id": "A3"
+      },
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Told tenant of reclassification, safety note, and next update date",
+        "recipient": "Tenant",
+        "channel": "email",
+        "ledger_id": "A4"
+      },
+      {
+        "type": "WAIT",
+        "action": "Hold for landlord reply, review 2024-06-07",
+        "recipient": "Landlord",
+        "channel": "internal",
+        "ledger_id": "A5"
+      }
+    ],
+    "boundaries": [
+      "No contractor assigned and no visit booked",
+      "Does not establish the cause or condition of the doors or glass",
+      "Does not confirm who pays"
+    ],
+    "remaining_work": [
+      "Landlord decision (ops, after 2024-06-07)",
+      "Tenant answers on door/glass/access",
+      "Assign contractor and book visit once approved"
+    ],
+    "missing_info": [
+      "Tenant's answers on lock security, glass condition, access",
+      "Landlord decision",
+      "Whether the fridge engineer actually reported anything"
+    ],
+    "outcome": "action_taken",
+    "severity": "urgent",
+    "summary": "Intake misclassified a door fault as a fridge/appliance routine job. I corrected the ticket to door/security, urgent, asked the tenant door-specific questions with a safety note, asked the landlord to choose our contractor or their own, and put the job on hold with a review date.",
+    "answers": [
+      {
+        "question": "Where does this case stand?",
+        "answer": "At intake, misclassified; now corrected to urgent door/security job, awaiting landlord decision and tenant details."
+      },
+      {
+        "question": "What is the next action, who, channel?",
+        "answer": "Landlord approval request (email via landlord record) and tenant questions and safety note (email on existing thread); review 2024-06-07."
+      },
+      {
+        "question": "Does anything need a human decision?",
+        "answer": "No. The landlord's choice is routine and requested; escalate P2 if the landlord is silent past the chase window."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Reclassified ticket to door/security urgent with note"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Asked tenant door-specific questions"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "Requested landlord approval"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Messaged tenant with safety advice and timing"
+      },
+      {
+        "ledger_id": "A5",
+        "description": "Put on hold, review 2024-06-07"
+      }
+    ],
+    "failed_actions": [],
+    "conflicts": [
+      "Intake classified as Appliances/routine but tenant text describes doors; trusted tenant's words."
+    ],
+    "assumptions": [
+      "Property is tenanted; tenant contacted via the existing thread as no direct contact was on file.",
+      "The ticket's severity field could not be changed by tool; the raise to urgent is in the ticket note."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "update_ticket",
+      "args": {
+        "ref": "NBL-014-misclassified-door",
+        "note": "Reclassified: intake said Appliances/routine, but tenant reports front and back doors must be slammed to shut, and a contractor warned glass could shatter. Correct category: door/locks (security, glass risk). Severity raised to urgent. Fridge Q&A not relevant."
+      },
+      "key": "update_ticket:{note:\"Reclassified: intake said Appliances/routine, but tenant reports front and back doors must be slammed to shut, and a contractor warned glass could shatter. Correct category: door/locks (security, glass risk). Severity raised to urgent. Fridge Q&A not relevant.\",ref:\"NBL-014-misclassified-door\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-014-misclassified-door",
+      "evidence": [
+        "Ticket NBL-014-misclassified-door read back at stage init"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "request_information",
+      "args": {
+        "recipient_name": "Tenant",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 001)",
+        "questions": [
+          "Does the front door still lock securely when you slam it shut, and can you secure it at night?",
+          "Is there any cracked or loose glass in or around the front or back door? Photos would help.",
+          "What days and times suit for a contractor to visit, and are there any alarms or entry codes, or pets we should know about?",
+          "When did it start, and does the door catch on the frame, drop, or not latch?"
+        ],
+        "why": "Intake wrongly treated this as a fridge issue; we need door-specific details to arrange the repair."
+      },
+      "key": "request_information:{channel:\"email\",contact:\"existing thread (event 001)\",questions:[\"Does the front door still lock securely when you slam it shut, and can you secure it at night?\",\"Is there any cracked or loose glass in or around the front or back door? Photos would help.\",\"What days and times suit for a contractor to visit, and are there any alarms or entry codes, or pets we should know about?\",\"When did it start, and does the door catch on the frame, drop, or not latch?\"],recipient_name:\"Tenant\",recipient_role:\"tenant\",why:\"Intake wrongly treated this as a fridge issue; we need door-specific details to arrange the repair.\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "REQ-101",
+      "evidence": [
+        "REQ-101 found in the request_information log"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "request_landlord_approval",
+      "args": {
+        "landlord": "Landlord (agency landlord record)",
+        "decision_needed": "Tenant reports the front and back doors need slamming to shut, and a contractor said this could shatter the glass. Do you want us to send our contractor to inspect and repair, or will you arrange your own?",
+        "options": [
+          "Our contractor attends (recommended, urgent door/security job)",
+          "You arrange your own contractor (please give name and date)"
+        ],
+        "ticket_ref": "NBL-014-misclassified-door",
+        "deadline": "2024-06-09"
+      },
+      "key": "request_landlord_approval:{deadline:\"2024-06-09\",decision_needed:\"Tenant reports the front and back doors need slamming to shut, and a contractor said this could shatter the glass. Do you want us to send our contractor to inspect and repair, or will you arrange your own?\",landlord:\"Landlord (agency landlord record)\",options:[\"Our contractor attends (recommended, urgent door/security job)\",\"You arrange your own contractor (please give name and date)\"],ticket_ref:\"NBL-014-misclassified-door\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "APR-102",
+      "evidence": [
+        "APR-102 found in the request_landlord_approval log"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Tenant",
+        "recipient_role": "tenant",
+        "channel": "email",
+        "contact": "existing thread (event 001)",
+        "body": "Hello, thanks for reporting the doors. Our system wrongly logged this as a fridge issue; we've corrected it to a door repair and marked it urgent. Until it's looked at, please try not to slam the doors, as the glass could break. Close them gently and make sure the front door is locked when you're in and out. If any glass cracks, keep clear of it and let us know straight away. We've asked the landlord to approve the repair and will update you by 2024-06-09. Please also reply to the questions we've just sent so we can book a visit."
+      },
+      "key": "send_message:{body:\"Hello, thanks for reporting the doors. Our system wrongly logged this as a fridge issue; we've corrected it to a door repair and marked it urgent. Until it's looked at, please try not to slam the doors, as the glass could break. Close them gently and make sure the front door is locked when you're in and out. If any glass cracks, keep clear of it and let us know straight away. We've asked the landlord to approve the repair and will update you by 2024-06-09. Please also reply to the questions we've just sent so we can book a visit.\",channel:\"email\",contact:\"existing thread (event 001)\",recipient_name:\"Tenant\",recipient_role:\"tenant\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-103",
+      "evidence": [
+        "MSG-103 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A5",
+      "tool": "put_on_hold",
+      "args": {
+        "ticket_ref": "NBL-014-misclassified-door",
+        "reason": "Waiting for Landlord",
+        "comment": "Awaiting landlord choice (our contractor vs own) APR-102; tenant details REQ-101 also pending.",
+        "review_on": "2024-06-07"
+      },
+      "key": "put_on_hold:{comment:\"Awaiting landlord choice (our contractor vs own) APR-102; tenant details REQ-101 also pending.\",reason:\"Waiting for Landlord\",review_on:\"2024-06-07\",ticket_ref:\"NBL-014-misclassified-door\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "NBL-014-misclassified-door",
+      "evidence": [
+        "Ticket NBL-014-misclassified-door read back after put_on_hold"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "NBL-014-misclassified-door",
+        "stage": "init",
+        "property": "Flat 12, 52 Meadow Row, Kingshaven, ZZ9 5ZZ",
+        "description": "Front door you have to slam to shut like the back. when fridge man arrived he even commented and said it will cause a shatter in glass- he said he was also going to report to you.",
+        "notes": [
+          "Reclassified: intake said Appliances/routine, but tenant reports front and back doors must be slammed to shut, and a contractor warned glass could shatter. Correct category: door/locks (security, glass risk). Severity raised to urgent. Fridge Q&A not relevant."
+        ],
+        "hold": {
+          "reason": "Waiting for Landlord",
+          "comment": "Awaiting landlord choice (our contractor vs own) APR-102; tenant details REQ-101 also pending.",
+          "review_on": "2024-06-07"
+        },
+        "mode": "manual"
+      }
+    ],
+    "records": [
+      {
+        "id": "REQ-101",
+        "tool": "request_information",
+        "args": {
+          "recipient_name": "Tenant",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 001)",
+          "questions": [
+            "Does the front door still lock securely when you slam it shut, and can you secure it at night?",
+            "Is there any cracked or loose glass in or around the front or back door? Photos would help.",
+            "What days and times suit for a contractor to visit, and are there any alarms or entry codes, or pets we should know about?",
+            "When did it start, and does the door catch on the frame, drop, or not latch?"
+          ],
+          "why": "Intake wrongly treated this as a fridge issue; we need door-specific details to arrange the repair."
+        },
+        "at": 1791640171723
+      },
+      {
+        "id": "APR-102",
+        "tool": "request_landlord_approval",
+        "args": {
+          "landlord": "Landlord (agency landlord record)",
+          "decision_needed": "Tenant reports the front and back doors need slamming to shut, and a contractor said this could shatter the glass. Do you want us to send our contractor to inspect and repair, or will you arrange your own?",
+          "ticket_ref": "NBL-014-misclassified-door",
+          "options": [
+            "Our contractor attends (recommended, urgent door/security job)",
+            "You arrange your own contractor (please give name and date)"
+          ],
+          "deadline": "2024-06-09"
+        },
+        "at": 1791640171724
+      },
+      {
+        "id": "MSG-103",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Tenant",
+          "recipient_role": "tenant",
+          "channel": "email",
+          "contact": "existing thread (event 001)",
+          "body": "Hello, thanks for reporting the doors. Our system wrongly logged this as a fridge issue; we've corrected it to a door repair and marked it urgent. Until it's looked at, please try not to slam the doors, as the glass could break. Close them gently and make sure the front door is locked when you're in and out. If any glass cracks, keep clear of it and let us know straight away. We've asked the landlord to approve the repair and will update you by 2024-06-09. Please also reply to the questions we've just sent so we can book a visit."
+        },
+        "at": 1791640176176
+      }
+    ],
+    "properties": [
+      {
+        "address": "Flat 12, 52 Meadow Row, Kingshaven, ZZ9 5ZZ",
+        "landlord": {
+          "contact": "agency landlord record",
+          "notes": [
+            "Contact details are held in the agency system and not shown in this case file; messages to the landlord go through it. Use contact \"agency landlord record\".",
+            "No landlord message is visible in this case yet."
+          ]
+        }
+      }
+    ]
+  },
+  "usage": {
+    "input": 10,
+    "output": 2780,
+    "cost": 0.07731009999999999,
+    "turns": 4,
+    "durationMs": 22160,
+    "retries": 0,
+    "thinkingTokens": 108
+  }
+}

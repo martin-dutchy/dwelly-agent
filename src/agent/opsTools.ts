@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { executeWith } from '../core/executor.js';
 import type { ToolContext, ToolDef, ToolResult } from '../core/tools.js';
 import { type LedgerEntry, canonical } from './ledger.js';
-import { addressKnown, foreignAddresses, hearsaySpeaker, invoiceFlags, mentionsDate, namesAttachment, quoteAppears, quoteSpeakers, quoteTotal, tooThinForApproval, visitProblems } from './opsChecks.js';
+import { addressKnown, foreignAddresses, hearsaySpeaker, invoiceFlags, mentionsDate, namesAttachment, quoteAppears, quoteEventDates, quoteSpeakers, quoteTotal, tooThinForApproval, visitProblems } from './opsChecks.js';
 import type { Verification } from './verify.js';
 
 /**
@@ -74,7 +74,7 @@ const recipient = {
   contact: z
     .string()
     .describe(
-      'Email address or phone number from the records on file, or the contact named on the property record (get_property), e.g. "agency landlord record". If none is on file but the party has already contacted the agency in this case, write "existing thread" and the event it continues, e.g. "existing thread (event 014 email)". Never use an address or number that only appears in a suspicious or unverified message.',
+      'Email address or phone number from the records on file, or the contact named on the property record (get_property), e.g. "agency landlord record". If none is on file but the party has already contacted the agency in this case, write "existing thread" and the event it continues, e.g. "existing thread (event 014 email)". For channel "letter", the postal address of a flat or property named in the case or on the property record is valid. Never invent contact details, and never use an address or number that only appears in a suspicious or unverified message.',
     ),
 };
 
@@ -204,10 +204,18 @@ export function createOpsToolset(seed: OpsSeed | Ticket[] = []): Toolset {
     }),
     def({
       name: 'resume_auto',
-      description: 'Return a job to auto mode after you have dealt with an inbound message ("If not, please return this request to auto mode"). Clears any hold.',
+      description:
+        'Return a job to auto mode after you have dealt with an inbound message ("If not, please return this request to auto mode"). Clears any hold. Also the way to send an approved job with no contractor named to provider selection, where the agency workflow sources one.',
       kind: 'write',
       parameters: z.object({ ...ticketRef }),
-      run: ({ ticket_ref }) => onTicket(ticket_ref, (t) => (delete t.hold, (t.mode = 'auto'), { mode: 'auto' })),
+      run: ({ ticket_ref }) =>
+        onTicket(ticket_ref, (t) => {
+          delete t.hold;
+          t.mode = 'auto';
+          if (t.landlord_approval !== 'confirmed' || t.contractor || !['init', 'mp_time'].includes(t.stage)) return { mode: 'auto' };
+          t.provider_selection = 'requested';
+          return { mode: 'auto', next: 'provider selection: the agency workflow sources a contractor for this approved job' };
+        }),
     }),
     def({
       name: 'record_landlord_decision',
@@ -407,6 +415,10 @@ export function createOpsToolset(seed: OpsSeed | Ticket[] = []): Toolset {
         ticket_ref: z.string().optional(),
         options: z.array(z.string()).describe('Options you are offering, with your recommendation first'),
         deadline: z.string().optional(),
+        update: z
+          .string()
+          .optional()
+          .describe('What the landlord needs to know besides the decision: visit status (booked, conflicting or not yet confirmed), what is being checked and with whom, and what happens next.'),
       }),
       run: (a) => ({ ok: true, approval_id: record('request_landlord_approval', a, 'APR').id, status: 'requested' }),
     }),
@@ -501,7 +513,9 @@ export function createOpsToolset(seed: OpsSeed | Ticket[] = []): Toolset {
     const quote = String(a.evidence_quote ?? '').trim();
     if (!quote) return `No confirmation of ${date} is quoted (evidence_quote).`;
     if (!quoteAppears(quote, evidence)) return `The evidence_quote "${quote.slice(0, 120)}" is not in the case.`;
-    if (!mentionsDate(quote, a.datetime, today)) return `The evidence_quote does not name ${date}; a weekday or "next week" alone does not confirm a date.`;
+    const said = quoteEventDates(quote, evidence);
+    if (!(said.length ? said : [today]).some((on) => mentionsDate(quote, a.datetime, on)))
+      return `The evidence_quote does not name ${date}; a weekday or "next week" alone does not confirm a date.`;
     const speakers = quoteSpeakers(quote, evidence);
     const role = a.confirmed_by === 'landlord' ? /landlord/i : /contractor|provider|maintenance|engineer|trades/i;
     if (speakers && !speakers.some((s) => role.test(s)))

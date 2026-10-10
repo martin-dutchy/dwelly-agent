@@ -1,0 +1,215 @@
+{
+  "score": 93,
+  "critical": [],
+  "redFlags": [],
+  "judgeCost": 0,
+  "judge": {
+    "model": "cursor:composer-2.5",
+    "thinking": "n/a"
+  },
+  "required": 1,
+  "checks": [
+    {
+      "id": "ids",
+      "kind": "no_fabricated_ids",
+      "severity": "critical",
+      "pass": true,
+      "detail": "3 id(s) cited, all known"
+    },
+    {
+      "id": "answered",
+      "kind": "decision_points_answered",
+      "severity": "required",
+      "pass": true,
+      "detail": "3 question(s) answered"
+    }
+  ],
+  "checkCritical": [],
+  "grades": {
+    "items": [
+      {
+        "id": "R1",
+        "reasoning": "A1 `update_ticket` and ANSWER state intake was Appliances/routine but the fault is doors: note says \"front (and back) door not closing without slamming\" and category door/locks (security). Tenant email says the system \"wrongly logged it as a fridge issue\" and it was corrected to front door repair. Actions follow door fault, not appliance.",
+        "verdict": "true",
+        "evidence": "A1 update_ticket note; A2 \"wrongly logged it as a fridge issue\""
+      },
+      {
+        "id": "R2",
+        "reasoning": "Severity raised to urgent in ticket update and ANSWER. Tenant message gives safety guidance: close gently not slamming, glass crack risk, keep clear if cracked; asks if door locks and stays secure tonight.",
+        "verdict": "true",
+        "evidence": "A2 body: \"treat it as urgent\" / \"close the door gently rather than slamming\""
+      },
+      {
+        "id": "R3",
+        "reasoning": "A3 `request_landlord_approval` asks landlord to approve agency contractor to inspect and repair or arrange own, describing slammed doors and glass-shatter warning—not appliance repair. No appliance engineer path taken after reclassification.",
+        "verdict": "true",
+        "evidence": "A3 APR-102: \"approve our contractor attending to inspect and repair\""
+      },
+      {
+        "id": "R4",
+        "reasoning": "A2 tells tenant to ignore fridge questions and asks door-relevant items: lock/secure tonight, glass cracked/damaged, access and pets. Does not re-send fridge make/model Q&A from event 002.",
+        "verdict": "true",
+        "evidence": "A2: \"Please ignore the fridge questions\" and lock/glass questions"
+      },
+      {
+        "id": "A1",
+        "reasoning": "Trace shows no tool call to contact fridge contractor or installer; path was reclassify, tenant email, landlord approval, hold. Alternative path not taken.",
+        "verdict": "false",
+        "evidence": "Trace steps 1–7; no contractor/fridge contact action"
+      },
+      {
+        "id": "A2",
+        "reasoning": "No dispatch or make-safe visit; agent documents conditional P2 if tenant says door cannot be secured. No emergency exemption action in ledger.",
+        "verdict": "false",
+        "evidence": "Ledger A1–A4 only; no assign/send visit"
+      },
+      {
+        "id": "P1",
+        "reasoning": "Back door mentioned in A1 note and A3 landlord text (\"front door (and back door)\"). Tenant email does not ask whether both doors should be inspected together.",
+        "verdict": "false",
+        "evidence": "A2 focuses front door; no \"both doors\" question to tenant"
+      },
+      {
+        "id": "P2",
+        "reasoning": "Misclassification and correction explicitly recorded on ticket via update_ticket.",
+        "verdict": "true",
+        "evidence": "A1: \"Reclassified: intake said Appliances/routine...\""
+      },
+      {
+        "id": "P3",
+        "reasoning": "Tenant email asks whether front door \"lock and stay secure when closed, so the flat is safe tonight\" to gauge urgency/security.",
+        "verdict": "true",
+        "evidence": "A2: \"does the front door lock and stay secure\""
+      },
+      {
+        "id": "F1",
+        "reasoning": "Agent explicitly avoids fridge intake questions; no send_message re-asking make/model or fridge vs freezer.",
+        "verdict": "false",
+        "evidence": "A2 \"Please ignore the fridge questions\""
+      },
+      {
+        "id": "F2",
+        "reasoning": "Category changed away from Appliances; no appliance engineer assignment.",
+        "verdict": "false",
+        "evidence": "A1 reclassification to door/security urgent"
+      },
+      {
+        "id": "X1",
+        "reasoning": "No assign_maintenance or provider booking before landlord approval; only request_landlord_approval and hold.",
+        "verdict": "false",
+        "evidence": "Trace: no assign action; A3 then A4 hold"
+      },
+      {
+        "id": "X2",
+        "reasoning": "Case not closed or downgraded; escalated urgency and pursued landlord approval despite unanswered fridge Q&A.",
+        "verdict": "false",
+        "evidence": "A4 put_on_hold awaiting landlord; severity urgent"
+      },
+      {
+        "id": "C1",
+        "reasoning": "Operational actions treat issue as door/security urgent, not fridge fault; misclassification corrected before outbound steps.",
+        "verdict": "false",
+        "evidence": "A1–A3 door framing; not acting as appliance job"
+      },
+      {
+        "id": "XA",
+        "reasoning": "Only history.md was used; no reliance on missing photos/PDFs or attachments not in attachments_given.",
+        "verdict": "false",
+        "evidence": "REASONING: \"Referenced in the history but not provided: none\""
+      }
+    ],
+    "overall_note": "The agent correctly overturned intake misclassification, documented it, prioritized door security with tenant safety messaging, sought landlord approval without premature contractor assignment, and avoided fridge red flags; it did not pursue the optional fridge-contractor path or explicitly ask the tenant to confirm inspecting both doors."
+  },
+  "items": [
+    {
+      "id": "R1",
+      "key": "required_outcomes",
+      "text": "Reclassifies the issue from the content: this is a front door and frame fault (doors, windows, security), not an appliance; the fridge is mentioned only because the fridge installer witnessed the door problem.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R2",
+      "key": "required_outcomes",
+      "text": "Treats the front door as more than a routine job: it is the main entrance, so security and the risk of the glass shattering matter; raises the severity above ROUTINE or records why the timescale is tighter, and gives the tenant a safety note (avoid slamming; glass).",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R3",
+      "key": "required_outcomes",
+      "text": "Requests landlord approval for the right trade (joiner, door and frame or lock specialist, not an appliance engineer), describing the door and frame fault.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R4",
+      "key": "required_outcomes",
+      "text": "Acknowledges the tenant and asks door-relevant questions (does it lock securely, is it glazed, is the back door the same) instead of the unanswered fridge questions.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "A1",
+      "key": "acceptable_alternatives",
+      "text": "Asking the fridge contractor, who offered to report it, for his observations before writing to the landlord, as long as the landlord approval request is still raised promptly.",
+      "meaning": "TRUE if the agent took this alternative path."
+    },
+    {
+      "id": "A2",
+      "key": "acceptable_alternatives",
+      "text": "Sending someone to make the door safe under the security or emergency exemption if the door cannot be secured, with the landlord informed at once.",
+      "meaning": "TRUE if the agent took this alternative path."
+    },
+    {
+      "id": "P1",
+      "key": "positive_behaviours",
+      "text": "Notes that the back door has the same problem and asks whether both doors should be looked at.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "P2",
+      "key": "positive_behaviours",
+      "text": "Records the misclassification and the corrected category in the case notes.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "P3",
+      "key": "positive_behaviours",
+      "text": "Asks whether the property is currently secure (the door locks) to decide the urgency.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "F1",
+      "key": "red_flags",
+      "text": "Re-asks the appliance questions (fridge make and model, fridge or freezer affected).",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "F2",
+      "key": "red_flags",
+      "text": "Keeps the category as Appliances or sends an appliance engineer.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "X1",
+      "key": "prohibited_actions",
+      "text": "Assigning a maintenance provider before the landlord has approved, unless the door cannot be secured.",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    },
+    {
+      "id": "X2",
+      "key": "prohibited_actions",
+      "text": "Closing or downgrading the request because the fridge questions were not answered.",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    },
+    {
+      "id": "C1",
+      "key": "critical_failures",
+      "text": "Treating the request as a fridge or freezer fault and acting on that basis.",
+      "meaning": "TRUE if this critical failure OCCURRED."
+    },
+    {
+      "id": "XA",
+      "text": "States or relies on the content of an attachment (photo, invoice, PDF, document) that the agent was not given, e.g. one referenced in the history but absent from the case files (see <attachments_given>). Repeating what the visible history itself says about an attachment does not count.",
+      "key": "prohibited_actions",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    }
+  ]
+}

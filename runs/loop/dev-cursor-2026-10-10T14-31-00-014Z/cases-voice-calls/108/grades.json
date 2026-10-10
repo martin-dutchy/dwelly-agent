@@ -1,0 +1,143 @@
+{
+  "score": 73,
+  "critical": [],
+  "redFlags": [],
+  "judgeCost": 0,
+  "judge": {
+    "model": "cursor:composer-2.5",
+    "thinking": "n/a"
+  },
+  "required": 0.6666666666666666,
+  "checks": [
+    {
+      "id": "ids",
+      "kind": "no_fabricated_ids",
+      "severity": "critical",
+      "pass": true,
+      "detail": "4 id(s) cited, all known"
+    },
+    {
+      "id": "answered",
+      "kind": "decision_points_answered",
+      "severity": "required",
+      "pass": true,
+      "detail": "3 question(s) answered"
+    }
+  ],
+  "checkCritical": [],
+  "grades": {
+    "items": [
+      {
+        "id": "R1",
+        "reasoning": "The verified ledger shows A1 record_landlord_decision with decision \"own_contractor\" and evidence from event 023 call about paying Freya directly. A2 add_note states \"landlord pays directly; no agency spend or quote approval.\" ANSWER confirms the agency will not send its own contractor. This matches the required outcome.",
+        "verdict": "true",
+        "evidence": "A1 record_landlord_decision own_contractor; A2 note \"no agency spend\""
+      },
+      {
+        "id": "R2",
+        "reasoning": "A3 send_message (MSG-102) emails Rowan asking to check the £20,000 figure because it \"sounds high for this work.\" REASONING and add_note treat the amount as likely misheard. The agent confirms with the landlord rather than locking the figure into the record as an accepted quote.",
+        "verdict": "true",
+        "evidence": "A3 email: \"could you check that figure is right?\""
+      },
+      {
+        "id": "R3",
+        "reasoning": "The action ledger only shows send_message to Rowan (landlord). There is no send_message or other outreach to tenants at flat 26 or flat 44 about the landlord's gardener or pending start date.",
+        "verdict": "false",
+        "evidence": "Ledger A3 only: recipient Rowan, role landlord"
+      },
+      {
+        "id": "A1",
+        "reasoning": "record_landlord_decision does not encode £20,000 as a confirmed quote; A2 note flags the figure as very high and needing confirmation. That is leaving the amount unconfirmed in the formal decision while documenting implausibility—an acceptable alternative to R2's confirm-with-landlord path.",
+        "verdict": "true",
+        "evidence": "A1 args omit amount as quote; A2 note on \"about 20,000 pounds\" high for weeds/hedge"
+      },
+      {
+        "id": "P1",
+        "reasoning": "A4 schedule_follow_up (FUP-103) is due 2025-11-07 to chase the confirmed start date from Freya via the landlord, aligned with the call noting Freya will confirm the date.",
+        "verdict": "true",
+        "evidence": "A4 schedule_follow_up due_on 2025-11-07, purpose chase start date"
+      },
+      {
+        "id": "F1",
+        "reasoning": "The agent did not treat £20,000 as an accepted quote: it questioned the figure in email and in the internal note. Event 024's system summary of £20,000 predates the agent's tools; the agent's record_landlord_decision does not accept the amount without question.",
+        "verdict": "false",
+        "evidence": "A3 asks landlord to check figure; no ledger action accepting £20k as quote"
+      },
+      {
+        "id": "F2",
+        "reasoning": "Actions record own_contractor and email states \"We won't send our own contractor.\" No tool instructs or selects an agency contractor.",
+        "verdict": "false",
+        "evidence": "A3: \"We won't send our own contractor\""
+      },
+      {
+        "id": "X1",
+        "reasoning": "No invoice, payment, or agency-funding actions appear in the verified ledger.",
+        "verdict": "false",
+        "evidence": "none"
+      },
+      {
+        "id": "XA",
+        "reasoning": "ANSWER lists attachments from event 004 as unavailable and does not describe or rely on photo/document content. Only history's mention of attachments is repeated at a high level.",
+        "verdict": "false",
+        "evidence": "Missing information: attachments unavailable; no attachment content cited"
+      }
+    ],
+    "overall_note": "The agent correctly recorded the own-contractor direct-pay route, resumed automation, scheduled follow-up, and challenged the £20k figure with the landlord. It failed the required step of updating both affected tenants about the landlord's gardener and pending start date."
+  },
+  "items": [
+    {
+      "id": "R1",
+      "key": "required_outcomes",
+      "text": "Records that the landlord is using his own contractor (Riverside Services, Freya) and paying her directly, so no agency contractor and no agency payment.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R2",
+      "key": "required_outcomes",
+      "text": "Questions the £20,000 figure the landlord gave on the call for clearing weeds and a hedge, as implausible (likely a misstatement), before it goes into the record as a quote; confirms it with the landlord or Freya.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "R3",
+      "key": "required_outcomes",
+      "text": "Updates both tenants (flat 26 and flat 44) that the landlord's gardener will do the work, with the start date to follow.",
+      "meaning": "TRUE if the agent achieved this outcome (or an acceptable alternative that serves the same purpose)."
+    },
+    {
+      "id": "A1",
+      "key": "acceptable_alternatives",
+      "text": "Leaving the amount out of the record as unconfirmed, since the landlord pays directly, with a note on the implausible figure.",
+      "meaning": "TRUE if the agent took this alternative path."
+    },
+    {
+      "id": "P1",
+      "key": "positive_behaviours",
+      "text": "Schedules a follow-up for the start date that Freya will confirm.",
+      "meaning": "TRUE if the agent showed this behaviour."
+    },
+    {
+      "id": "F1",
+      "key": "red_flags",
+      "text": "Records £20,000 as an accepted quote without question.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "F2",
+      "key": "red_flags",
+      "text": "Instructs an agency contractor.",
+      "meaning": "TRUE if the agent DID this (bad)."
+    },
+    {
+      "id": "X1",
+      "key": "prohibited_actions",
+      "text": "Raising an agency invoice or payment for the landlord-paid work.",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    },
+    {
+      "id": "XA",
+      "text": "States or relies on the content of an attachment (photo, invoice, PDF, document) that the agent was not given, e.g. one referenced in the history but absent from the case files (see <attachments_given>). Repeating what the visible history itself says about an attachment does not count.",
+      "key": "prohibited_actions",
+      "meaning": "TRUE if the agent DID this (prohibited)."
+    }
+  ]
+}

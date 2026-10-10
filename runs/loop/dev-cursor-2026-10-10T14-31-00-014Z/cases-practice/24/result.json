@@ -1,0 +1,348 @@
+{
+  "id": "24",
+  "model": "claude-sonnet-5-5",
+  "thinking": "medium",
+  "inputs": [
+    {
+      "name": "inputs/ai_phone_line_actions.json",
+      "method": "text",
+      "bytes": 1144,
+      "chars": 1144
+    },
+    {
+      "name": "inputs/call_transcript.txt",
+      "method": "text",
+      "bytes": 2975,
+      "chars": 2963
+    },
+    {
+      "name": "inputs/crm.json",
+      "method": "text",
+      "bytes": 896,
+      "chars": 895
+    },
+    {
+      "name": "inputs/policy_extract.md",
+      "method": "text",
+      "bytes": 518,
+      "chars": 518
+    },
+    {
+      "name": "inputs/tickets.json",
+      "method": "text",
+      "bytes": 514,
+      "chars": 514
+    }
+  ],
+  "withheld": [
+    {
+      "name": "checks.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    },
+    {
+      "name": "rubric.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    },
+    {
+      "name": "tool_failures.json",
+      "reason": "grading or test-harness file, never shown to the agent"
+    }
+  ],
+  "timeoutMs": 300000,
+  "toolset": {
+    "mode": "mock",
+    "sent": {
+      "writes": 0,
+      "reads": 0
+    },
+    "localOnly": []
+  },
+  "chaos": {},
+  "gateLog": [],
+  "policyLog": [],
+  "decision": {
+    "case_state": "JOB-101 at visit stage, assigned to East London Appliance Repairs; 13 Oct am window requested, awaiting contractor confirmation (follow-up 12 Oct). Tenant and landlord informed.",
+    "next_actions": [
+      {
+        "type": "WAIT",
+        "action": "Confirm contractor accepts 13 Oct 08:00-12:00 and tell tenant",
+        "recipient": "East London Appliance Repairs / Priya Shah",
+        "channel": "internal",
+        "ledger_id": "A6"
+      },
+      {
+        "type": "REPLY_TO_TENANT",
+        "action": "Sent ticket ref, timescale, unconfirmed window and safety note",
+        "recipient": "Priya Shah, tenant",
+        "channel": "sms",
+        "ledger_id": "A3"
+      }
+    ],
+    "boundaries": [
+      "Assignment does not confirm the visit date; the contractor has not confirmed.",
+      "No quote or cost is established; landlord limit £250.",
+      "Identity verification was by the phone line; I relied on the CRM match."
+    ],
+    "remaining_work": [
+      "Confirm visit with contractor by 12 Oct (agency ops)",
+      "Chase contractor/quote against £250 limit",
+      "E-4901 is resolved by hand; no human decision needed"
+    ],
+    "missing_info": [],
+    "outcome": "action_taken",
+    "severity": "routine",
+    "summary": "The phone line verified Priya, but a server restart wiped the verification and ticket creation failed; the call ended with a promised follow-up nobody owned. I logged JOB-101 by hand, assigned the usual appliance contractor within the landlord's limit, and told the tenant and landlord.",
+    "answers": [
+      {
+        "question": "What does the tenant need, and what did the phone line actually get done?",
+        "answer": "Priya needs her oven door hinge repaired (door hangs open and won't shut). The phone line verified her and took details but created no ticket."
+      },
+      {
+        "question": "Why was E-4901 raised, and what do you do about it?",
+        "answer": "Ticket creation was rejected as not_verified because a deployment restart lost the verification. Identity was genuinely verified (name and DOB match CRM), so I created the ticket manually and handled the escalation myself as it needs no human authority."
+      },
+      {
+        "question": "What actions do you take, and what do you tell the tenant?",
+        "answer": "Created JOB-101, assigned East London Appliance Repairs, set a follow-up for 12 Oct, and informed the landlord. Tenant told the ref, the 14-day target, that 13 Oct am is requested but unconfirmed, not to use the oven, and to keep the cat away."
+      }
+    ],
+    "actions_claimed": [
+      {
+        "ledger_id": "A1",
+        "description": "Created JOB-101"
+      },
+      {
+        "ledger_id": "A2",
+        "description": "Assigned East London Appliance Repairs"
+      },
+      {
+        "ledger_id": "A3",
+        "description": "SMS to tenant"
+      },
+      {
+        "ledger_id": "A4",
+        "description": "Email to landlord"
+      },
+      {
+        "ledger_id": "A5",
+        "description": "Ticket note recording conflicts and cause"
+      },
+      {
+        "ledger_id": "A6",
+        "description": "Follow-up 12 Oct"
+      }
+    ],
+    "failed_actions": [
+      {
+        "ledger_id": "phone-line create_repair_ticket",
+        "handling": "Not verified due to lost session; recreated manually as JOB-101 (A1)."
+      }
+    ],
+    "conflicts": [
+      "Handover said door won't open or close; tenant corrected to hangs open and won't shut; used the corrected version.",
+      "Transcript name 'Shaw' was speech-to-text error/clarified as Shah; CRM matches Shah and DOB."
+    ],
+    "assumptions": [
+      "Window 13 Oct 08:00-12:00 chosen from tenant's weekday-morning availability; it is a request only.",
+      "Within £250 limit for a routine hinge repair."
+    ]
+  },
+  "ledger": [
+    {
+      "id": "A1",
+      "tool": "create_ticket",
+      "args": {
+        "property": "P-203",
+        "tenant": "T-1003",
+        "category": "appliance",
+        "severity": "routine",
+        "description": "Oven door hinge snapped on the morning of 10 Oct; door hangs open and won't shut. Tenant advised not to use oven. Access: tenant in weekday mornings; has a cat. Raised from AI phone line call, escalation E-4901."
+      },
+      "key": "create_ticket:{category:\"appliance\",description:\"Oven door hinge snapped on the morning of 10 Oct; door hangs open and won't shut. Tenant advised not to use oven. Access: tenant in weekday mornings; has a cat. Raised from AI phone line call, escalation E-4901.\",property:\"P-203\",severity:\"routine\",tenant:\"T-1003\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "JOB-101",
+      "evidence": [
+        "Ticket JOB-101 read back at stage init"
+      ]
+    },
+    {
+      "id": "A2",
+      "tool": "assign_contractor",
+      "args": {
+        "ticket_ref": "JOB-101",
+        "contractor": "East London Appliance Repairs",
+        "visit_window": "2026-10-13 08:00-12:00"
+      },
+      "key": "assign_contractor:{contractor:\"East London Appliance Repairs\",ticket_ref:\"JOB-101\",visit_window:\"2026-10-13 08:00-12:00\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "JOB-101",
+      "evidence": [
+        "Ticket JOB-101 read back at stage visit"
+      ]
+    },
+    {
+      "id": "A3",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Priya Shah",
+        "recipient_role": "tenant",
+        "channel": "sms",
+        "contact": "+447700900103",
+        "ticket_ref": "JOB-101",
+        "body": "Hi Priya, sorry about the glitch on our call. Your oven repair is now logged: ref JOB-101 (door hangs open and won't shut). We've passed it to East London Appliance Repairs, our usual appliance contractor. We aim to get someone out within 14 days. We've asked for Tue 13 Oct, 8am-12pm, as you're in weekday mornings, but the contractor hasn't confirmed it yet, so please don't treat it as booked. We'll confirm or rearrange by Monday 12 Oct. Until then please don't use the oven, and keep your cat away from the open door. Reply here if mornings change."
+      },
+      "key": "send_message:{body:\"Hi Priya, sorry about the glitch on our call. Your oven repair is now logged: ref JOB-101 (door hangs open and won't shut). We've passed it to East London Appliance Repairs, our usual appliance contractor. We aim to get someone out within 14 days. We've asked for Tue 13 Oct, 8am-12pm, as you're in weekday mornings, but the contractor hasn't confirmed it yet, so please don't treat it as booked. We'll confirm or rearrange by Monday 12 Oct. Until then please don't use the oven, and keep your cat away from the open door. Reply here if mornings change.\",channel:\"sms\",contact:\"+447700900103\",recipient_name:\"Priya Shah\",recipient_role:\"tenant\",ticket_ref:\"JOB-101\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-102",
+      "evidence": [
+        "MSG-102 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A4",
+      "tool": "send_message",
+      "args": {
+        "recipient_name": "Daniel Price",
+        "recipient_role": "landlord",
+        "channel": "email",
+        "contact": "daniel.price@example.co.uk",
+        "ticket_ref": "JOB-101",
+        "body": "Hi Daniel, the tenant at Flat 9, 3 Amhurst Road reported a snapped oven door hinge (door hangs open, won't shut). Routine repair JOB-101 is with East London Appliance Repairs, within your £250 routine limit. A visit window of 13 Oct am is requested, not yet confirmed. We'll come back to you for approval if any quote exceeds £250."
+      },
+      "key": "send_message:{body:\"Hi Daniel, the tenant at Flat 9, 3 Amhurst Road reported a snapped oven door hinge (door hangs open, won't shut). Routine repair JOB-101 is with East London Appliance Repairs, within your £250 routine limit. A visit window of 13 Oct am is requested, not yet confirmed. We'll come back to you for approval if any quote exceeds £250.\",channel:\"email\",contact:\"daniel.price@example.co.uk\",recipient_name:\"Daniel Price\",recipient_role:\"landlord\",ticket_ref:\"JOB-101\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "MSG-103",
+      "evidence": [
+        "MSG-103 found in the send_message log"
+      ]
+    },
+    {
+      "id": "A5",
+      "tool": "update_ticket",
+      "args": {
+        "ref": "JOB-101",
+        "note": "Contractor must confirm 13 Oct 08:00-12:00 window (requested, not confirmed). Review Mon 12 Oct. Conflict: handover said door won't open or close; tenant corrected on call to hangs open/won't shut. E-4901 cause: phone line lost verification after restart; identity was verified (name+DOB match CRM, call to number on file)."
+      },
+      "key": "update_ticket:{note:\"Contractor must confirm 13 Oct 08:00-12:00 window (requested, not confirmed). Review Mon 12 Oct. Conflict: handover said door won't open or close; tenant corrected on call to hangs open/won't shut. E-4901 cause: phone line lost verification after restart; identity was verified (name+DOB match CRM, call to number on file).\",ref:\"JOB-101\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "JOB-101",
+      "evidence": [
+        "Ticket JOB-101 read back at stage visit"
+      ]
+    },
+    {
+      "id": "A6",
+      "tool": "schedule_follow_up",
+      "args": {
+        "ticket_ref": "JOB-101",
+        "due_on": "2026-10-12",
+        "party": "East London Appliance Repairs",
+        "purpose": "Confirm contractor accepted 13 Oct am window; tell tenant"
+      },
+      "key": "schedule_follow_up:{due_on:\"2026-10-12\",party:\"East London Appliance Repairs\",purpose:\"Confirm contractor accepted 13 Oct am window; tell tenant\",ticket_ref:\"JOB-101\"}",
+      "attempts": 1,
+      "status": "verified",
+      "ref": "FUP-104",
+      "evidence": [
+        "FUP-104 found in the schedule_follow_up log"
+      ]
+    }
+  ],
+  "state": {
+    "tickets": [
+      {
+        "ref": "JOB-101",
+        "stage": "visit",
+        "property": "P-203",
+        "tenant": "T-1003",
+        "category": "appliance",
+        "severity": "routine",
+        "description": "Oven door hinge snapped on the morning of 10 Oct; door hangs open and won't shut. Tenant advised not to use oven. Access: tenant in weekday mornings; has a cat. Raised from AI phone line call, escalation E-4901.",
+        "contractor": "East London Appliance Repairs",
+        "visit_window": "2026-10-13 08:00-12:00",
+        "notes": [
+          "Contractor must confirm 13 Oct 08:00-12:00 window (requested, not confirmed). Review Mon 12 Oct. Conflict: handover said door won't open or close; tenant corrected on call to hangs open/won't shut. E-4901 cause: phone line lost verification after restart; identity was verified (name+DOB match CRM, call to number on file)."
+        ]
+      }
+    ],
+    "records": [
+      {
+        "id": "MSG-102",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Priya Shah",
+          "recipient_role": "tenant",
+          "channel": "sms",
+          "contact": "+447700900103",
+          "body": "Hi Priya, sorry about the glitch on our call. Your oven repair is now logged: ref JOB-101 (door hangs open and won't shut). We've passed it to East London Appliance Repairs, our usual appliance contractor. We aim to get someone out within 14 days. We've asked for Tue 13 Oct, 8am-12pm, as you're in weekday mornings, but the contractor hasn't confirmed it yet, so please don't treat it as booked. We'll confirm or rearrange by Monday 12 Oct. Until then please don't use the oven, and keep your cat away from the open door. Reply here if mornings change.",
+          "ticket_ref": "JOB-101"
+        },
+        "at": 1791642749348
+      },
+      {
+        "id": "MSG-103",
+        "tool": "send_message",
+        "args": {
+          "recipient_name": "Daniel Price",
+          "recipient_role": "landlord",
+          "channel": "email",
+          "contact": "daniel.price@example.co.uk",
+          "body": "Hi Daniel, the tenant at Flat 9, 3 Amhurst Road reported a snapped oven door hinge (door hangs open, won't shut). Routine repair JOB-101 is with East London Appliance Repairs, within your £250 routine limit. A visit window of 13 Oct am is requested, not yet confirmed. We'll come back to you for approval if any quote exceeds £250.",
+          "ticket_ref": "JOB-101"
+        },
+        "at": 1791642749348
+      },
+      {
+        "id": "FUP-104",
+        "tool": "schedule_follow_up",
+        "args": {
+          "ticket_ref": "JOB-101",
+          "due_on": "2026-10-12",
+          "party": "East London Appliance Repairs",
+          "purpose": "Confirm contractor accepted 13 Oct am window; tell tenant"
+        },
+        "at": 1791642749349
+      }
+    ],
+    "properties": [
+      {
+        "id": "P-203",
+        "address": "Flat 9, 3 Amhurst Road, London E8 2AU",
+        "tenanted": true,
+        "landlord": {
+          "name": "Daniel Price",
+          "email": "daniel.price@example.co.uk",
+          "spend_limit_gbp": 250,
+          "notes": [
+            "Approves routine repairs up to £250 without asking."
+          ]
+        },
+        "contractors": [
+          {
+            "contractor_id": "C-08",
+            "name": "East London Appliance Repairs",
+            "trades": [
+              "appliances"
+            ],
+            "phone": "+447700900308",
+            "out_of_hours": false
+          }
+        ]
+      }
+    ]
+  },
+  "usage": {
+    "input": 12,
+    "output": 3487,
+    "cost": 0.07493530000000001,
+    "turns": 5,
+    "durationMs": 27276,
+    "retries": 0,
+    "thinkingTokens": 537
+  }
+}

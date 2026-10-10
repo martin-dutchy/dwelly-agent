@@ -5,6 +5,7 @@ import { loadCase } from './cases.js';
 import { foreignAddresses, hearsaySpeaker, invoiceFlags, mentionsDate, namesAttachment, quoteAppears, quoteSpeakers, quoteTotal, tooThinForApproval, visitProblems } from './opsChecks.js';
 import { seedFromCase } from './opsSeed.js';
 import { createOpsToolset, landlordInformedProblem } from './opsTools.js';
+import { renderAnswer } from './report.js';
 
 const ctx = { conversationId: 'test', channel: 'text' as const };
 const ADDRESS = 'Flat 30, 30 Harbour View, Northbridge, ZZ9 0ZZ';
@@ -69,6 +70,16 @@ describe('visit confirmation', () => {
     expect(mentionsDate('booked 18/09 am', '2025-09-08 10:00')).toBe(false);
     expect(mentionsDate('Monday morning between 10 and 12', '2025-09-08 10:00')).toBe(false);
     expect(mentionsDate('I can come tomorrow at 10', '2025-09-08 10:00', '2025-09-07 15:00')).toBe(true);
+    expect(mentionsDate('They agree on a visit time for the next day after 10:30 AM.', '2025-09-08 10:30', '2025-09-07 05:03')).toBe(true);
+    expect(mentionsDate('They agree on a visit time for the next day after 10:30 AM.', '2025-09-09 10:30', '2025-09-07 05:03')).toBe(false);
+  });
+
+  it('reads "tomorrow" from the day the provider said it, not from today', () => {
+    const said = ['### 2025-09-02 18:00 UTC — event 030', '- **From:** Contractor', 'I can come tomorrow at 10.'].join('\n');
+    const t = ops({}, { evidence: said, today: '2025-09-03 07:00' });
+    const visit = (datetime: string) => t.guard!('set_visit', { ticket_ref: 'NBL-1', datetime, slot_text: '10am', access: 'tenant_home', confirmed_by: 'provider', evidence_quote: 'I can come tomorrow at 10' }, []);
+    expect(visit('2025-09-03 10:00')).toBeUndefined();
+    expect(visit('2025-09-04 10:00')).toMatch(/does not name/);
   });
 
   it('says who wrote the words in an organiser history, and nothing for other formats', () => {
@@ -112,6 +123,28 @@ describe('visit confirmation', () => {
     const ref = t.state.tickets[0].ref;
     const r = t.guard!('set_visit', { ticket_ref: ref, datetime: '2025-09-08 10:00', slot_text: 'Monday 8 September, 10-12', access: 'tenant_home', confirmed_by: 'provider', evidence_quote: 'she previously arranged the repair for the 8 September 2025' }, []);
     expect(r).toMatch(/not the provider/);
+  });
+});
+
+describe('landlord approval request with news', () => {
+  it('keeps the update in the record and renders it in the answer', async () => {
+    const t = ops();
+    const args = { landlord: 'L', decision_needed: 'Approve the quote', amount_gbp: 450, ticket_ref: 'NBL-1', options: ['approve', 'decline'], update: 'The visit dates conflict; nothing is booked yet. We are checking with the contractor.' };
+    const r = await t.execute('request_landlord_approval', args, ctx);
+    expect(r.ok).toBe(true);
+    const rec = t.state.records.find((x) => x.tool === 'request_landlord_approval');
+    expect(rec?.args.update).toBe(args.update);
+    const c = loadCase('cases/public-cuts/026-date-conflict');
+    const d = { outcome: 'waiting', severity: 'routine', summary: 's', case_state: 's', next_actions: [], answers: [], boundaries: [], conflicts: [], failed_actions: [], missing_info: [], remaining_work: [] } as any;
+    const answer = renderAnswer(c, d, [{ id: 'A1', tool: 'request_landlord_approval', args: rec!.args, key: 'A1', attempts: 1, status: 'verified', evidence: [] }]);
+    expect(answer).toContain('The visit dates conflict; nothing is booked yet.');
+  });
+
+  it('lets a letter go to a postal address from the records', () => {
+    const send = ops().tools.find((x) => x.name === 'send_message')!;
+    const contact = (send.parameters as any).shape.contact.description as string;
+    expect(contact).toMatch(/letter/i);
+    expect(contact).toMatch(/postal address/i);
   });
 });
 
@@ -327,6 +360,18 @@ describe('ops guards', () => {
     await t.execute('resume_auto', { ticket_ref: 'NBL-1' }, ctx);
     expect(t.state.tickets[0]).toMatchObject({ mode: 'auto' });
     expect(t.state.tickets[0].hold).toBeUndefined();
+  });
+
+  it('sends an approved job with no contractor to provider selection on resume_auto', async () => {
+    const approved = ops({ stage: 'init', landlord_approval: 'confirmed' });
+    expect(await approved.execute('resume_auto', { ticket_ref: 'NBL-1' }, ctx)).toMatchObject({ ok: true, next: expect.stringMatching(/provider selection/) });
+    expect(approved.state.tickets[0]).toMatchObject({ mode: 'auto', provider_selection: 'requested' });
+
+    for (const fields of [{ stage: 'init', landlord_approval: 'required' }, { stage: 'visit', landlord_approval: 'confirmed', contractor: 'Riverside Works' }]) {
+      const t = ops(fields);
+      expect(await t.execute('resume_auto', { ticket_ref: 'NBL-1' }, ctx)).not.toHaveProperty('next');
+      expect(t.state.tickets[0].provider_selection).toBeUndefined();
+    }
   });
 });
 

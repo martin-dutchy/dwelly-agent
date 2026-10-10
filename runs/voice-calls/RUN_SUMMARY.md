@@ -1,17 +1,29 @@
 # Run summary
 
-Command: `pnpm cases --in cases/voice-calls --only V040-tenant-self-swapped-machine-gs2den,V014-tenant-door-already-fixed-fa514g,V038-landlord-tenant-own-washer-99vdh8,V011-contractor-extra-part-skmtff --out runs/voice-calls --at none`
+Command: `pnpm cases --in cases/voice-calls --out runs/voice-calls --at none`
 
-- Running 4 cases with claude-sonnet-5-5, thinking medium (concurrency 6, Jev off) at commit dafa48c0 with uncommitted changes…
+- Running 16 cases with claude-sonnet-5-5, thinking medium (concurrency 6, Jev off) at commit a20f01eb with uncommitted changes…
 - Toolset: local mock environment (no organiser API configured)
 
 | Case | Outcome | Actions | Failed | Cost (USD) | Seconds | Error / note |
 |---|---|---|---|---|---|---|
-| V011-contractor-extra-part-skmtff | action_taken | 5 | 0 | 0.084 | 20 |  |
-| V014-tenant-door-already-fixed-fa514g | action_taken | 5 | 0 | 0.086 | 25 |  |
-| V038-landlord-tenant-own-washer-99vdh8 | action_taken | 3 | 0 | 0.076 | 19 |  |
-| V040-tenant-self-swapped-machine-gs2den | action_taken | 3 | 0 | 0.078 | 18 |  |
+| 101 | action_taken | 4 | 0 | 0.061 | 19 |  |
+| 102 | action_taken | 7 | 1 | 0.090 | 27 |  |
+| 103 | action_taken | 3 | 0 | 0.058 | 20 |  |
+| 104 | action_taken | 6 | 0 | 0.081 | 30 |  |
+| 105 | action_taken | 4 | 0 | 0.062 | 22 |  |
+| 106 | action_taken | 5 | 0 | 0.061 | 18 |  |
+| 107 | action_taken | 4 | 0 | 0.073 | 22 |  |
+| 108 | action_taken | 5 | 0 | 0.063 | 20 |  |
+| 109 | action_taken | 8 | 1 | 0.089 | 30 |  |
+| 110 | action_taken | 5 | 0 | 0.071 | 25 |  |
+| 111 | action_taken | 6 | 0 | 0.087 | 26 |  |
+| 112 | action_taken | 6 | 0 | 0.081 | 22 |  |
+| 113 | action_taken | 3 | 0 | 0.054 | 18 |  |
+| 114 | action_taken | 5 | 0 | 0.074 | 26 |  |
+| 115 | action_taken | 5 | 1 | 0.078 | 25 |  |
+| 116 | action_taken | 4 | 0 | 0.054 | 19 |  |
 
-- Done in 25s · total cost $0.32 · decisions 4/4 · resumed 0 · budget-skipped 0
+- Done in 72s · total cost $1.14 · decisions 16/16 · resumed 0 · budget-skipped 0
 - Rate-limit retries: 0 across 0 cases (max 0 in one case) at concurrency 6 · next run: keep --concurrency 6
-- Value (estimate): 4 autonomous · 0 escalated · 16 verified write actions (local mock environment) · $0.081 and 20 s per case · ~1.7 human hours if a person did the same actions (6.5 min per verified write action, less 3 min of human review per escalation, Dwelly's published figures)
+- Value (estimate): 16 autonomous · 0 escalated · 77 verified write actions (local mock environment) · $0.071 and 23 s per case · ~8.3 human hours if a person did the same actions (6.5 min per verified write action, less 3 min of human review per escalation, Dwelly's published figures)
