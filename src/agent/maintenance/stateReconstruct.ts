@@ -64,12 +64,12 @@ export type CaseState = {
 
 // ---- primitives -------------------------------------------------------------------------------------
 
-const field = (body: string, name: string) => body.match(new RegExp(`^- \\*\\*${name}:\\*\\* (.*)$`, 'm'))?.[1]?.trim();
-const dateOf = (e: HistoryEvent) => e.header.split(' — ')[0].slice(0, 10);
+export const field = (body: string, name: string) => body.match(new RegExp(`^- \\*\\*${name}:\\*\\* (.*)$`, 'm'))?.[1]?.trim();
+export const dateOf = (e: HistoryEvent) => e.header.split(' — ')[0].slice(0, 10);
 const ref = (e: HistoryEvent): Ref => ({ event: e.n, date: dateOf(e) });
 export const eventId = (n: number) => `event ${String(n).padStart(3, '0')}`;
 /** Body text without the Channel / From / To bullet lines. */
-const text = (e: HistoryEvent) =>
+export const text = (e: HistoryEvent) =>
   e.body
     .split('\n')
     .filter((l) => !/^- \*\*(Channel|From|To):\*\*/.test(l))
@@ -156,7 +156,7 @@ function withYear(m: number, d: number, eventDate: string): string | undefined {
   return monthsBack > 6 && same < eventDate ? iso(y + 1, m, d) : same;
 }
 
-function explicitDates(line: string, eventDate: string): string[] {
+export function explicitDates(line: string, eventDate: string): string[] {
   const out = new Set<string>();
   for (const m of line.matchAll(R_DMY)) {
     const y = m[3].length === 2 ? 2000 + Number(m[3]) : Number(m[3]);
@@ -393,8 +393,11 @@ const capList = <T>(xs: T[], fmt: (x: T) => string) => {
   return xs.length > MAX_LIST ? [`(${xs.length - MAX_LIST} earlier omitted)`, ...shown] : shown;
 };
 
-export function renderHints(state: CaseState | undefined): string {
-  if (!state || state.eventsSeen === 0) return '';
+export const stageLabel = (s: Stage) => STAGE_LABEL[s];
+
+/** The hint bullets, one item per top-level bullet (an item may carry indented sub-bullets). */
+export function hintLines(state: CaseState | undefined): string[] {
+  if (!state || state.eventsSeen === 0) return [];
   const lines: string[] = [];
   const add = (s: string) => lines.push(`- ${s}`);
 
@@ -408,12 +411,12 @@ export function renderHints(state: CaseState | undefined): string {
 
   const parties = (Object.entries(state.parties) as [Role, { lastFrom?: Ref; lastTo?: Ref }][]).filter(([r]) => r !== 'agency');
   if (parties.length) {
-    lines.push('- Last contact per party:');
-    for (const [role, p] of parties) {
+    const sub = parties.map(([role, p]) => {
       const c = state.chases[role];
       const chase = c && c.count > 0 ? `; ${c.count} agency message${c.count === 1 ? '' : 's'} to them since ${c.since ? `their last message` : 'the start'}${c.reminders ? ` (${c.reminders} reminder${c.reminders === 1 ? '' : 's'})` : ''}` : '';
-      lines.push(`  - ${role}: last from them ${p.lastFrom ? at(p.lastFrom) : 'never'}; last to them ${p.lastTo ? at(p.lastTo) : 'never'}${chase}.`);
-    }
+      return `  - ${role}: last from them ${p.lastFrom ? at(p.lastFrom) : 'never'}; last to them ${p.lastTo ? at(p.lastTo) : 'never'}${chase}.`;
+    });
+    lines.push(['- Last contact per party:', ...sub].join('\n'));
   }
 
   const lastHold = state.holds.at(-1);
@@ -447,7 +450,12 @@ export function renderHints(state: CaseState | undefined): string {
   for (const ms of [...byEvent.values()].slice(-4))
     add(`Address check: ${eventId(ms[0].event)} mentions ${ms.map((m) => m.postcode).join(', ')}, not the case property's ${ms[0].expected}: "${ms[0].found}".`);
   for (const u of state.unrelatedIssues.slice(0, 4)) add(`Possible separate issue (${u.noun}) raised by the ${u.from} at ${eventId(u.event)}, not in the original request: "${u.text}".`);
+  return lines;
+}
 
+export function renderHints(state: CaseState | undefined): string {
+  if (!state || state.eventsSeen === 0) return '';
+  const lines = hintLines(state);
   if (!lines.length) return '';
   return [
     '<case_state_hints>',
