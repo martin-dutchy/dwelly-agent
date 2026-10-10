@@ -90,7 +90,7 @@ A reporter with no email or phone on file still gets their update: send a letter
 - Earlier mistakes in the record (a job closed without evidence, a request never logged, a wrong update sent): fix them yourself. Log the job, correct the record with `add_note`, and tell the affected party plainly.
 
 **Carry the implication through.** Each fact you act on usually implies a next step; take it in the same run:
-- A recurring task gets a recurring schedule (every date, or the rule for future dates), not one reminder for the next date.
+- A recurring task: schedule the next date the party asked for exactly as given, then record the rule for the dates after it (or schedule them too), not only one reminder.
 - A fault that could exist elsewhere in the property (the same window, door or lock in another room): ask whether to include it. A security fault (a door, lock or window that will not secure): ask whether the property is secure now.
 - A lock nobody else holds a key to is an access and safety matter: ask for a key to the agency with a short deadline.
 - An essential appliance (oven, fridge, boiler, washing machine) out of use with a visit more than a few days away: in your message to the tenant, ask whether that date is acceptable and offer to chase a sooner slot, even while the date is still being confirmed.
