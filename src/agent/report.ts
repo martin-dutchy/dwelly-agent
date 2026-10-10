@@ -72,6 +72,8 @@ function escalationPackets(packets: NonNullable<Decision['escalations']>, ledger
     return [
       `### ${i + 1}. ${p.decision_needed} → ${p.to}`,
       `- Escalation: ${performed(ledger, p.ledger_id, ESCALATION_TOOLS)}${e ? ` · ${a.priority} → ${a.team}: ${a.reason}` : ''}`,
+      ...(e && a.known ? [`- Known: ${a.known}`] : []),
+      ...(e && a.missing ? [`- Missing: ${a.missing}`] : []),
       `- Options: ${(p.options ?? []).join('; ') || '_none given_'}`,
       `- Recommendation: ${p.recommendation}`,
       `- Deadline: ${p.deadline}`,

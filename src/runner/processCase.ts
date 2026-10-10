@@ -1,5 +1,5 @@
 // One case from folder to ANSWERS/<id>/. Never throws: any failure becomes the crash fallback.
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import type { StreamFn } from '@earendil-works/pi-agent-core';
 import type { Api, Model, ModelThinkingLevel } from '@earendil-works/pi-ai';
@@ -204,6 +204,12 @@ export async function processCase(dir: string, timeoutMs: number, env: CaseEnv):
       if (toolCalls.length || stoppedAt) writeFileSync(join(outDir, 'trace.jsonl'), [...toolCalls.map((t) => ({ ts: t.at, type: 'runner_tool_call', tool: t.tool, status: t.status })), ...(stoppedAt ? [{ ts: stoppedAt, type: 'case_stopped', reason: msg }] : [])].map((x) => JSON.stringify(x)).join('\n') + '\n');
     } catch (w) {
       env.log(`  ! ${id} fallback not fully written: ${w instanceof Error ? w.message : w}`);
+      try {
+        mkdirSync(outDir, { recursive: true });
+        if (!existsSync(join(outDir, 'ANSWER.md'))) writeFileSync(join(outDir, 'ANSWER.md'), `# Case ${id}: ANSWER\n\n**Outcome:** escalated (system failure)\n\n${msg}\n`);
+      } catch {
+        // Nothing more can be written; the batch continues.
+      }
     }
     return { id, outcome: 'CRASH', actions: 0, failed: 0, cost: 0, secs: (Date.now() - started) / 1000, retries: 0, error: msg };
   } finally {

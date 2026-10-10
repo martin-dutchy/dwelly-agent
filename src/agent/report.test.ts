@@ -372,6 +372,8 @@ describe('ANSWER.md harness v2 sections (R1, R2)', () => {
       "## Escalations
       ### 1. Approve the £420 quote → property manager
       - Escalation: A2 ✅ verified · urgent → property manager: Quote above the spend limit
+      - Known: Quote £420
+      - Missing: Landlord approval
       - Options: Approve; Decline
       - Recommendation: Approve
       - Deadline: 2026-10-12
