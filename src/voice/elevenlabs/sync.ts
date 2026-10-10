@@ -68,6 +68,7 @@ async function syncWebhookTools(auth: string | { secret_id: string }, agentId: s
 
 async function main() {
   const kind = process.env.VOICE_BRAIN === 'pi' ? 'pi' : 'native';
+  const toolAuth = await secret(`dwelly_voice_tool_auth_${secretSuffix}`, `Bearer ${toolSecret}`);
   const brain: Brain =
     kind === 'pi'
       ? // ElevenLabs appends /chat/completions to this URL and sends the key as "Bearer <key>".
@@ -75,10 +76,15 @@ async function main() {
       : {
           kind,
           llm: process.env.ELEVENLABS_LLM || 'claude-haiku-4-5',
-          toolIds: await syncWebhookTools(await secret(`dwelly_voice_tool_auth_${secretSuffix}`, `Bearer ${toolSecret}`), process.env.ELEVENLABS_AGENT_ID),
+          toolIds: await syncWebhookTools(toolAuth, process.env.ELEVENLABS_AGENT_ID),
         };
 
-  const config = agentConfig({ name: process.env.ELEVENLABS_AGENT_NAME || 'Dwelly tenant line', brain, voiceId: process.env.ELEVENLABS_VOICE_ID || undefined });
+  const config = agentConfig({
+    name: process.env.ELEVENLABS_AGENT_NAME || 'Dwelly tenant line',
+    brain,
+    voiceId: process.env.ELEVENLABS_VOICE_ID || undefined,
+    initiationWebhook: { url: `${baseUrl!.replace(/\/$/, '')}/voice/webhooks/initiation`, auth: toolAuth },
+  });
   console.log(`[sync] brain: ${kind}`);
   const agentId = process.env.ELEVENLABS_AGENT_ID;
   if (agentId) {

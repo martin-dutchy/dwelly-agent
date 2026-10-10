@@ -132,7 +132,10 @@ const system = (name: string, params: Record<string, unknown> = {}) => ({ type: 
  */
 export type Brain = { kind: 'native'; llm: string; toolIds: string[] } | { kind: 'pi'; url: string; apiKey: string | { secret_id: string } };
 
-export type AgentOptions = { name: string; brain: Brain; voiceId?: string };
+/** Where ElevenLabs fetches dynamic variables for inbound conversations (WhatsApp, direct calls); see initiation.ts. */
+export type InitiationWebhook = { url: string; auth: string | { secret_id: string } };
+
+export type AgentOptions = { name: string; brain: Brain; voiceId?: string; initiationWebhook?: InitiationWebhook };
 
 /** pi needs the call id to key its session; ElevenLabs fills the variable before sending the prompt. */
 export const CONVERSATION_ID_LINE = 'Conversation id: {{system__conversation_id}}';
@@ -146,7 +149,7 @@ function llmSettings(brain: Brain) {
   };
 }
 
-export function agentConfig({ name, brain, voiceId }: AgentOptions) {
+export function agentConfig({ name, brain, voiceId, initiationWebhook }: AgentOptions) {
   return {
     name,
     conversation_config: {
@@ -204,7 +207,14 @@ export function agentConfig({ name, brain, voiceId }: AgentOptions) {
       auth: { enable_auth: true },
       // The test console can run a call as text only (no mic), for checking logic separately from audio.
       // Outbound test calls override the first message (see /admin "Call a phone").
-      overrides: { conversation_config_override: { conversation: { text_only: true }, agent: { first_message: true } } },
+      overrides: {
+        conversation_config_override: { conversation: { text_only: true }, agent: { first_message: true } },
+        enable_conversation_initiation_client_data_from_webhook: !!initiationWebhook,
+      },
+      // Per agent, so a local (ngrok) agent and production never repoint each other's webhook.
+      ...(initiationWebhook
+        ? { workspace_overrides: { conversation_initiation_client_data_webhook: { url: initiationWebhook.url, request_headers: { Authorization: initiationWebhook.auth } } } }
+        : {}),
       data_collection: {
         intent: { type: 'string', description: 'One of: repair, emergency, tenancy_query, ticket_status, payment, complaint, other' },
         identity_verified: { type: 'boolean', description: 'True if verify_identity returned verified true during the call' },
